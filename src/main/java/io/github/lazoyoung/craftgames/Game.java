@@ -1,5 +1,6 @@
 package io.github.lazoyoung.craftgames;
 
+import jdk.nashorn.api.scripting.ScriptUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.asset.Asset;
 import org.spongepowered.api.command.CommandResult;
@@ -8,8 +9,15 @@ import org.spongepowered.api.command.args.CommandContext;
 import org.spongepowered.api.command.args.GenericArguments;
 import org.spongepowered.api.command.spec.CommandExecutor;
 import org.spongepowered.api.command.spec.CommandSpec;
+import org.spongepowered.api.event.Event;
 import org.spongepowered.api.event.EventListener;
+import org.spongepowered.api.event.EventManager;
+import org.spongepowered.api.event.block.TargetBlockEvent;
+import org.spongepowered.api.event.block.tileentity.TargetTileEntityEvent;
+import org.spongepowered.api.event.entity.TargetEntityEvent;
 import org.spongepowered.api.text.Text;
+import org.spongepowered.api.world.Location;
+import org.spongepowered.api.world.World;
 
 import javax.script.*;
 import java.io.File;
@@ -19,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class Game {
@@ -37,13 +46,24 @@ public class Game {
         engine = new ScriptEngineManager().getEngineByName("nashorn");
         context = new SimpleScriptContext();
         bindings = new SimpleBindings();
-    
+        
         try {
-            bindings.put("EventListener", engine.eval("Java.type('org.spongepowered.api.event.EventListener')"));
-            bindings.put("registerListener", (BiConsumer<Class, EventListener>) this::registerListener);
-            bindings.put("getEvent", (Function<String, Class>) this::getEvent);
+            // Util Classes
+            bindings.put("Text", engine.eval("Java.type('org.spongepowered.api.text.Text')"));
+    
+            // Util Methods
+            bindings.put("registerListener", (BiConsumer<String, String>) this::registerListener);
+            bindings.put("getEvent", (Function<String, Object>) this::getEvent);
+            bindings.put("convertEvent", (BiFunction<Event, Object, Event>) this::convertEvent);
+            
+            // Event types
+            bindings.put("TargetEntityEvent", "TargetEntityEvent");
+            bindings.put("TargetBlockEvent", "TargetBlockEvent");
+            bindings.put("TargetTileEntityEvent", "TargetTileEntityEvent");
+            
             context.setBindings(engine.getContext().getBindings(ScriptContext.ENGINE_SCOPE), ScriptContext.ENGINE_SCOPE);
             context.setBindings(bindings, ScriptContext.GLOBAL_SCOPE);
+            engine.setContext(context);
         } catch (ScriptException e) {
             e.printStackTrace();
         }
@@ -62,7 +82,7 @@ public class Game {
         dir.toFile().mkdirs();
         
         try {
-            engine.eval(new FileReader(file), bindings);
+            engine.eval(new FileReader(file));
         }
         
         catch (FileNotFoundException e) {
@@ -85,23 +105,67 @@ public class Game {
         return true;
     }
     
-    @SuppressWarnings("unchecked")
-    private void registerListener(Class eventClass, EventListener listener) {
-        Sponge.getEventManager().registerListener(CraftGames.getInstance(), eventClass, listener);
+    private void registerListener(String eventType, String function) {
+        EventManager man = Sponge.getEventManager();
+        
+        // TODO Support TargetInventoryEvent, MessageEvent
+        switch(eventType) {
+            case "TargetEntityEvent":
+                EventListener<TargetEntityEvent> listener
+                        = event -> handleEvent(function, event, event.getTargetEntity().getLocation());
+                man.registerListener(plugin, TargetEntityEvent.class, listener);
+                break;
+                
+            case "TargetBlockEvent":
+                EventListener<TargetBlockEvent> listener1
+                        =  event -> handleEvent(function, event, event.getTargetBlock().getLocation());
+                man.registerListener(plugin, TargetBlockEvent.class, listener1);
+                break;
+                
+            case "TargetTileEntityEvent":
+                EventListener<TargetTileEntityEvent> listener2
+                        = event -> handleEvent(function, event, event.getTargetTile().getLocation());
+                man.registerListener(plugin, TargetTileEntityEvent.class, listener2);
+                break;
+        }
     }
     
-    private Class getEvent(String eventPath) {
-        if(!eventPath.startsWith("org.")) {
-            eventPath = "org.spongepowered.api.event." + eventPath;
+    private Object getEvent(String event) {
+        if(!event.startsWith("org.")) {
+            event = "org.spongepowered.api.event." + event;
         }
-        
+    
         try {
-            return Class.forName(eventPath);
-        } catch (ClassNotFoundException e) {
+            return engine.eval("Java.type('" + event + "')");
+        } catch (ScriptException e) {
             e.printStackTrace();
         }
         
         return null;
+    }
+    
+    private Event convertEvent(Event event, Object target) {
+        return (Event) ScriptUtils.convert(event, target);
+    }
+    
+    private void handleEvent(String function, Event event, Location<World> loc) {
+        handleEvent(function, event, Optional.of(loc));
+    }
+    
+    private void handleEvent(String function, Event event, Optional<Location<World>> loc) {
+        
+        // TODO Handle the event unless the location points outside of the game.
+        if(!loc.isPresent()) {
+            return;
+        }
+    
+        Invocable inv = (Invocable) engine;
+        
+        try {
+            inv.invokeFunction(function, event);
+        } catch (ScriptException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
     }
     
 }
