@@ -15,6 +15,8 @@ import org.spongepowered.api.event.EventManager;
 import org.spongepowered.api.event.block.TargetBlockEvent;
 import org.spongepowered.api.event.block.tileentity.TargetTileEntityEvent;
 import org.spongepowered.api.event.entity.TargetEntityEvent;
+import org.spongepowered.api.event.user.TargetUserEvent;
+import org.spongepowered.api.scheduler.Task;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
@@ -26,17 +28,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.*;
 
 public class Game {
     
     public ScriptCommand scriptCommand;
     private CraftGames plugin;
     private ScriptEngine engine;
-    private ScriptContext context;
-    private Bindings bindings;
     private Path dir;
     
     public Game() {
@@ -44,14 +42,16 @@ public class Game {
         dir = plugin.getConfigDir();
         scriptCommand = new ScriptCommand(this);
         engine = new ScriptEngineManager().getEngineByName("nashorn");
-        context = new SimpleScriptContext();
-        bindings = new SimpleBindings();
         
         try {
+            ScriptContext context = new SimpleScriptContext();
+            Bindings bindings = new SimpleBindings();
+            
             // Util Classes
             bindings.put("Text", engine.eval("Java.type('org.spongepowered.api.text.Text')"));
     
             // Util Methods
+            bindings.put("registerDelayedTask", (BiConsumer<Runnable, Integer>) this::registerDelayedTask);
             bindings.put("registerListener", (BiConsumer<String, String>) this::registerListener);
             bindings.put("getEvent", (Function<String, Object>) this::getEvent);
             bindings.put("convertEvent", (BiFunction<Event, Object, Event>) this::convertEvent);
@@ -60,6 +60,7 @@ public class Game {
             bindings.put("TargetEntityEvent", "TargetEntityEvent");
             bindings.put("TargetBlockEvent", "TargetBlockEvent");
             bindings.put("TargetTileEntityEvent", "TargetTileEntityEvent");
+            bindings.put("TargetUserEvent", "TargetUserEvent");
             
             context.setBindings(engine.getContext().getBindings(ScriptContext.ENGINE_SCOPE), ScriptContext.ENGINE_SCOPE);
             context.setBindings(bindings, ScriptContext.GLOBAL_SCOPE);
@@ -108,7 +109,7 @@ public class Game {
     private void registerListener(String eventType, String function) {
         EventManager man = Sponge.getEventManager();
         
-        // TODO Support TargetInventoryEvent, MessageEvent
+        // TODO Support TargetInventoryEvent, MessageEvent. Best practice is to support all types.
         switch(eventType) {
             case "TargetEntityEvent":
                 EventListener<TargetEntityEvent> listener
@@ -127,7 +128,21 @@ public class Game {
                         = event -> handleEvent(function, event, event.getTargetTile().getLocation());
                 man.registerListener(plugin, TargetTileEntityEvent.class, listener2);
                 break;
+                
+            case "TargetUserEvent":
+                EventListener<TargetUserEvent> listener3
+                        = event -> handleEvent(function, event, event.getTargetUser().getPlayer().get().getLocation());
+                man.registerListener(plugin, TargetUserEvent.class, listener3);
+                break;
         }
+    }
+    
+    private void registerDelayedTask(Runnable runnable, int ticks) {
+        Task task = registerTask(runnable).delayTicks((long) ticks).submit(plugin);
+    }
+    
+    private Task.Builder registerTask(Runnable runnable) {
+        return Task.builder().execute(runnable);
     }
     
     private Object getEvent(String event) {
@@ -178,6 +193,7 @@ class ScriptCommand implements CommandExecutor {
         this.game = game;
     }
     
+    // TODO Allow reloading scripts.
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) {
         Optional<String> fileNameArg = args.getOne("fileName");
