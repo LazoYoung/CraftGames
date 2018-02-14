@@ -22,8 +22,6 @@ public class CraftGames {
     @Inject
     private Logger log;
     
-    private Game game;
-    
     private static ObjectHolder holder;
     
     
@@ -45,17 +43,16 @@ public class CraftGames {
     @Listener
     public void initPlugin(GamePreInitializationEvent event) {
         holder = new ObjectHolder(this);
-        game = new Game();
         Sponge.getCommandManager().register(getInstance(), buildCommand(), "craftgames", "craftgame", "cg");
     }
     
     private CommandSpec buildCommand() {
+        // TODO Implement reloading scripts.
         return CommandSpec.builder()
                 .description(Text.of("CraftGames Command"))
-                .child(game.scriptCommand.get(), "runscript", "testscript", "script")
+                .child(new RunScriptCommand().get(), "runscript", "testscript", "script")
                 .build();
     }
-    
 }
 
 class ObjectHolder {
