@@ -3,6 +3,9 @@ package io.github.lazoyoung.craftgames;
 import jdk.nashorn.api.scripting.ScriptUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.asset.Asset;
+import org.spongepowered.api.command.CommandSource;
+import org.spongepowered.api.command.source.ConsoleSource;
+import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Event;
 import org.spongepowered.api.event.EventListener;
 import org.spongepowered.api.event.EventManager;
@@ -20,13 +23,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.*;
 
 public class Script {
     
+    private static HashMap<String, Script> cmdSelect = new HashMap<>();
     private CraftGames plugin;
     private ScriptEngine engine;
     private File file;
@@ -104,6 +106,25 @@ public class Script {
         return Optional.ofNullable(script);
     }
     
+    public static Optional<Script> getCommandSelection(String id) {
+        return Optional.ofNullable(cmdSelect.get(id));
+    }
+    
+    public static void setCommandSelection(String id, Script sel) {
+        cmdSelect.put(id, sel);
+    }
+    
+    public static String getSelectorID(CommandSource src) {
+        if(src instanceof Player) {
+            return ((Player) src).getUniqueId().toString();
+        }
+        else if(src instanceof ConsoleSource) {
+            return "console";
+        }
+        
+        return null;
+    }
+    
     /**
      * While the execution, script may register some tasks and event listeners by itself.
      * @throws ScriptException Script syntax is invalid.
@@ -142,6 +163,10 @@ public class Script {
         }
         
         return true;
+    }
+    
+    public String getFilename() {
+        return file.getName();
     }
     
     public void unregisterListeners() {

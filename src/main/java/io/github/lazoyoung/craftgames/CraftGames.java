@@ -43,14 +43,15 @@ public class CraftGames {
     @Listener
     public void initPlugin(GamePreInitializationEvent event) {
         holder = new ObjectHolder(this);
-        Sponge.getCommandManager().register(getInstance(), buildCommand(), "craftgames", "craftgame", "cg");
+        Sponge.getCommandManager().register(getInstance(), buildCommand(), "cg", "craftgames");
     }
     
     private CommandSpec buildCommand() {
         // TODO Implement reloading scripts.
+        
         return CommandSpec.builder()
                 .description(Text.of("CraftGames Command"))
-                .child(new RunScriptCommand().get(), "runscript", "testscript", "script")
+                .child(new ScriptCommand().get(), "script")
                 .build();
     }
 }
