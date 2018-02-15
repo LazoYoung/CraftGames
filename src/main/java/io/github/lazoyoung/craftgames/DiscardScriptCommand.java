@@ -7,11 +7,9 @@ import org.spongepowered.api.command.spec.CommandExecutor;
 import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.text.Text;
 
-import javax.script.ScriptException;
-import java.io.FileNotFoundException;
 import java.util.Optional;
 
-class RunScriptCommand extends ScriptCommand implements CommandExecutor {
+public class DiscardScriptCommand extends ScriptCommand implements CommandExecutor {
     
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) {
@@ -24,30 +22,29 @@ class RunScriptCommand extends ScriptCommand implements CommandExecutor {
         
         Optional<Script> optScript = ScriptRegistration.getSelection(selector);
         
-        if(optScript.isPresent()) {
-            Script script = optScript.get();
-            try {
-                script.run();
-                src.sendMessage(Text.of("Successfully executed the script."));
-            } catch (ScriptException e) {
-                e.printStackTrace();
-                src.sendMessage(Text.of(script.getFilename() + " has an error at line " + e.getLineNumber()));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                src.sendMessage(Text.of(script.getFilename() + " can't be executed because it's missing."));
-            }
-        }
-        else {
+        if(!optScript.isPresent()) {
             notifyMissingSelection(src);
+            return CommandResult.success();
         }
         
+        Script script = optScript.get();
+        
+        if(!script.run) {
+            src.sendMessage(Text.of("The script is not active."));
+            return CommandResult.success();
+        }
+        
+        script.unregisterListeners();
+        script.unregisterTasks();
+        ScriptRegistration.unregisterScript(script);
+        src.sendMessage(Text.of("Discarded the script."));
         return CommandResult.success();
     }
     
     public CommandSpec get() {
         return CommandSpec.builder()
-                .description(Text.of("Execute a selected script."))
-                .permission("craftgames.script.run")
+                .description(Text.of("Discards a script with its variables, tasks, and event listeners."))
+                .permission("craftgames.script.discard")
                 .executor(this)
                 .build();
     }

@@ -10,20 +10,20 @@ import org.spongepowered.api.text.Text;
 
 import java.util.Optional;
 
-public class SelectScriptCommand implements CommandExecutor {
+public class SelectScriptCommand extends ScriptCommand implements CommandExecutor {
     
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) {
         String fileName = getParsedFilename(args);
-        String userId = Script.getSelectorID(src);
         boolean copyIfAbsent = args.hasAny("c");
+        String selector = ScriptRegistration.getSelectorID(src);
         
-        if(userId == null) {
-            src.sendMessage(Text.of("The CommandSource of you are not supported to use this command."));
+        if(selector == null) {
+            notifyInvalidSelector(src);
             return CommandResult.empty();
         }
         
-        computeSelection(userId, fileName, copyIfAbsent, src);
+        computeSelection(selector, fileName, copyIfAbsent, src);
         return CommandResult.success();
     }
     
@@ -46,9 +46,9 @@ public class SelectScriptCommand implements CommandExecutor {
         return str.contains(".") ? str : str.concat(".js");
     }
     
-    private void computeSelection(String userId, String fileName, boolean copyIfAbsent, CommandSource src) {
+    private void computeSelection(String selector, String fileName, boolean copyIfAbsent, CommandSource src) {
         Optional<Script> optScript = Script.get(fileName, copyIfAbsent);
-        Optional<Script> oldSel = Script.getCommandSelection(userId);
+        Optional<Script> oldSel = ScriptRegistration.getSelection(selector);
         
         if(oldSel.isPresent()) {
             if(oldSel.get().getFilename().equals(fileName)) {
@@ -61,7 +61,7 @@ public class SelectScriptCommand implements CommandExecutor {
             src.sendMessage(Text.of("That file can\'t be found."));
         }
         else {
-            Script.setCommandSelection(userId, optScript.get());
+            Script.setCommandSelection(src, optScript.get());
             src.sendMessage(Text.of("Selected script: " + fileName));
             return;
         }

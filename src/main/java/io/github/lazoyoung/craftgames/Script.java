@@ -28,7 +28,8 @@ import java.util.function.*;
 
 public class Script {
     
-    private static HashMap<String, Script> cmdSelect = new HashMap<>();
+    public int id;
+    public boolean run;
     private CraftGames plugin;
     private ScriptEngine engine;
     private File file;
@@ -36,38 +37,17 @@ public class Script {
     private List<Task> tasks;
     
     
-    private Script(File file) {
+    private Script(File file) throws ScriptException {
         this.file = file;
         this.plugin = CraftGames.getInstance();
         this.engine = new ScriptEngineManager().getEngineByName("nashorn");
+        this.id = new Random().nextInt(1000000);
         this.listeners = new ArrayList<>();
         this.tasks = new ArrayList<>();
-    
-        try {
-            ScriptContext context = new SimpleScriptContext();
-            Bindings bindings = new SimpleBindings();
+        this.run = false;
         
-            // Util Classes
-            bindings.put("Text", engine.eval("Java.type('org.spongepowered.api.text.Text')"));
-        
-            // Util Methods
-            bindings.put("registerDelayedTask", (BiConsumer<Runnable, Integer>) this::registerDelayedTask);
-            bindings.put("registerListener", (BiConsumer<String, String>) this::registerListener);
-            bindings.put("getEvent", (Function<String, Object>) this::getEvent);
-            bindings.put("convertEvent", (BiFunction<Event, Object, Event>) this::convertEvent);
-        
-            // Event types
-            bindings.put("TargetEntityEvent", "TargetEntityEvent");
-            bindings.put("TargetBlockEvent", "TargetBlockEvent");
-            bindings.put("TargetTileEntityEvent", "TargetTileEntityEvent");
-            bindings.put("TargetUserEvent", "TargetUserEvent");
-        
-            context.setBindings(engine.getContext().getBindings(ScriptContext.ENGINE_SCOPE), ScriptContext.ENGINE_SCOPE);
-            context.setBindings(bindings, ScriptContext.GLOBAL_SCOPE);
-            engine.setContext(context);
-        } catch (ScriptException e) {
-            e.printStackTrace();
-        }
+        buildScript();
+        ScriptRegistration.registerScript(this);
     }
     
     /**
@@ -88,7 +68,12 @@ public class Script {
         Script script = null;
         
         if(file.isFile()) {
-            script = new Script(file);
+            try {
+                script = new Script(file);
+            } catch (ScriptException e) {
+                e.printStackTrace();
+                script = null;
+            }
         }
         else if(copyIfAbsent) {
             Optional<Asset> asset = Sponge.getAssetManager().getAsset(CraftGames.getInstance(), fileName);
@@ -106,23 +91,15 @@ public class Script {
         return Optional.ofNullable(script);
     }
     
-    public static Optional<Script> getCommandSelection(String id) {
-        return Optional.ofNullable(cmdSelect.get(id));
-    }
-    
-    public static void setCommandSelection(String id, Script sel) {
-        cmdSelect.put(id, sel);
-    }
-    
-    public static String getSelectorID(CommandSource src) {
-        if(src instanceof Player) {
-            return ((Player) src).getUniqueId().toString();
-        }
-        else if(src instanceof ConsoleSource) {
-            return "console";
+    public static boolean setCommandSelection(CommandSource src, Script sel) {
+        String id = ScriptRegistration.getSelectorID(src);
+        
+        if(id != null) {
+            ScriptRegistration.selectScript(sel, src);
+            return true;
         }
         
-        return null;
+        return false;
     }
     
     /**
@@ -131,42 +108,16 @@ public class Script {
      * @throws FileNotFoundException File can't be opened or is missing.
      */
     public void run() throws ScriptException, FileNotFoundException {
+        run = true;
         engine.eval(new FileReader(file));
-    }
-    
-    @Deprecated
-    boolean runScript(String fileName, boolean copyIfAbsent) throws ScriptException {
-        Path dir = CraftGames.getInstance().getConfigDir();
-        Path path = dir.resolve(fileName);
-        File file = path.toFile();
-        dir.toFile().mkdirs();
-        
-        try {
-            engine.eval(new FileReader(file));
-        }
-        
-        catch (FileNotFoundException e) {
-            if(copyIfAbsent) {
-                Optional<Asset> asset = Sponge.getAssetManager().getAsset(plugin, fileName);
-                
-                if(asset.isPresent()) {
-                    try {
-                        asset.get().copyToFile(path);
-                        return runScript(fileName, false);
-                    } catch (IOException | ScriptException e1) {
-                        e1.printStackTrace();
-                    }
-                }
-            }
-            
-            return false;
-        }
-        
-        return true;
     }
     
     public String getFilename() {
         return file.getName();
+    }
+    
+    public String getIdentifier() {
+        return this.getFilename() + id;
     }
     
     public void unregisterListeners() {
@@ -229,6 +180,30 @@ public class Script {
     
     private Task.Builder buildTask(Runnable runnable) {
         return Task.builder().execute(runnable);
+    }
+    
+    private void buildScript() throws ScriptException {
+        ScriptContext context = new SimpleScriptContext();
+        Bindings bindings = new SimpleBindings();
+    
+        // Util Classes
+        bindings.put("Text", engine.eval("Java.type('org.spongepowered.api.text.Text')"));
+    
+        // Util Methods
+        bindings.put("registerDelayedTask", (BiConsumer<Runnable, Integer>) this::registerDelayedTask);
+        bindings.put("registerListener", (BiConsumer<String, String>) this::registerListener);
+        bindings.put("getEvent", (Function<String, Object>) this::getEvent);
+        bindings.put("convertEvent", (BiFunction<Event, Object, Event>) this::convertEvent);
+    
+        // Event types
+        bindings.put("TargetEntityEvent", "TargetEntityEvent");
+        bindings.put("TargetBlockEvent", "TargetBlockEvent");
+        bindings.put("TargetTileEntityEvent", "TargetTileEntityEvent");
+        bindings.put("TargetUserEvent", "TargetUserEvent");
+    
+        context.setBindings(engine.getContext().getBindings(ScriptContext.ENGINE_SCOPE), ScriptContext.ENGINE_SCOPE);
+        context.setBindings(bindings, ScriptContext.GLOBAL_SCOPE);
+        engine.setContext(context);
     }
     
     private Object getEvent(String event) {
