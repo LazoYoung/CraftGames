@@ -1,5 +1,7 @@
-package io.github.lazoyoung.craftgames;
+package io.github.lazoyoung.craftgames.script.command;
 
+import io.github.lazoyoung.craftgames.script.Script;
+import io.github.lazoyoung.craftgames.script.ScriptRegistration;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.args.CommandContext;

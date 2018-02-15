@@ -1,4 +1,4 @@
-package io.github.lazoyoung.craftgames;
+package io.github.lazoyoung.craftgames.script.command;
 
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;

@@ -1,11 +1,10 @@
-package io.github.lazoyoung.craftgames;
+package io.github.lazoyoung.craftgames.script;
 
+import io.github.lazoyoung.craftgames.CraftGames;
 import jdk.nashorn.api.scripting.ScriptUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.asset.Asset;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.source.ConsoleSource;
-import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Event;
 import org.spongepowered.api.event.EventListener;
 import org.spongepowered.api.event.EventManager;

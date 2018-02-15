@@ -1,6 +1,7 @@
 package io.github.lazoyoung.craftgames;
 
 import com.google.inject.Inject;
+import io.github.lazoyoung.craftgames.script.command.ScriptCommand;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.spec.CommandSpec;

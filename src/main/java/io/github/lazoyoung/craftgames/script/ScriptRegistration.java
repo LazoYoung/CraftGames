@@ -1,4 +1,4 @@
-package io.github.lazoyoung.craftgames;
+package io.github.lazoyoung.craftgames.script;
 
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.source.ConsoleSource;
