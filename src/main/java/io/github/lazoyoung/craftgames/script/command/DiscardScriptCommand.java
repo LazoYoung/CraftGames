@@ -1,28 +1,27 @@
 package io.github.lazoyoung.craftgames.script.command;
 
 import io.github.lazoyoung.craftgames.script.Script;
-import io.github.lazoyoung.craftgames.script.ScriptRegistration;
+import io.github.lazoyoung.craftgames.script.ScriptRegistry;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.args.CommandContext;
-import org.spongepowered.api.command.spec.CommandExecutor;
 import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.text.Text;
 
 import java.util.Optional;
 
-public class DiscardScriptCommand extends ScriptCommand implements CommandExecutor {
+public class DiscardScriptCommand extends ScriptCommand {
     
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) {
-        String selector = ScriptRegistration.getSelectorID(src);
+        String selector = ScriptRegistry.getSelectorID(src);
         
         if(selector == null) {
             notifyInvalidSelector(src);
             return CommandResult.empty();
         }
         
-        Optional<Script> optScript = ScriptRegistration.getSelection(selector);
+        Optional<Script> optScript = ScriptRegistry.getSelection(selector);
         
         if(!optScript.isPresent()) {
             notifyMissingSelection(src);
@@ -38,7 +37,7 @@ public class DiscardScriptCommand extends ScriptCommand implements CommandExecut
         
         script.unregisterListeners();
         script.unregisterTasks();
-        ScriptRegistration.unregisterScript(script);
+        ScriptRegistry.unregisterScript(script);
         src.sendMessage(Text.of("Discarded the script."));
         return CommandResult.success();
     }

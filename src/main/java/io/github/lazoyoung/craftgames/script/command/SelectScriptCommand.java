@@ -1,24 +1,23 @@
 package io.github.lazoyoung.craftgames.script.command;
 
 import io.github.lazoyoung.craftgames.script.Script;
-import io.github.lazoyoung.craftgames.script.ScriptRegistration;
+import io.github.lazoyoung.craftgames.script.ScriptRegistry;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.args.CommandContext;
 import org.spongepowered.api.command.args.GenericArguments;
-import org.spongepowered.api.command.spec.CommandExecutor;
 import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.text.Text;
 
 import java.util.Optional;
 
-public class SelectScriptCommand extends ScriptCommand implements CommandExecutor {
+public class SelectScriptCommand extends ScriptCommand {
     
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) {
         String fileName = getParsedFilename(args);
         boolean copyIfAbsent = args.hasAny("c");
-        String selector = ScriptRegistration.getSelectorID(src);
+        String selector = ScriptRegistry.getSelectorID(src);
         
         if(selector == null) {
             notifyInvalidSelector(src);
@@ -50,7 +49,7 @@ public class SelectScriptCommand extends ScriptCommand implements CommandExecuto
     
     private void computeSelection(String selector, String fileName, boolean copyIfAbsent, CommandSource src) {
         Optional<Script> optScript = Script.get(fileName, copyIfAbsent);
-        Optional<Script> oldSel = ScriptRegistration.getSelection(selector);
+        Optional<Script> oldSel = ScriptRegistry.getSelection(selector);
         
         if(oldSel.isPresent()) {
             if(oldSel.get().getFilename().equals(fileName)) {
@@ -63,7 +62,7 @@ public class SelectScriptCommand extends ScriptCommand implements CommandExecuto
             src.sendMessage(Text.of("That file can\'t be found."));
         }
         else {
-            Script.setCommandSelection(src, optScript.get());
+            ScriptRegistry.selectScript(optScript.get(), src);
             src.sendMessage(Text.of("Selected script: " + fileName));
             return;
         }

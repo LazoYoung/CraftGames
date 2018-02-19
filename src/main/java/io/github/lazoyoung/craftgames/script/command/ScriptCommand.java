@@ -11,7 +11,7 @@ import org.spongepowered.api.text.Text;
 public class ScriptCommand implements CommandExecutor {
     
     @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
+    public CommandResult execute(CommandSource src, CommandContext args) {
         src.sendMessage(Text.of("[CraftGames Script Command Help]\n" +
                 "/cg script select - Select a script file.\n" +
                 "/cg script run - Execute the selected script.\n" +

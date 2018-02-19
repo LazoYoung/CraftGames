@@ -1,5 +1,6 @@
 package io.github.lazoyoung.craftgames.script;
 
+import io.github.lazoyoung.craftgames.script.event.listener.ScriptEventDispatcher;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.source.ConsoleSource;
 import org.spongepowered.api.entity.living.player.Player;
@@ -7,9 +8,10 @@ import org.spongepowered.api.entity.living.player.Player;
 import java.util.HashMap;
 import java.util.Optional;
 
-public class ScriptRegistration {
+public class ScriptRegistry {
     
     private static HashMap<String, Script> scripts = new HashMap<>();
+    private static HashMap<String, ScriptEventDispatcher> eventDispatchers = new HashMap<>();
     private static HashMap<String, String> selections = new HashMap<>();
     
     public static void registerScript(Script script) {
@@ -22,6 +24,14 @@ public class ScriptRegistration {
     
     public static void selectScript(Script script, CommandSource selector) {
         selections.put(getSelectorID(selector), script.getIdentifier());
+    }
+    
+    public static void addEventDispatcher(ScriptEventDispatcher listener) {
+        eventDispatchers.put(listener.getEventName(), listener);
+    }
+    
+    public static ScriptEventDispatcher getEventDispatcher(String event) {
+        return eventDispatchers.get(event);
     }
     
     public static String getSelectorID(CommandSource src) {

@@ -1,20 +1,12 @@
 package io.github.lazoyoung.craftgames.script;
 
 import io.github.lazoyoung.craftgames.CraftGames;
+import io.github.lazoyoung.craftgames.script.event.listener.ScriptEventDispatcher;
 import jdk.nashorn.api.scripting.ScriptUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.asset.Asset;
-import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.event.Event;
-import org.spongepowered.api.event.EventListener;
-import org.spongepowered.api.event.EventManager;
-import org.spongepowered.api.event.block.TargetBlockEvent;
-import org.spongepowered.api.event.block.tileentity.TargetTileEntityEvent;
-import org.spongepowered.api.event.entity.TargetEntityEvent;
-import org.spongepowered.api.event.user.TargetUserEvent;
 import org.spongepowered.api.scheduler.Task;
-import org.spongepowered.api.world.Location;
-import org.spongepowered.api.world.World;
 
 import javax.script.*;
 import java.io.File;
@@ -32,7 +24,7 @@ public class Script {
     private CraftGames plugin;
     private ScriptEngine engine;
     private File file;
-    private List<EventListener<? extends Event>> listeners;
+    private HashMap<String, String> listeners;
     private List<Task> tasks;
     
     
@@ -41,16 +33,16 @@ public class Script {
         this.plugin = CraftGames.getInstance();
         this.engine = new ScriptEngineManager().getEngineByName("nashorn");
         this.id = new Random().nextInt(1000000);
-        this.listeners = new ArrayList<>();
+        this.listeners = new HashMap<>();
         this.tasks = new ArrayList<>();
         this.run = false;
         
         buildScript();
-        ScriptRegistration.registerScript(this);
+        ScriptRegistry.registerScript(this);
     }
     
     /**
-     * This will search for the script file under the plugin's config folder.
+     * Search for the script file under the plugin's config folder.
      * @param fileName Indicates the script file. You may omit filename extension.
      * @param copyIfAbsent Whether to look into the plugin jar to find the file.
      * @return The script instance is null unless the script file were found.
@@ -90,19 +82,8 @@ public class Script {
         return Optional.ofNullable(script);
     }
     
-    public static boolean setCommandSelection(CommandSource src, Script sel) {
-        String id = ScriptRegistration.getSelectorID(src);
-        
-        if(id != null) {
-            ScriptRegistration.selectScript(sel, src);
-            return true;
-        }
-        
-        return false;
-    }
-    
     /**
-     * While the execution, script may register some tasks and event listeners by itself.
+     * While the execution, script may register some tasks and event listeners_ by itself.
      * @throws ScriptException Script syntax is invalid.
      * @throws FileNotFoundException File can't be opened or is missing.
      */
@@ -120,12 +101,14 @@ public class Script {
     }
     
     public void unregisterListeners() {
-        EventManager man = Sponge.getEventManager();
-        
-        for(EventListener<? extends Event> listener : listeners) {
-            man.unregisterListeners(listener);
-        }
-        
+        final Script script = this;
+        listeners.keySet().forEach(e -> {
+            ScriptEventDispatcher dispatcher = ScriptRegistry.getEventDispatcher(e);
+            
+            if(dispatcher != null) {
+                dispatcher.unregisterScript(script);
+            }
+        });
         listeners.clear();
     }
     
@@ -137,38 +120,21 @@ public class Script {
         tasks.clear();
     }
     
-    private void registerListener(String eventType, String function) {
-        EventManager man = Sponge.getEventManager();
+    public void callListener(String eventName, Event event) throws ScriptException, NoSuchMethodException {
+        String function = listeners.get(eventName);
         
-        // TODO Support TargetInventoryEvent, MessageEvent. Best practice is to support all types.
-        switch(eventType) {
-            case "TargetEntityEvent":
-                EventListener<TargetEntityEvent> listener
-                        = event -> handleEvent(function, event, event.getTargetEntity().getLocation());
-                man.registerListener(plugin, TargetEntityEvent.class, listener);
-                listeners.add(listener);
-                break;
-            
-            case "TargetBlockEvent":
-                EventListener<TargetBlockEvent> listener1
-                        =  event -> handleEvent(function, event, event.getTargetBlock().getLocation());
-                man.registerListener(plugin, TargetBlockEvent.class, listener1);
-                listeners.add(listener1);
-                break;
-            
-            case "TargetTileEntityEvent":
-                EventListener<TargetTileEntityEvent> listener2
-                        = event -> handleEvent(function, event, event.getTargetTile().getLocation());
-                man.registerListener(plugin, TargetTileEntityEvent.class, listener2);
-                listeners.add(listener2);
-                break;
-            
-            case "TargetUserEvent":
-                EventListener<TargetUserEvent> listener3
-                        = event -> handleEvent(function, event, event.getTargetUser().getPlayer().get().getLocation());
-                man.registerListener(plugin, TargetUserEvent.class, listener3);
-                listeners.add(listener3);
-                break;
+        if(function != null) {
+            ((Invocable) engine).invokeFunction(function, event);
+        }
+    }
+    
+    private void registerListener(String eventType, String function) {
+        ScriptEventDispatcher dispatcher = ScriptRegistry.getEventDispatcher(eventType);
+        
+        if(dispatcher != null) {
+            dispatcher.registerScript(this);
+            listeners.put(eventType, function);
+            plugin.getLogger().debug("Registered " + eventType + " with function " + function);
         }
     }
     
@@ -221,26 +187,6 @@ public class Script {
     
     private Event convertEvent(Event event, Object target) {
         return (Event) ScriptUtils.convert(event, target);
-    }
-    
-    private void handleEvent(String function, Event event, Location<World> loc) {
-        handleEvent(function, event, Optional.of(loc));
-    }
-    
-    private void handleEvent(String function, Event event, Optional<Location<World>> loc) {
-        
-        // TODO Handle the event unless the location points outside of the game.
-        if(!loc.isPresent()) {
-            return;
-        }
-        
-        Invocable inv = (Invocable) engine;
-        
-        try {
-            inv.invokeFunction(function, event);
-        } catch (ScriptException | NoSuchMethodException e) {
-            e.printStackTrace();
-        }
     }
     
 }

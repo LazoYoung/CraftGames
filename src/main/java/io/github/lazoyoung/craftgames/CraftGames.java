@@ -1,13 +1,23 @@
 package io.github.lazoyoung.craftgames;
 
 import com.google.inject.Inject;
+import io.github.lazoyoung.craftgames.script.ScriptRegistry;
 import io.github.lazoyoung.craftgames.script.command.ScriptCommand;
+import io.github.lazoyoung.craftgames.script.event.listener.TargetBlockDispatcher;
+import io.github.lazoyoung.craftgames.script.event.listener.TargetEntityDispatcher;
+import io.github.lazoyoung.craftgames.script.event.listener.TargetTileEntityDispatcher;
+import io.github.lazoyoung.craftgames.script.event.listener.TargetUserDispatcher;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.config.ConfigDir;
+import org.spongepowered.api.event.EventManager;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.block.TargetBlockEvent;
+import org.spongepowered.api.event.block.tileentity.TargetTileEntityEvent;
+import org.spongepowered.api.event.entity.TargetEntityEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
+import org.spongepowered.api.event.user.TargetUserEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.text.Text;
 
@@ -27,12 +37,15 @@ public class CraftGames {
     
     
     /**
-     * @return the plugin instance. This will return null until plugin gets initialized.
+     * @return the plugin instance. This is null until this plugin gets initialized.
      */
     public static CraftGames getInstance() {
         return holder.obj;
     }
     
+    /**
+     * @return the logger instance. This is null until this plugin gets initialized.
+     */
     public Logger getLogger() {
         return log;
     }
@@ -45,6 +58,25 @@ public class CraftGames {
     public void initPlugin(GamePreInitializationEvent event) {
         holder = new ObjectHolder(this);
         Sponge.getCommandManager().register(getInstance(), buildCommand(), "cg", "craftgames");
+        initScriptEventDispatchers();
+    }
+    
+    private void initScriptEventDispatchers() {
+        EventManager man = Sponge.getEventManager();
+        TargetBlockDispatcher targetBlock = new TargetBlockDispatcher("TargetBlockEvent");
+        TargetEntityDispatcher targetEntity = new TargetEntityDispatcher("TargetEntityEvent");
+        TargetTileEntityDispatcher targetTileEntity = new TargetTileEntityDispatcher("TargetTileEntityEvent");
+        TargetUserDispatcher targetUser = new TargetUserDispatcher("TargetUserEvent");
+        
+        ScriptRegistry.addEventDispatcher(targetBlock);
+        ScriptRegistry.addEventDispatcher(targetEntity);
+        ScriptRegistry.addEventDispatcher(targetTileEntity);
+        ScriptRegistry.addEventDispatcher(targetUser);
+        
+        man.registerListener(getInstance(), TargetBlockEvent.class, targetBlock);
+        man.registerListener(getInstance(), TargetEntityEvent.class, targetEntity);
+        man.registerListener(getInstance(), TargetTileEntityEvent.class, targetTileEntity);
+        man.registerListener(getInstance(), TargetUserEvent.class, targetUser);
     }
     
     private CommandSpec buildCommand() {
