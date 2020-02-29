@@ -1,5 +1,3 @@
 # CraftGames
-This sponge plugin assists you at making custom minigames with javascript.
-
-
-# Description
+CraftGames is a Minecraft plugin powered by Spigot.  
+You can make your own game and fun stuff by writing a Groovy script.
