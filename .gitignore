@@ -1,3 +1,9 @@
 .gradle/
 .idea/
 build/
+src/legacy/
+
+*.iml
+*.ipr
+*.iws
+
