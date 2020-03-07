@@ -1,6 +1,6 @@
-package io.github.lazoyoung.craftgames.script;
+package com.github.lazoyoung.LegacyCore.script;
 
-import io.github.lazoyoung.craftgames.script.event.listener.ScriptEventDispatcher;
+import com.github.lazoyoung.LegacyCore.script.event.listener.ScriptEventDispatcher;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.source.ConsoleSource;
 import org.spongepowered.api.entity.living.player.Player;

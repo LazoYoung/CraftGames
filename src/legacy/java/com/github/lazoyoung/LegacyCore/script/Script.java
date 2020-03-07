@@ -1,7 +1,7 @@
-package io.github.lazoyoung.craftgames.script;
+package com.github.lazoyoung.LegacyCore.script;
 
-import io.github.lazoyoung.craftgames.CraftGames;
-import io.github.lazoyoung.craftgames.script.event.listener.ScriptEventDispatcher;
+import com.github.lazoyoung.LegacyCore.CraftGames;
+import com.github.lazoyoung.LegacyCore.script.event.listener.ScriptEventDispatcher;
 import jdk.nashorn.api.scripting.ScriptUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.asset.Asset;

@@ -1,6 +1,6 @@
-package io.github.lazoyoung.craftgames;
+package com.github.lazoyoung.LegacyCore;
 
-import io.github.lazoyoung.craftgames.script.Script;
+import com.github.lazoyoung.LegacyCore.script.Script;
 
 public class Game {
     

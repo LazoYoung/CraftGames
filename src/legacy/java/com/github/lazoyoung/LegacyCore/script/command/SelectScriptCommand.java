@@ -1,7 +1,7 @@
-package io.github.lazoyoung.craftgames.script.command;
+package com.github.lazoyoung.LegacyCore.script.command;
 
-import io.github.lazoyoung.craftgames.script.Script;
-import io.github.lazoyoung.craftgames.script.ScriptRegistry;
+import com.github.lazoyoung.LegacyCore.script.Script;
+import com.github.lazoyoung.LegacyCore.script.ScriptRegistry;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.args.CommandContext;

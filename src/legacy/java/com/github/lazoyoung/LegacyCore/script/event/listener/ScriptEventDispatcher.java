@@ -1,8 +1,8 @@
-package io.github.lazoyoung.craftgames.script.event.listener;
+package com.github.lazoyoung.LegacyCore.script.event.listener;
 
-import io.github.lazoyoung.craftgames.CraftGames;
-import io.github.lazoyoung.craftgames.script.Script;
-import io.github.lazoyoung.craftgames.script.ScriptRegistry;
+import com.github.lazoyoung.LegacyCore.CraftGames;
+import com.github.lazoyoung.LegacyCore.script.Script;
+import com.github.lazoyoung.LegacyCore.script.ScriptRegistry;
 import org.spongepowered.api.event.Event;
 import org.spongepowered.api.event.EventListener;
 

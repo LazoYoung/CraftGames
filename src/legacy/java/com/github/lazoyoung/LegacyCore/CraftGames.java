@@ -1,12 +1,12 @@
-package io.github.lazoyoung.craftgames;
+package com.github.lazoyoung.LegacyCore;
 
+import com.github.lazoyoung.LegacyCore.script.command.ScriptCommand;
+import com.github.lazoyoung.LegacyCore.script.event.listener.TargetBlockDispatcher;
+import com.github.lazoyoung.LegacyCore.script.event.listener.TargetEntityDispatcher;
+import com.github.lazoyoung.LegacyCore.script.event.listener.TargetTileEntityDispatcher;
+import com.github.lazoyoung.LegacyCore.script.event.listener.TargetUserDispatcher;
 import com.google.inject.Inject;
-import io.github.lazoyoung.craftgames.script.ScriptRegistry;
-import io.github.lazoyoung.craftgames.script.command.ScriptCommand;
-import io.github.lazoyoung.craftgames.script.event.listener.TargetBlockDispatcher;
-import io.github.lazoyoung.craftgames.script.event.listener.TargetEntityDispatcher;
-import io.github.lazoyoung.craftgames.script.event.listener.TargetTileEntityDispatcher;
-import io.github.lazoyoung.craftgames.script.event.listener.TargetUserDispatcher;
+import com.github.lazoyoung.LegacyCore.script.ScriptRegistry;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.spec.CommandSpec;

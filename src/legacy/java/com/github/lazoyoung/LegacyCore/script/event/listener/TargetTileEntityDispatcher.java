@@ -1,4 +1,4 @@
-package io.github.lazoyoung.craftgames.script.event.listener;
+package com.github.lazoyoung.LegacyCore.script.event.listener;
 
 import org.spongepowered.api.event.block.tileentity.TargetTileEntityEvent;
 
