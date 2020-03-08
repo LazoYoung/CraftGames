@@ -1,1 +1,1 @@
-println('Hello! I\'m groovy script.')
+println("Hello! I'm groovy script.")

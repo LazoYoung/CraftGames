@@ -1,0 +1,4 @@
+# Defines script encoding. Recommened: UTF-8
+# Mojibake can still appear if JVM property
+# was not configured properly. e.g. -Dfile.encoding=UTF8
+encoding: UTF-8

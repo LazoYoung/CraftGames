@@ -1,16 +1,16 @@
 package com.github.lazoyoung.craftgames
 
 import groovy.lang.GroovyShell
+import groovy.util.CharsetToolkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.plugin.java.JavaPlugin
-import org.codehaus.groovy.control.CompilationFailedException
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.kohsuke.groovy.sandbox.GroovyValueFilter
 import org.kohsuke.groovy.sandbox.SandboxTransformer
 import java.io.File
-import java.io.FileReader
+import java.io.Reader
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.util.function.Consumer
@@ -39,19 +39,23 @@ class Main : JavaPlugin(), CommandExecutor {
 
         if (args.size == 2 && args[0] == "execute") {
             val name: String = args[1]
-            val file: File? = assetFiles.singleOrNull { it.name == name }
-            val reader: FileReader
+            val file: File? = assetFiles.singleOrNull { it.nameWithoutExtension == name }
+            val reader: Reader
 
-            if (file == null) {
-                sender.sendMessage("The asset does not exist.")
-                return true
-            }
+            try {
+                if (file == null) {
+                    sender.sendMessage("That does not exist.")
+                    return true
+                }
 
-            reader = FileReader(file)
-            if (file.extension == "groovy") {
-                loadGroovyShell(reader, name, sender)
-            } else {
-                loadJSR223(reader, name, sender)
+                reader = CharsetToolkit(file).reader
+                when (file.extension) {
+                    "groovy" -> loadGroovyShell(reader, name, sender)
+                    else -> loadJSR223(reader, name, sender)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                sender.sendMessage("Failed to execute script: $name")
             }
             return true
         }
@@ -83,26 +87,23 @@ class Main : JavaPlugin(), CommandExecutor {
         assetFiles = dataFolder.resolve("asset").listFiles().orEmpty().toList()
     }
 
-    private fun loadGroovyShell(reader: FileReader, name: String, sender: CommandSender) {
-        val shell = GroovyShell(CompilerConfiguration().addCompilationCustomizers(SandboxTransformer()))
+    // TODO Allow customization of encoding
+    private fun loadGroovyShell(reader: Reader, name: String, sender: CommandSender) {
+        val conf = CompilerConfiguration().addCompilationCustomizers(SandboxTransformer())
         val filter = object : GroovyValueFilter() {
             // TODO Intercept abusive actions
         }
 
         sender.sendMessage("Loading script engine: GroovyShell")
-        try {
-            filter.register()
-            shell.evaluate(reader)
-            filter.unregister()
-        } catch (e: CompilationFailedException) {
-            e.printStackTrace()
-            sender.sendMessage("Failed to compile script: $name")
-            return
-        }
+        conf.sourceEncoding = config.getString("encoding")
+
+        filter.register()
+        GroovyShell(conf).evaluate(reader)
+        filter.unregister()
         sender.sendMessage("Script '$name' has been executed.")
     }
 
-    private fun loadJSR223(reader: FileReader, name: String, sender: CommandSender) {
+    private fun loadJSR223(reader: Reader, name: String, sender: CommandSender) {
         val engine = ScriptEngineManager().getEngineByName("groovy")
         val factory = engine.factory
 
