@@ -1,29 +1,29 @@
 package com.github.lazoyoung.craftgames
 
-import groovy.lang.GroovyShell
-import groovy.util.CharsetToolkit
+import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
+import com.github.lazoyoung.craftgames.script.ScriptBase
+import com.github.lazoyoung.craftgames.script.ScriptFactory
+import groovy.lang.GroovyRuntimeException
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
+import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.java.JavaPlugin
-import org.codehaus.groovy.control.CompilerConfiguration
-import org.kohsuke.groovy.sandbox.GroovyValueFilter
-import org.kohsuke.groovy.sandbox.SandboxTransformer
 import java.io.File
-import java.io.Reader
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.util.function.Consumer
-import javax.script.ScriptEngineManager
 
 class Main : JavaPlugin(), CommandExecutor {
 
     companion object {
         var assetFiles: List<File> = ArrayList()
+        lateinit var config: FileConfiguration
     }
 
     override fun onEnable() {
         saveDefaultConfig()
+        Companion.config = config
         extractAsset()
         loadAsset()
     }
@@ -40,7 +40,7 @@ class Main : JavaPlugin(), CommandExecutor {
         if (args.size == 2 && args[0] == "execute") {
             val name: String = args[1]
             val file: File? = assetFiles.singleOrNull { it.nameWithoutExtension == name }
-            val reader: Reader
+            val script: ScriptBase
 
             try {
                 if (file == null) {
@@ -48,14 +48,21 @@ class Main : JavaPlugin(), CommandExecutor {
                     return true
                 }
 
-                reader = CharsetToolkit(file).reader
-                when (file.extension) {
-                    "groovy" -> loadGroovyShell(reader, name, sender)
-                    else -> loadJSR223(reader, name, sender)
+                try {
+                    script = ScriptFactory.getInstance(file, sender)!!
+                    script.parse()
+                    script.execute()
+                } catch (e: NullPointerException) {
+                    sender.sendMessage("Unsupported type: .${file.extension}")
+                } catch (e: GroovyRuntimeException) {
+                    sender.sendMessage("Compilation error: ${e.message}")
+                    e.printStackTrace()
                 }
+            } catch (e: ScriptEngineNotFound) {
+                sender.sendMessage("Failed to execute: ${e.message}")
             } catch (e: Exception) {
                 e.printStackTrace()
-                sender.sendMessage("Failed to execute script: $name")
+                sender.sendMessage("Failed to execute: ${e.message}")
             }
             return true
         }
@@ -85,32 +92,6 @@ class Main : JavaPlugin(), CommandExecutor {
 
     private fun loadAsset() {
         assetFiles = dataFolder.resolve("asset").listFiles().orEmpty().toList()
-    }
-
-    // TODO Allow customization of encoding
-    private fun loadGroovyShell(reader: Reader, name: String, sender: CommandSender) {
-        val conf = CompilerConfiguration().addCompilationCustomizers(SandboxTransformer())
-        val filter = object : GroovyValueFilter() {
-            // TODO Intercept abusive actions
-        }
-
-        sender.sendMessage("Loading script engine: GroovyShell")
-        conf.sourceEncoding = config.getString("encoding")
-
-        filter.register()
-        GroovyShell(conf).evaluate(reader)
-        filter.unregister()
-        sender.sendMessage("Script '$name' has been executed.")
-    }
-
-    private fun loadJSR223(reader: Reader, name: String, sender: CommandSender) {
-        val engine = ScriptEngineManager().getEngineByName("groovy")
-        val factory = engine.factory
-
-        sender.sendMessage("Executing script '$name' with engine: ${factory.engineName} ${factory.engineVersion}")
-        sender.sendMessage("This is not supported yet.")
-
-        // TODO JSR223 script handling not implemented.
     }
 
 }

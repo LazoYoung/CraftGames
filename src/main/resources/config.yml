@@ -1,4 +1,9 @@
-# Defines script encoding. Recommened: UTF-8
-# Mojibake can still appear if JVM property
+# Mojibake may still happen if JVM property
 # was not configured properly. e.g. -Dfile.encoding=UTF8
-encoding: UTF-8
+file.encoding: UTF-8
+
+# Defines path to a game's root folder.
+# Slash(/) character is required as prefix in the path.
+# Path '/' is the same folder that config.yml resides in.
+games:
+  example: '/example'
