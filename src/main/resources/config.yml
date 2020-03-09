@@ -1,9 +1,9 @@
-# Mojibake may still happen if JVM property
-# was not configured properly. e.g. -Dfile.encoding=UTF8
-file.encoding: UTF-8
+# Check your 'JVM property' if Mojibake still occurs: -Dfile.encoding=<charset>
+# https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
+files.encoding: UTF-8
 
-# Defines path to a game's root folder.
-# Slash(/) character is required as prefix in the path.
-# Path '/' is the same folder that config.yml resides in.
-games:
-  example: '/example'
+# Specify path to the layout file for each game.
+# Note: Data folder is current working directory, i.e. /plugins/CraftGames
+# https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
+layout:
+  example: './example/layout.yml'

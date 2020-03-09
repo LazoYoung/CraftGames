@@ -17,7 +17,7 @@ abstract class ScriptBase(file: File, sender: CommandSender?) {
     private val ext: String
 
     init {
-        charset = Charset.forName(Main.config.getString("encoding"))
+        charset = Charset.forName(Main.config.getString("files.encoding"))
         reader = BufferedReader(FileReader(file, charset))
         name = file.nameWithoutExtension
         ext = file.extension
