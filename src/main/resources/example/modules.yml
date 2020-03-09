@@ -33,3 +33,10 @@ lobby:
   ready-sign: true
 finale:
   timer: 10
+  return:
+    enabled: false
+    world: world
+    position:
+      - 0.0
+      - 60.0
+      - 0.0
