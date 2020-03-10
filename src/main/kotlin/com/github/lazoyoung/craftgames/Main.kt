@@ -23,8 +23,8 @@ class Main : JavaPlugin(), CommandExecutor {
     }
 
     override fun onEnable() {
-        loadConfig()
         loadAsset()
+        loadConfig()
     }
 
     override fun onCommand(
@@ -74,7 +74,7 @@ class Main : JavaPlugin(), CommandExecutor {
     }
 
     private fun loadAsset() {
-        val root = dataFolder.resolve("asset")
+        val root = dataFolder
         val sys: FileSystem
         val source: Path
         val target: Path
