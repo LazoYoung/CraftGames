@@ -1,0 +1,54 @@
+game.length:
+  active: true # The module 'game.length' is mandatory, this line is hence redundant.
+  timer: 300
+game.quota:
+  minimum: 2
+  maximum: 6
+game.intervene:
+  active: true # The module is optional and this line activates it.
+game.team:
+  active: false
+  list:
+    - name: Blue
+      color: cyan
+      tag: blue_spawn # This block-tag defines spawnpoint for Blue.
+    - name: Red
+      color: red
+      tag: red_spawn
+lobby.system:
+  active: false
+  tag: lobby
+  timer: 30
+lobby.ready-sign:
+  active: true
+  minimum: -1 # Lobby skips only if everyone's ready.
+player.spawnpoint: # This is ignored because module 'team' is activated.
+  active: true
+  tag: player_spawn
+#spectator.spawnpoint: # It's possible to comment it out, the deactivated module.
+#  active: false
+#  tag: spec_spawn
+moderator.spawnpoint:
+  active: true
+  tag: mod_spawn
+death.mode: # Select one: kick, respawn
+  respawn:
+    active: true
+death.cooldown:
+  active: true
+  timer: 20
+item.mode: # Select one or none: shop, kit, dungeon
+  # Selecting none.
+item.restore:
+  active: true
+finale.length:
+  active: true
+  timer: 10
+finale.return:
+  activate: false
+  location:
+    - world
+    - 0.0
+    - 60.0
+    - 0.0
+#  server: hub # Alternative option

@@ -10,21 +10,20 @@ import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.util.function.Consumer
+import java.io.IOException
+import java.nio.file.*
+import java.nio.file.attribute.BasicFileAttributes
+import java.util.*
 
 class Main : JavaPlugin(), CommandExecutor {
 
     companion object {
-        var assetFiles: List<File> = ArrayList()
         lateinit var config: FileConfiguration
+        lateinit var scriptFiles: List<File>
     }
 
     override fun onEnable() {
-        saveDefaultConfig()
-        Companion.config = config
-        extractAsset()
+        loadConfig()
         loadAsset()
     }
 
@@ -39,7 +38,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
         if (args.size == 2 && args[0] == "execute") {
             val name: String = args[1]
-            val file: File? = assetFiles.singleOrNull { it.nameWithoutExtension == name }
+            val file: File? = scriptFiles.singleOrNull { it.nameWithoutExtension == name }
             val script: ScriptBase
 
             try {
@@ -69,29 +68,77 @@ class Main : JavaPlugin(), CommandExecutor {
         return false
     }
 
-    private fun extractAsset() {
+    private fun loadConfig() {
+        saveDefaultConfig()
+        Companion.config = config
+    }
+
+    private fun loadAsset() {
         val root = dataFolder.resolve("asset")
+        val sys: FileSystem
+        val source: Path
+        val target: Path
 
         if (root.isDirectory)
             return
 
         try {
-            val sys = FileSystems.newFileSystem(file.toPath(), classLoader)
-            val path = sys.getPath("asset")
-
-            root.mkdirs()
-            Files.walk(path, 1).forEach(Consumer {
-                if (it == path) return@Consumer
-                Files.copy(it, root.toPath().resolve(it.fileName.toString()))
-                logger.info("Extracted file: ${it.fileName}")
-            })
-        } catch (e: Exception) {
+            sys = FileSystems.newFileSystem(file.toPath(), classLoader)
+            source = sys.getPath("asset")
+            target = root.toPath()
+        } catch (e: java.lang.Exception) {
             e.printStackTrace()
+            logger.severe("Failed to prepare loading asset.")
+            return
         }
-    }
 
-    private fun loadAsset() {
-        assetFiles = dataFolder.resolve("asset").listFiles().orEmpty().toList()
+        try {
+            Files.walkFileTree(source, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Int.MAX_VALUE, object : SimpleFileVisitor<Path>() {
+                override fun preVisitDirectory(dir: Path?, attr: BasicFileAttributes?): FileVisitResult {
+                    if (dir == null)
+                        return FileVisitResult.CONTINUE
+
+                    val targetDir = target.resolve(source.relativize(dir).toString())
+                    try {
+                        Files.copy(dir, targetDir)
+                    } catch (e: FileAlreadyExistsException) {
+                        if (!Files.isDirectory(targetDir)) {
+                            e.printStackTrace()
+                        }
+                    }
+                    return FileVisitResult.CONTINUE
+                }
+
+                override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
+                    if (file != null) {
+                        val targetPath = target.resolve(source.relativize(file).toString())
+                        logger.info("Copying ${file.fileName} to ${targetPath.normalize()}...")
+                        try {
+                            Files.copy(file, targetPath)
+                        } catch (e: java.lang.Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                    return FileVisitResult.CONTINUE
+                }
+
+                override fun visitFileFailed(file: Path?, exc: IOException?): FileVisitResult {
+                    exc?.printStackTrace()
+                    logger.warning("Failed to copy: ${file?.toRealPath().toString()}")
+                    return FileVisitResult.TERMINATE
+                }
+            })
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+            logger.severe("Access denied. Unable to copy assets from jar to disk.")
+            return
+        } catch (e: IOException) {
+            e.printStackTrace()
+            logger.severe("Error occurred while copying asset from jar to disk.")
+            return
+        }
+
+        logger.info("Succeeed to copy assets from jar to disk.")
     }
 
 }

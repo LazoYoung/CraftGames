@@ -9,5 +9,3 @@ script:
 module.path: ./modules.yml
 block-tag.path: ./data/block-tags.yml
 players.path: ./data/players.yml
-# kit.path: ./kits.yml
-# shop.path: ./shop.yml
