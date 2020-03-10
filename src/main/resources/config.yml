@@ -1,9 +1,13 @@
 # Check your 'JVM property' if Mojibake still occurs: -Dfile.encoding=<charset>
 # https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
-files.encoding: UTF-8
+file-encoding: UTF-8
 
-# Specify path to the layout file for each game.
-# Note: Data folder is current working directory, i.e. /plugins/CraftGames
+# Install the sample of game configuration?
+install-sample: false
+
+# Specification for every games.
+# ./ is required to be prefixed in path
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
-layout:
-  example: './example/layout.yml'
+games:
+  example: # Game ID
+    layout: ./example/layout.yml # Path to layout.yml

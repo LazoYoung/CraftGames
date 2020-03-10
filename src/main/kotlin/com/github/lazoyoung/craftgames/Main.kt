@@ -11,6 +11,7 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.io.IOException
+import java.nio.charset.Charset
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.*
@@ -19,12 +20,20 @@ class Main : JavaPlugin(), CommandExecutor {
 
     companion object {
         lateinit var config: FileConfiguration
-        lateinit var scriptFiles: List<File>
+            private set
+        lateinit var scriptFiles: List<File> // TODO Deprecate
+            internal set
+        lateinit var instance: Main
+            private set
+        lateinit var charset: Charset
+            private set
     }
 
     override fun onEnable() {
-        loadAsset()
+        instance = this
+
         loadConfig()
+        loadAsset()
     }
 
     override fun onCommand(
@@ -70,7 +79,8 @@ class Main : JavaPlugin(), CommandExecutor {
 
     private fun loadConfig() {
         saveDefaultConfig()
-        Companion.config = config
+        Main.config = config
+        charset = Charset.forName(config.getString("file-encoding"))
     }
 
     private fun loadAsset() {
@@ -79,16 +89,16 @@ class Main : JavaPlugin(), CommandExecutor {
         val source: Path
         val target: Path
 
-        if (root.isDirectory)
+        if (!config.getBoolean("install-sample"))
             return
 
         try {
             sys = FileSystems.newFileSystem(file.toPath(), classLoader)
-            source = sys.getPath("asset")
+            source = sys.getPath("Sample")
             target = root.toPath()
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
-            logger.severe("Failed to prepare loading asset.")
+            logger.severe("Failed to install sample configuration.")
             return
         }
 
@@ -112,7 +122,7 @@ class Main : JavaPlugin(), CommandExecutor {
                 override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
                     if (file != null) {
                         val targetPath = target.resolve(source.relativize(file).toString())
-                        logger.info("Copying ${file.fileName} to ${targetPath.normalize()}...")
+                        logger.info("Copying ${file.fileName} to ${targetPath.normalize()}")
                         try {
                             Files.copy(file, targetPath)
                         } catch (e: java.lang.Exception) {
@@ -130,15 +140,16 @@ class Main : JavaPlugin(), CommandExecutor {
             })
         } catch (e: SecurityException) {
             e.printStackTrace()
-            logger.severe("Access denied. Unable to copy assets from jar to disk.")
+            logger.severe("Access denied! Unable to install sample files.")
             return
         } catch (e: IOException) {
             e.printStackTrace()
-            logger.severe("Error occurred while copying asset from jar to disk.")
+            logger.severe("Error occurred! Unable to install sample files.")
             return
         }
 
-        logger.info("Succeeed to copy assets from jar to disk.")
+        logger.info("Sample files have been installed!")
+        config.set("install-sample", false)
+        saveConfig()
     }
-
 }
