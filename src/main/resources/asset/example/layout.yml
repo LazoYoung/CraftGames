@@ -1,9 +1,9 @@
-world:
+map.list:
   - id: arena1
     path: ./arena1
   - id: arena2
     path: ./arena2
-script:
+script.list:
   - id: core
     path: ./core.groovy
 module.path: ./modules.yml

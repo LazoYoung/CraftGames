@@ -1,10 +1,6 @@
 game.length:
   active: true
   timer: 300
-game.quota:
-  active: true
-  minimum: 2
-  maximum: 6
 game.intervene:
   active: false
 game.team:
@@ -15,15 +11,17 @@ lobby.ready-sign:
   active: false
 player.spawnpoint:
   active: false
+player.quota:
+  active: true
+  minimum: 2
+  maximum: 6
 spectator.spawnpoint:
   active: false
 moderator.spawnpoint:
   active: false
 death.mode:
-  respawn:
+  spectate:
     active: true
-  cooldown:
-    active: false
 item.mode:
 item.restore:
   active: false
