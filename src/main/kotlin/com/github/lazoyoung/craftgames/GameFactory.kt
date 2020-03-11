@@ -6,7 +6,6 @@ import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.FileReader
-import java.lang.Exception
 
 class GameFactory {
     companion object {
@@ -19,7 +18,7 @@ class GameFactory {
                 }
             }
 
-
+            TODO()
         }
 
         fun openNew(id: String) {
