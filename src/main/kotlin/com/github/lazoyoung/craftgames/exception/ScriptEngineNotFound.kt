@@ -1,3 +1,3 @@
 package com.github.lazoyoung.craftgames.exception
 
-class ScriptEngineNotFound(message: String?) : Throwable(message)
+class ScriptEngineNotFound(override val message: String) : Throwable()

@@ -1,16 +1,13 @@
-map:
-  arena1: # Map ID
+maps:
+  - id: arena1     # Map ID
     alias: Arena 1 # Full name
-    path: ./arena1 # Path to map file
-  arena2:
+    path: ./example/arena1 # Path to map folder
+  - id: arena2
     alias: Arena 2
-    path: ./arena2
-#  - id: arena3  # TODO Capability to re-write MapList via plugin
-#    alias: Arena 3
-#    path: ./arena3
-script:
-  core: # Script ID
-    path: ./core.groovy # Path to script file
-module.path: ./modules.yml
-block-tag.path: ./data/block-tags.yml
-players.path: ./data/players.yml
+    path: ./example/arena2
+scripts:
+  - id: core  # Script ID
+    path: ./example/core.groovy # Path to script file
+modules.path: ./example/modules.yml
+block-tags.path: ./example/data/block-tags.yml
+players.path: ./example/data/players.yml

@@ -11,8 +11,8 @@ import java.io.Reader
 abstract class ScriptBase(file: File, sender: CommandSender?) {
     protected val reader: Reader
     protected val name: String
-    private val sender: CommandSender
     private val ext: String
+    private val sender: CommandSender
 
     init {
         reader = BufferedReader(FileReader(file, Main.charset))
