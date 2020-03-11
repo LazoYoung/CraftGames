@@ -6,8 +6,8 @@ file-encoding: UTF-8
 install-sample: false
 
 # Specification for every games.
-# ./ is required to be prefixed in path
+# The root folder is equivalent to: plugins/CraftGames/
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
 games:
-  example: # Game ID
-    layout: ./example/layout.yml # Path to layout.yml
+  example: # Game ID. Turn on 'install-sample' to test it!
+    layout: Sample/example/layout.yml # Path to layout.yml

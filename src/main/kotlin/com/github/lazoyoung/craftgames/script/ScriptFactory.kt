@@ -6,6 +6,9 @@ import java.io.File
 
 class ScriptFactory {
     companion object {
+        /**
+         * @throws ScriptEngineNotFound thrown if file extension is not recognized.
+         */
         fun getInstance(file: File, sender: CommandSender?) : ScriptBase {
             return when (file.extension) {
                 "groovy" -> ScriptGroovy(file, sender)

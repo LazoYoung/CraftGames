@@ -8,8 +8,6 @@ import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.FileReader
 import java.io.IOException
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
 
 class GameFactory {
     companion object {
@@ -45,9 +43,9 @@ class GameFactory {
             val file = Main.instance.dataFolder.resolve(path)
             val reader: BufferedReader
             val config: YamlConfiguration
-            val mapList: MutableList<Map<*, *>>
-            val scriptReg: MutableList<Map<*, *>>
-            val scriptList: MutableList<ScriptBase> = ArrayList()
+            val confMaps: MutableList<Map<*, *>>
+            val confScripts: MutableList<Map<*, *>>
+            val scriptRegistry: MutableMap<String, ScriptBase> = HashMap()
             val mapItr: MutableListIterator<Map<*, *>>
             val scriptItr: MutableListIterator<Map<*, *>>
 
@@ -58,22 +56,22 @@ class GameFactory {
                 reader = BufferedReader(FileReader(file, Main.charset))
                 config = YamlConfiguration.loadConfiguration(reader)
             } catch (e: IOException) {
-                throw FaultyConfiguration("Unable to read ${file.toPath()}. Is it missing?", e)
+                throw FaultyConfiguration("Unable to read ${file.toPath()} for game $id. Is it missing?", e)
             } catch (e: IllegalArgumentException) {
                 throw FaultyConfiguration("File is empty: ${file.toPath()}")
             }
 
-            mapList = config.getMapList("maps")
-            scriptReg = config.getMapList("scripts")
-            mapItr = mapList.listIterator()
-            scriptItr = scriptReg.listIterator()
+            confMaps = config.getMapList("maps")
+            confScripts = config.getMapList("scripts")
+            mapItr = confMaps.listIterator()
+            scriptItr = confScripts.listIterator()
 
             while (mapItr.hasNext()) {
                 val map = mapItr.next().toMutableMap()
                 val mapID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of map is missing in ${file.toPath()}")
                 if (!map.containsKey("alias")) {
                     map["alias"] = mapID; mapItr.set(map)
-                    config.set("maps", mapList); config.save(file)
+                    config.set("maps", confMaps); config.save(file)
                 }
                 if (!map.containsKey("path"))
                     throw FaultyConfiguration("Entry \'path\' of map $id is missing in ${file.toPath()}")
@@ -83,18 +81,19 @@ class GameFactory {
                 val map = scriptItr.next()
                 val scriptID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of script is missing in ${file.toPath()}")
                 val pathStr = map["path"] as String? ?: throw FaultyConfiguration("Entry \'path\' of script $scriptID is missing in ${file.toPath()}")
+                val scriptFile = Main.instance.dataFolder.resolve(pathStr)
 
                 try {
-                    val scriptFile = Path.of(pathStr).toFile()
-                    scriptList.add(ScriptFactory.getInstance(scriptFile, null))
-                } catch (e: InvalidPathException) {
-                    throw RuntimeException(e)
-                } catch (e: UnsupportedOperationException) {
-                    throw RuntimeException(e)
+                    if (!scriptFile.isFile)
+                        throw FaultyConfiguration("Unable to locate the script: $scriptFile")
+                } catch (e: SecurityException) {
+                    throw RuntimeException("Unable to read script: $scriptFile", e)
                 }
+
+                scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
             }
 
-            return Game(id, scriptList, mapList)
+            return Game(id, scriptRegistry, confMaps)
         }
     }
 }

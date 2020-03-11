@@ -1,13 +1,13 @@
 maps:
   - id: arena1     # Map ID
     alias: Arena 1 # Full name
-    path: ./example/arena1 # Path to map folder
+    path: Sample/example/arena1 # Path to map folder
   - id: arena2
     alias: Arena 2
-    path: ./example/arena2
+    path: Sample/example/arena2
 scripts:
   - id: core  # Script ID
-    path: ./example/core.groovy # Path to script file
-modules.path: ./example/modules.yml
-block-tags.path: ./example/data/block-tags.yml
-players.path: ./example/data/players.yml
+    path: Sample/example/core.groovy # Path to script file
+modules.path: Sample/example/modules.yml
+block-tags.path: Sample/example/data/block-tags.yml
+players.path: Sample/example/data/players.yml

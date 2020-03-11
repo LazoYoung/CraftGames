@@ -1,15 +1,9 @@
 package com.github.lazoyoung.craftgames
 
-import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
-import com.github.lazoyoung.craftgames.script.ScriptBase
-import com.github.lazoyoung.craftgames.script.ScriptFactory
-import groovy.lang.GroovyRuntimeException
-import org.bukkit.command.Command
+import com.github.lazoyoung.craftgames.command.GameCommand
 import org.bukkit.command.CommandExecutor
-import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.java.JavaPlugin
-import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.FileSystem
@@ -21,8 +15,6 @@ class Main : JavaPlugin(), CommandExecutor {
     companion object {
         lateinit var config: FileConfiguration
             private set
-        lateinit var scriptFiles: List<File> // TODO Deprecate
-            internal set
         lateinit var instance: Main
             private set
         lateinit var charset: Charset
@@ -34,45 +26,12 @@ class Main : JavaPlugin(), CommandExecutor {
 
         loadConfig()
         loadAsset()
-    }
-
-    override fun onCommand(
-            sender: CommandSender,
-            command: Command,
-            label: String,
-            args: Array<out String>
-    ): Boolean {
-        if (command.name != "script")
-            return true
-
-        if (args.size == 2 && args[0] == "execute") {
-            val name: String = args[1]
-            val file: File? = scriptFiles.singleOrNull { it.nameWithoutExtension == name }
-            val script: ScriptBase
-
-            if (file == null) {
-                sender.sendMessage("That does not exist.")
-                return true
-            }
-
-            try {
-                script = ScriptFactory.getInstance(file, sender)
-                script.parse()
-                script.execute()
-            } catch (e: GroovyRuntimeException) {
-                sender.sendMessage("Compilation error: ${e.message}")
-                e.printStackTrace()
-            } catch (e: ScriptEngineNotFound) {
-                sender.sendMessage(e.message)
-            }
-
-            return true
-        }
-        return false
+        getCommand("game")!!.setExecutor(GameCommand())
     }
 
     private fun loadConfig() {
         saveDefaultConfig()
+        config.options().copyDefaults(true)
         Main.config = config
         charset = Charset.forName(config.getString("file-encoding"))
     }

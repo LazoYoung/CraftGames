@@ -3,5 +3,5 @@ main: com.github.lazoyoung.craftgames.Main
 api-version: 1.15
 version: $version
 commands:
-  script:
-    usage: /script execute <fileName>
+  game:
+    usage: Type /game to see command list.

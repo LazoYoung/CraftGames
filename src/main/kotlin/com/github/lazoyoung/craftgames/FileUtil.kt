@@ -9,7 +9,7 @@ import java.util.logging.Logger
 class FileUtil(val logger: Logger?) {
     /**
      * Clones the whole content inside the source directory.
-     * @param source The root of the content to be cloned. (This folder itself is not cloned)
+     * @param source The root of the content to be cloned.
      * @param target Path to target directory.
      * @throws IllegalArgumentException Thrown if either source or target does not indicate a directory
      * @throws SecurityException Thrown if system denied access to any file.
@@ -27,13 +27,17 @@ class FileUtil(val logger: Logger?) {
                 if (dir == null)
                     return FileVisitResult.CONTINUE
 
-                val targetDir = target.resolve(source.relativize(dir).toString())
+                val targetDir = when (source.parent) {
+                    null -> target.resolve(dir.toString())
+                    else -> target.resolve(source.parent.relativize(dir).toString()) // TODO Needs more experiment
+                }
+                logger?.info("Copying directory: ${dir.fileName} -> $targetDir")
                 try {
                     Files.copy(dir, targetDir)
                 } catch (e: FileAlreadyExistsException) {
                     if (!Files.isDirectory(targetDir)) {
                         e.printStackTrace()
-                        logger?.severe("$targetDir is not a valid directory.")
+                        logger?.severe("Not a valid target: $targetDir")
                     }
                 }
                 return FileVisitResult.CONTINUE
@@ -41,8 +45,11 @@ class FileUtil(val logger: Logger?) {
 
             override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
                 if (file != null) {
-                    val targetPath = target.resolve(source.relativize(file).toString())
-                    logger?.info("Copying ${file.fileName} to ${targetPath.normalize()}")
+                    val targetPath = when (source.parent) {
+                        null -> target.resolve(file.toString())
+                        else -> target.resolve(source.parent.relativize(file).toString())
+                    }
+                    logger?.info("Copying file: ${file.fileName} -> ${targetPath.normalize()}")
                     Files.copy(file, targetPath)
                 }
                 return FileVisitResult.CONTINUE
