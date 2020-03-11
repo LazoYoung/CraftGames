@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.script
 
-import com.github.lazoyoung.craftgames.Main
 import groovy.lang.GroovyShell
 import groovy.lang.Script
 import org.bukkit.command.CommandSender
@@ -16,7 +15,7 @@ class ScriptGroovy(file: File, sender: CommandSender?) : ScriptBase(file, sender
 
     init {
         val conf = CompilerConfiguration().addCompilationCustomizers(SandboxTransformer())
-        conf.sourceEncoding = Main.charset.name()
+        conf.sourceEncoding = charset.name()
         filter = object : GroovyValueFilter() {
             // TODO Intercept abusive actions
         }

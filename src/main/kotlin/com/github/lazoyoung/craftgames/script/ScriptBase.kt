@@ -7,15 +7,18 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.Reader
+import java.nio.charset.Charset
 
 abstract class ScriptBase(file: File, sender: CommandSender?) {
     protected val reader: Reader
+    protected val charset: Charset
     protected val name: String
     private val sender: CommandSender
     private val ext: String
 
     init {
-        reader = BufferedReader(FileReader(file, Main.charset))
+        charset = Charset.forName(Main.config.getString("files.encoding"))
+        reader = BufferedReader(FileReader(file, charset))
         name = file.nameWithoutExtension
         ext = file.extension
         this.sender = sender ?: Bukkit.getConsoleSender()

@@ -12,31 +12,34 @@ game.team:
     - name: Red
       color: red
       tag: red_spawn
-lobby.local:
+lobby.system:
   active: false
   tag: lobby
   timer: 30
 lobby.ready-sign:
   active: true
-  required: -1 # Number of player's ready sign to skip the lobby. (-1 indicates max)
+  minimum: -1 # Lobby skips only if everyone's ready.
 player.spawnpoint: # This is ignored because module 'team' is activated.
   active: true
   tag: player_spawn
 player.quota:
   minimum: 2
   maximum: 6
-#spectator.spawnpoint: # Comment it out to deactivate the module.
+#spectator.spawnpoint: # It's possible to comment it out, the deactivated module.
 #  active: false
 #  tag: spec_spawn
 moderator.spawnpoint:
   active: true
   tag: mod_spawn
-eliminated:
-  mode: respawn # Select one: spectate, respawn
+death.mode: # Select one: spectate, respawn
   respawn:
+    active: true
     timer: 10
-item:
-  mode: none # Select one: shop, kit, dungeon, none
+death.cooldown:
+  active: true
+  timer: 20
+item.mode: # Select one or none: shop, kit, dungeon
+# ...seleting no mode
 item.restore:
   active: true
 finale.length:

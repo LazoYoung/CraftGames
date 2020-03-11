@@ -80,6 +80,7 @@ public class CraftGames {
     }
     
     private CommandSpec buildCommand() {
+        // TODO Implement reloading scripts.
         
         return CommandSpec.builder()
                 .description(Text.of("CraftGames Command"))
