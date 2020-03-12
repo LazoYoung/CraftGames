@@ -6,6 +6,7 @@ import org.bukkit.Bukkit
 class Game(
         val id: Int,
         val name: String,
+        internal val worldName: String,
         internal val scriptRegistry: Map<String, ScriptBase>,
         internal val mapRegistry: MutableList<Map<*, *>>
 ) {

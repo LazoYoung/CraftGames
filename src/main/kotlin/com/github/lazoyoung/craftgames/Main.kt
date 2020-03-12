@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.GameCommand
+import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.java.JavaPlugin
@@ -27,6 +28,7 @@ class Main : JavaPlugin(), CommandExecutor {
         loadConfig()
         loadAsset()
         getCommand("game")!!.setExecutor(GameCommand())
+        Bukkit.getPluginManager().registerEvents(EventListener(), this)
     }
 
     private fun loadConfig() {

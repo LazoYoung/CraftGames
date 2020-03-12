@@ -14,8 +14,8 @@ import java.util.function.Consumer
 class GameMap(private val game: Game) {
     var name: String? = null
     internal var world: World? = null
-    private var worldName: String? = null
     private var worldPath: Path? = null
+    private val worldName = game.worldName
 
     /**
      * Load the map by given name in asynchronous thread.
@@ -68,8 +68,6 @@ class GameMap(private val game: Game) {
         }
 
         scheduler.runTaskAsynchronously(Main.instance, Runnable{
-            val worldName = "Game${game.id}"
-
             try {
                 val targetRoot = mapTarget.resolve(mapSource.fileName)
 
@@ -100,10 +98,10 @@ class GameMap(private val game: Game) {
                     if (world == null)
                         throw RuntimeException("Unable to load world $worldName for ${game.name}")
                     else {
+                        world.keepSpawnInMemory = false
                         world.isAutoSave = false
                         this.world = world
                         this.name = name
-                        this.worldName = worldName
                         this.worldPath = mapTarget.resolve(worldName)
                     }
                     callback.accept(world)
@@ -124,7 +122,6 @@ class GameMap(private val game: Game) {
                     if (Bukkit.unloadWorld(it, false)) {
                         FileUtil(Main.instance.logger).deleteFileTree(worldPath!!)
                         worldPath = null
-                        worldName = null
                         world = null
                         name = null
                         return true

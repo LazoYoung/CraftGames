@@ -60,6 +60,7 @@ class GameFactory {
             val path = Main.config.getString("games.$name.layout")
                     ?: throw GameNotFound("Game \'$name\' is not defined in config.yml")
             val file = Main.instance.dataFolder.resolve(path)
+            val label = Main.config.getString("world.map-label")!!
 
             try {
                 if (!file.isFile)
@@ -105,13 +106,17 @@ class GameFactory {
                 scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
             }
 
-            // Prevent possible conflict with an existing folder
             Bukkit.getWorldContainer().listFiles()?.forEach {
-                if (it.isDirectory && it.name.toIntOrNull() == nextID)
-                    nextID++
-            }
+                if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
+                    val id = Regex("(_\\d+)").findAll(it.name).last().value.drop(1).toInt()
 
-            runners[nextID] = Game(nextID, name, scriptRegistry, confMaps)
+                    // Prevents possible conflict with an existing folder
+                    if (id >= nextID) {
+                        nextID = id + 1
+                    }
+                }
+            }
+            runners[nextID] = Game(nextID, name, label.plus('_').plus(nextID), scriptRegistry, confMaps)
             return runners[nextID++]!!
         }
 
