@@ -29,7 +29,7 @@ class FileUtil(val logger: Logger?) {
 
                 val targetDir = when (source.parent) {
                     null -> target.resolve(dir.toString())
-                    else -> target.resolve(source.parent.relativize(dir).toString()) // TODO Needs more experiment
+                    else -> target.resolve(source.parent.relativize(dir).toString())
                 }
                 logger?.info("Copying directory: ${dir.fileName} -> $targetDir")
                 try {
@@ -58,6 +58,33 @@ class FileUtil(val logger: Logger?) {
             override fun visitFileFailed(file: Path?, exc: IOException?): FileVisitResult {
                 logger?.warning("Failed to copy: ${file?.toRealPath().toString()}")
                 return FileVisitResult.TERMINATE
+            }
+        })
+    }
+
+    /**
+     * @param root must be a directory
+     */
+    fun deleteFileTree(root: Path) {
+        if (!Files.isDirectory(root))
+            throw IllegalArgumentException("root is not a directory!")
+
+        Files.walkFileTree(root, object : SimpleFileVisitor<Path>(), FileVisitor<Path> {
+            override fun postVisitDirectory(dir: Path?, exc: IOException?): FileVisitResult {
+                Files.delete(dir!!)
+                logger?.info("Delete folder: $dir")
+                return FileVisitResult.CONTINUE
+            }
+
+            override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
+                Files.delete(file!!)
+                logger?.info("Delete file: $file")
+                return FileVisitResult.CONTINUE
+            }
+
+            override fun visitFileFailed(file: Path?, exc: IOException?): FileVisitResult {
+                logger?.warning("Failed to delete: $file")
+                return FileVisitResult.CONTINUE
             }
         })
     }

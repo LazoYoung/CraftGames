@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.script.ScriptFactory
+import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.FileReader
@@ -11,58 +12,69 @@ import java.io.IOException
 
 class GameFactory {
     companion object {
-        private val runners: MutableList<Game> = ArrayList()
+        private val runners: MutableMap<Int, Game> = HashMap()
+        private var nextID = 0
 
         /**
-         * Find a free game with given id.
-         * It silently opens a new game if everything is running full.
+         * Find the running games matching the parameter conditions.
+         * You can avoid filtering a condition by passing null argument.
          *
-         * @param id Classifies the type of game
-         * @return A game where players can join at this moment.
+         * @param name Accept the certain type of games only, if specified.
+         * @param canJoin Accept the games where a player can join at this moment, if specified.
+         * @return A list of games matching the conditions.
          */
-        fun getAvailable(id: String) : Game {
-            for (game in runners) {
-                if (game.id == id && game.canJoin()) {
-                    return game
-                }
+        fun get(name: String? = null, canJoin: Boolean? = null) : List<Game> {
+            return runners.values.filter {
+                (name == null || it.name == name) && (canJoin == null || canJoin == it.canJoin())
             }
-            return openNew(id)
         }
 
         /**
-         * Open a new running game with given id.
+         * Returns the running game matching the id. (Each game has its unique id)
          *
-         * @param id Classifies the type of game
+         * @param id Instance ID
+         */
+        fun getByID(id: Int) : Game? {
+            return runners[id]
+        }
+
+        /**
+         * Open a new running game with given name.
+         *
+         * @param name Classifies the type of game
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun openNew(id: String) : Game {
-            val path = Main.config.getString("games.$id.layout")
-                    ?: throw GameNotFound("Game \'$id\' is not defined in config.yml")
-            val file = Main.instance.dataFolder.resolve(path)
+        fun openNew(name: String) : Game {
+            if (name.first().isDigit())
+                throw FaultyConfiguration("Name should never start with number.")
+
             val reader: BufferedReader
-            val config: YamlConfiguration
+            val layout: YamlConfiguration
             val confMaps: MutableList<Map<*, *>>
             val confScripts: MutableList<Map<*, *>>
             val scriptRegistry: MutableMap<String, ScriptBase> = HashMap()
             val mapItr: MutableListIterator<Map<*, *>>
             val scriptItr: MutableListIterator<Map<*, *>>
+            val path = Main.config.getString("games.$name.layout")
+                    ?: throw GameNotFound("Game \'$name\' is not defined in config.yml")
+            val file = Main.instance.dataFolder.resolve(path)
 
             try {
                 if (!file.isFile)
-                    throw FaultyConfiguration("Game \'$id\' does not have layout.yml")
+                    throw FaultyConfiguration("Game \'$name\' does not have layout.yml")
 
                 reader = BufferedReader(FileReader(file, Main.charset))
-                config = YamlConfiguration.loadConfiguration(reader)
+                layout = YamlConfiguration.loadConfiguration(reader)
             } catch (e: IOException) {
-                throw FaultyConfiguration("Unable to read ${file.toPath()} for game $id. Is it missing?", e)
+                throw FaultyConfiguration("Unable to read ${file.toPath()} for $name. Is it missing?", e)
             } catch (e: IllegalArgumentException) {
                 throw FaultyConfiguration("File is empty: ${file.toPath()}")
             }
 
-            confMaps = config.getMapList("maps")
-            confScripts = config.getMapList("scripts")
+            confMaps = layout.getMapList("maps")
+            confScripts = layout.getMapList("scripts")
             mapItr = confMaps.listIterator()
             scriptItr = confScripts.listIterator()
 
@@ -71,10 +83,10 @@ class GameFactory {
                 val mapID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of map is missing in ${file.toPath()}")
                 if (!map.containsKey("alias")) {
                     map["alias"] = mapID; mapItr.set(map)
-                    config.set("maps", confMaps); config.save(file)
+                    layout.set("maps", confMaps); layout.save(file)
                 }
                 if (!map.containsKey("path"))
-                    throw FaultyConfiguration("Entry \'path\' of map $id is missing in ${file.toPath()}")
+                    throw FaultyConfiguration("Entry \'path\' of $mapID is missing in ${file.toPath()}")
             }
 
             while (scriptItr.hasNext()) {
@@ -93,7 +105,18 @@ class GameFactory {
                 scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
             }
 
-            return Game(id, scriptRegistry, confMaps)
+            // Prevent possible conflict with an existing folder
+            Bukkit.getWorldContainer().listFiles()?.forEach {
+                if (it.isDirectory && it.name.toIntOrNull() == nextID)
+                    nextID++
+            }
+
+            runners[nextID] = Game(nextID, name, scriptRegistry, confMaps)
+            return runners[nextID++]!!
+        }
+
+        internal fun purge(id: Int) {
+            runners.remove(id)
         }
     }
 }

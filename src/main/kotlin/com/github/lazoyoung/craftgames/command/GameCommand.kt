@@ -12,11 +12,11 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import java.util.function.Consumer
 
 class GameCommand : CommandExecutor {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        val gameID: String
         val game: Game
 
         if (command.name != "game")
@@ -24,48 +24,51 @@ class GameCommand : CommandExecutor {
 
         if (args.isEmpty()) {
             sender.sendMessage(arrayOf(
-                    "/game <gameID> start <mapID>",
-                    "/game <gameID> script <scriptID> execute"
+                    "/game start <name> <mapID>",
+                    "/game stop <id>",
+                    "/game script <name> <scriptID> execute"
             ))
-            return true
-        }
-
-        try {
-            gameID = args[0]
-            game = GameFactory.openNew(gameID)
-        } catch (e: GameNotFound) {
-            sender.sendMessage(e.message!!)
-            return true
-        } catch (e: FaultyConfiguration) {
-            sender.sendMessage(e.message!!)
-            return true
-        } catch (e: RuntimeException) {
-            e.printStackTrace()
-            sender.sendMessage(e.message!!)
-            return true
-        } catch (e: ScriptEngineNotFound) {
-            e.printStackTrace()
-            sender.sendMessage(e.message)
             return true
         }
 
         if (args.size == 1)
             return false
 
-        if (args[1] == "start") {
+        if (args[0].equals("start", true)) {
+            val name: String
+
             if (args.size < 3)
                 return false
 
             try {
-                val world = game.loadMap(args[2])
-                if (world == null) {
-                    sender.sendMessage("That map is already loaded.")
-                    return true
-                }
-                if (sender is Player) {
-                    sender.teleport(world.spawnLocation)
-                }
-                sender.sendMessage("Loaded map: ${game.mapID}")
+                name = args[1]
+                game = GameFactory.openNew(name)
+            } catch (e: GameNotFound) {
+                sender.sendMessage(e.message!!)
+                return true
+            } catch (e: FaultyConfiguration) {
+                sender.sendMessage(e.message!!)
+                return true
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                sender.sendMessage(e.message!!)
+                return true
+            } catch (e: ScriptEngineNotFound) {
+                e.printStackTrace()
+                sender.sendMessage(e.message)
+                return true
+            }
+
+            try {
+                game.map.load(args[2], Consumer{
+                    if (it == null) {
+                        sender.sendMessage("That map is already loaded.")
+                    } else {
+                        if (sender is Player)
+                        { sender.teleport(it.spawnLocation) }
+                        sender.sendMessage("Started $name with map: ${game.map.name}")
+                    }
+                })
             } catch (e: RuntimeException) {
                 e.printStackTrace()
                 sender.sendMessage("Unable to load map.")
@@ -75,15 +78,52 @@ class GameCommand : CommandExecutor {
             } catch (e: MapNotFound) {
                 sender.sendMessage(e.message!!)
             }
-        } else if (args[1] == "script") {
+        } else if (args[0].equals("stop", true)) {
+            val id = args[1].toIntOrNull()
+
+            if (args.size < 2 || id == null)
+                return false
+
+            try {
+                if (GameFactory.getByID(id)!!.stop()) {
+                    sender.sendMessage("The game has been stopped.")
+                } else {
+                    sender.sendMessage("Unexpected error.")
+                }
+            } catch (e: NullPointerException) {
+                sender.sendMessage("No game is running with id $id.")
+                return true
+            }
+        } else if (args[0].equals("script", true)) {
+            val name: String
+
             if (args.size < 4)
                 return false
+
+            try {
+                name = args[1]
+                game = GameFactory.openNew(name)
+            } catch (e: GameNotFound) {
+                sender.sendMessage(e.message!!)
+                return true
+            } catch (e: FaultyConfiguration) {
+                sender.sendMessage(e.message!!)
+                return true
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                sender.sendMessage(e.message!!)
+                return true
+            } catch (e: ScriptEngineNotFound) {
+                e.printStackTrace()
+                sender.sendMessage(e.message)
+                return true
+            }
 
             val scriptID: String = args[2]
             val script: ScriptBase? = game.scriptRegistry[scriptID]
 
             if (script == null) {
-                sender.sendMessage("Script $scriptID does not exist.")
+                sender.sendMessage("That script ($scriptID) does not exist.")
                 return true
             }
 
