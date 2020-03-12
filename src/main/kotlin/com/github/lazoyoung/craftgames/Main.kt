@@ -51,7 +51,7 @@ class Main : JavaPlugin(), CommandExecutor {
                 sys = FileSystems.newFileSystem(file.toPath(), classLoader)
                 source = sys.getPath("Sample")
                 target = root.toPath()
-            } catch (e: java.lang.Exception) {
+            } catch (e: Exception) {
                 e.printStackTrace()
                 logger.severe("Unable to read jar files.")
                 return

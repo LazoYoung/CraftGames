@@ -1,5 +1,6 @@
-package com.github.lazoyoung.craftgames
+package com.github.lazoyoung.craftgames.game
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase

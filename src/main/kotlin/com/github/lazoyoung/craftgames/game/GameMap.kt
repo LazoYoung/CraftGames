@@ -1,5 +1,7 @@
-package com.github.lazoyoung.craftgames
+package com.github.lazoyoung.craftgames.game
 
+import com.github.lazoyoung.craftgames.FileUtil
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import org.bukkit.Bukkit
@@ -48,13 +50,15 @@ class GameMap(private val game: Game) {
         if (thisID == null || pathStr == null)
             throw MapNotFound("Map $name does not exist.")
 
-        try { // Load world container
+        // Load world container
+        try {
             mapTarget = Bukkit.getWorldContainer().toPath()
         } catch (e: InvalidPathException) {
             throw RuntimeException("Failed to convert World container to path.", e)
         }
 
-        try { // Install map
+        // Install world
+        try {
             mapSource = Main.instance.dataFolder.resolve(pathStr).toPath()
 
             if (mapSource == null || mapSource.fileName == null)
@@ -91,6 +95,7 @@ class GameMap(private val game: Game) {
                 throw RuntimeException(e)
             }
 
+            // Load world
             scheduler.runTask(Main.instance, Runnable{
                 val world = WorldCreator(worldName).createWorld()
 

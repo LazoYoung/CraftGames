@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.Game
-import com.github.lazoyoung.craftgames.GameFactory
+import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameFactory
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound

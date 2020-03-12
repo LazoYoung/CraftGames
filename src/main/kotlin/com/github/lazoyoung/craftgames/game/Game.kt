@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames
+package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import org.bukkit.Bukkit
