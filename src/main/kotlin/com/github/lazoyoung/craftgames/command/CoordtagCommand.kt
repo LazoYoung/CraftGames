@@ -7,16 +7,26 @@ import org.bukkit.command.TabExecutor
 class CoordtagCommand : TabExecutor {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (args.isEmpty()) {
-            sender.sendMessage(arrayOf(
-                    "/ctag select -game <title>",
-                    "/ctag select -tag <name>",
-                    "/ctag select -map <mapID>",
-                    "/ctag select -index <index>",
-                    "/ctag create",
-                    "/ctag remove",
-                    "/ctag list"
-            ))
+        if (args.isEmpty() || args[0].equals("help", true)) {
+            if (args.size < 2 || args[1] == "1") {
+                sender.sendMessage(arrayOf(
+                        "Coordinate Tags Command (Page 1/2)",
+                        "/ctag select -game <title>",
+                        "/ctag select -tag <name>",
+                        "/ctag select -map <mapID>",
+                        "/ctag select -index <index>",
+                        "> Next page: /ctag help 2"
+                ))
+            } else if (args[1] == "2") {
+                sender.sendMessage(arrayOf(
+                        "Coordinate Tags Command (Page 2/2)",
+                        "You must select flag prior to using these commands.",
+                        "/ctag create - Create selected tag or index",
+                        "/ctag remove - Removes selected tag or index",
+                        "/ctag list - List up the indexes based on the flags.",
+                        "< Previous page: /ctag help 1"
+                ))
+            }
             return true
         }
 
@@ -29,11 +39,12 @@ class CoordtagCommand : TabExecutor {
             return null
 
         if (args.size == 1)
-            return arrayListOf("add", "remove", "list")
+            return listOf("help", "select", "create", "remove", "list").filter { args[0].isEmpty() || it.startsWith(args[0]) }.toMutableList()
 
         if (args[0].equals("add", true)) {
+            TODO()
         }
-        TODO()
+        TODO("Not implemented.")
     }
 
 }

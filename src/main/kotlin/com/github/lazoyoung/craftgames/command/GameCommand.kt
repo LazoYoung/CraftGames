@@ -123,10 +123,15 @@ class GameCommand : TabExecutor {
             return null
 
         if (args.size == 1)
-            return arrayListOf("start", "stop", "script")
+            return listOf("start", "stop", "script")
+                    .filter { args[0].isEmpty() || it.startsWith(args[0]) }
+                    .toMutableList()
 
         fun getGameNames() : MutableList<String> {
-            return Main.config.getConfigurationSection("games")?.getKeys(false)!!.toMutableList()
+            return Main.config.getConfigurationSection("games")
+                    ?.getKeys(false)!!
+                    .filter { args[1].isEmpty() || it.startsWith(args[1]) }
+                    .toMutableList()
         }
 
         when {
@@ -135,14 +140,21 @@ class GameCommand : TabExecutor {
                     2 -> getGameNames()
                     3 -> {
                         val reg = GameFactory.getDummy(args[1]).map.mapRegistry
-                        reg.mapNotNull { it["id"] as String? }.toMutableList()
+                        reg.mapNotNull { it["id"] as String? }
+                                .filter { args[2].isEmpty() || it.startsWith(args[2]) }
+                                .toMutableList()
                     }
                     else -> null
                 }
             }
             args[0].equals("stop", true) -> {
                 return when (args.size) {
-                    2 -> GameFactory.find().map { it.id.toString() }.toMutableList()
+                    2 -> {
+                        GameFactory.find()
+                                .map { it.id.toString() }
+                                .filter { args[1].isEmpty() || it.startsWith(args[1]) }
+                                .toMutableList()
+                    }
                     else -> null
                 }
             }
@@ -151,7 +163,9 @@ class GameCommand : TabExecutor {
                     2 -> return getGameNames()
                     3 -> {
                         return try {
-                            GameFactory.getDummy(args[1]).scriptReg.keys.toMutableList()
+                            GameFactory.getDummy(args[1]).scriptReg.keys
+                                    .filter { args[1].isEmpty() || it.startsWith(args[1]) }
+                                    .toMutableList()
                         } catch (e: Exception) {
                             null
                         }
