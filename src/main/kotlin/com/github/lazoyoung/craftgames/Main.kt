@@ -23,11 +23,18 @@ class Main : JavaPlugin(), CommandExecutor {
     }
 
     override fun onEnable() {
+        val gameCmd = getCommand("game")!!
+        //val ctCmd = getCommand("coordtag")!!
+        val gameExecutor = GameCommand()
+        //val ctExecutor = CoordtagCommand()
         instance = this
 
         loadConfig()
         loadAsset()
-        getCommand("game")!!.setExecutor(GameCommand())
+        gameCmd.setExecutor(gameExecutor)
+        //ctCmd.setExecutor(ctExecutor)
+        gameCmd.tabCompleter = gameExecutor
+        //ctCmd.tabCompleter = ctExecutor
         Bukkit.getPluginManager().registerEvents(EventListener(), this)
     }
 

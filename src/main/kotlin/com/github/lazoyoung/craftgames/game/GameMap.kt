@@ -24,7 +24,7 @@ class GameMap internal constructor(
         internal val tagFile: File,
 
         /** List of maps available **/
-        private val mapRegistry: MutableList<Map<*, *>>
+        internal val mapRegistry: MutableList<Map<*, *>>
 ) {
     /** ID of selected map **/
     internal var mapID: String? = null

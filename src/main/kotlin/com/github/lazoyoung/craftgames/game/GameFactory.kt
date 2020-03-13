@@ -13,7 +13,7 @@ import java.io.IOException
 
 class GameFactory {
     companion object {
-        private val gameRegistry: MutableMap<Int, Game> = HashMap()
+        private val gamesAlive: MutableMap<Int, Game> = HashMap()
         private var nextID = 0
 
         /**
@@ -24,8 +24,8 @@ class GameFactory {
          * @param canJoin Accept the games where a player can join at this moment, if specified.
          * @return A list of games matching the conditions.
          */
-        fun get(name: String? = null, canJoin: Boolean? = null) : List<Game> {
-            return gameRegistry.values.filter {
+        fun find(name: String? = null, canJoin: Boolean? = null) : List<Game> {
+            return gamesAlive.values.filter {
                 (name == null || it.name == name) && (canJoin == null || canJoin == it.canJoin())
             }
         }
@@ -35,19 +35,20 @@ class GameFactory {
          *
          * @param id Instance ID
          */
-        fun getByID(id: Int) : Game? {
-            return gameRegistry[id]
+        fun findByID(id: Int) : Game? {
+            return gamesAlive[id]
         }
 
         /**
-         * Open a new running game with given name.
+         * Make a dummy game with given name.
+         * This instance is not registered thus it cannot go live.
          *
          * @param name Classifies the type of game
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun openNew(name: String) : Game {
+        fun getDummy(name: String) : Game {
             if (name.first().isDigit())
                 throw FaultyConfiguration("Name should never start with number.")
 
@@ -100,7 +101,6 @@ class GameFactory {
                 scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
             }
 
-            val label = Main.config.getString("worlds.directory-label")!!
             val tagPath = layout.getString("coordinate-tags.path")
                     ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${file.toPath()}.")
             val tagFile = Main.instance.dataFolder.resolve(tagPath)
@@ -110,6 +110,23 @@ class GameFactory {
                 throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
             if (tagFile.extension != "yml")
                 throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
+
+            game = Game(-1, name, scriptRegistry, tagFile, mapRegistry)
+            return game
+        }
+
+        /**
+         * Make a new game instance with given name.
+         * This instance will be registered and go live immediately.
+         *
+         * @param name Classifies the type of game
+         * @throws GameNotFound No such game exists with given id.
+         * @throws FaultyConfiguration Configuration is not complete.
+         * @throws RuntimeException Unexpected issue has arrised.
+         */
+        fun openNew(name: String) : Game {
+            val game = getDummy(name)
+            val label = Main.config.getString("worlds.directory-label")!!
 
             Bukkit.getWorldContainer().listFiles()?.forEach {
                 if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
@@ -121,13 +138,13 @@ class GameFactory {
                     }
                 }
             }
-            game = Game(nextID, name, scriptRegistry, tagFile, mapRegistry)
-            gameRegistry[nextID++] = game
+            game.id = nextID
+            gamesAlive[nextID++] = game
             return game
         }
 
         internal fun purge(id: Int) {
-            gameRegistry.remove(id)
+            gamesAlive.remove(id)
         }
     }
 }

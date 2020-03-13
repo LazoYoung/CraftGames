@@ -7,7 +7,7 @@ import java.io.File
 import java.util.function.Consumer
 
 class Game(
-        val id: Int,
+        internal var id: Int,
         val name: String,
         val scriptReg: Map<String, ScriptBase>,
         tagFile: File,
