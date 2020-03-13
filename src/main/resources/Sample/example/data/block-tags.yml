@@ -1,36 +1,33 @@
-mod_spawn:
-  arena1:
-    - 0.0
-    - 50.0
-    - 0.0
-  arena2:
-    - 10.0
-    - 50.0
-    - 0.0
-spec_spawn:
-  arena1:
-    - 0.0
-    - 70.0
-    - 0.0
-  arena2:
-    - 10.0
-    - 70.0
-    - 0.0
-red_spawn:
-  arena1:
-    - 0.0
-    - 60.0
-    - 0.0
-  arena2:
-    - 10.0
-    - 60.0
-    - 0.0
-blue_spawn:
-  arena1:
-    - 0.0
-    - 60.0
-    - 10.0
-  arena2:
-    - 10.0
-    - 60.0
-    - 0.0
+singular:
+  mod_spawn:
+    arena1:
+      - SerializedLocation
+    arena2:
+      - SerializedLocation
+  spec_spawn:
+    arena1:
+      - SerializedLocation
+    arena2:
+      - SerializedLocation
+  red_spawn:
+    arena1:
+      - SerializedLocation
+    arena2:
+      - SerializedLocation
+  blue_spawn:
+    arena1:
+      - SerializedLocation
+    arena2:
+      - SerializedLocation
+cuboid:
+  some_area:
+    arena1:
+      p1:
+        - SerializedLocation
+      p2:
+        - SerializedLocation
+    arena2:
+      p1:
+        - SerializedLocation
+      p2:
+        - SerializedLocation

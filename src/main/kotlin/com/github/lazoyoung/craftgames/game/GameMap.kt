@@ -7,6 +7,9 @@ import com.github.lazoyoung.craftgames.exception.MapNotFound
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
+import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.configuration.file.YamlConfiguration
+import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -14,7 +17,12 @@ import java.nio.file.Path
 import java.util.function.Consumer
 
 class GameMap(
+        /** The game associated to this map **/
         internal val game: Game,
+
+        /** File pathname of tagConfig **/
+        internal val tagFile: File,
+
         private val mapRegistry: MutableList<Map<*, *>>
 ) {
     /** ID of selected map **/
@@ -28,6 +36,9 @@ class GameMap(
 
     /** Directory name of this world **/
     internal var worldName: String? = null
+
+    /** Serialization data of BlockTags **/
+    internal var tagConfig: FileConfiguration = YamlConfiguration.loadConfiguration(tagFile)
 
     /** Path to world directory **/
     private var worldPath: Path? = null
@@ -85,7 +96,7 @@ class GameMap(
             throw RuntimeException("Failed to convert World container to path.", e)
         }
 
-        // Install world
+        // Resolve installation target
         try {
             mapSource = Main.instance.dataFolder.resolve(pathStr).toPath()
 
@@ -95,6 +106,7 @@ class GameMap(
             throw FaultyConfiguration("Unable to locate map $thisID at $pathStr for ${game.name}", e)
         }
 
+        // Copy files in the repository to world container
         scheduler.runTaskAsynchronously(Main.instance, Runnable{
             try {
                 val targetRoot = mapTarget.resolve(mapSource.fileName)
@@ -119,7 +131,7 @@ class GameMap(
                 throw RuntimeException(e)
             }
 
-            // Load world
+            // Create(load) world
             scheduler.runTask(Main.instance, Runnable{
                 this.worldName = worldName  // Assign worldName so that WorldInitEvent listener can detect it.
                 val world = WorldCreator(worldName).createWorld()
@@ -128,7 +140,6 @@ class GameMap(
                     if (world == null)
                         throw RuntimeException("Unable to load world $worldName for ${game.name}")
                     else {
-                        world.keepSpawnInMemory = false
                         world.isAutoSave = false
                         this.alias = alias
                         this.world = world
@@ -164,5 +175,13 @@ class GameMap(
             }
         }
         return false
+    }
+
+    fun reloadConfig() {
+        tagConfig.load(tagFile)
+    }
+
+    fun saveConfig() {
+        tagConfig.save(tagFile)
     }
 }

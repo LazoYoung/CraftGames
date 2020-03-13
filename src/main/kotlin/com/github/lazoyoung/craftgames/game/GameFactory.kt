@@ -13,7 +13,7 @@ import java.io.IOException
 
 class GameFactory {
     companion object {
-        private val runners: MutableMap<Int, Game> = HashMap()
+        private val gameRegistry: MutableMap<Int, Game> = HashMap()
         private var nextID = 0
 
         /**
@@ -25,7 +25,7 @@ class GameFactory {
          * @return A list of games matching the conditions.
          */
         fun get(name: String? = null, canJoin: Boolean? = null) : List<Game> {
-            return runners.values.filter {
+            return gameRegistry.values.filter {
                 (name == null || it.name == name) && (canJoin == null || canJoin == it.canJoin())
             }
         }
@@ -36,7 +36,7 @@ class GameFactory {
          * @param id Instance ID
          */
         fun getByID(id: Int) : Game? {
-            return runners[id]
+            return gameRegistry[id]
         }
 
         /**
@@ -51,7 +51,6 @@ class GameFactory {
             if (name.first().isDigit())
                 throw FaultyConfiguration("Name should never start with number.")
 
-            val reader: BufferedReader
             val layout: YamlConfiguration
             val scriptRegistry: MutableMap<String, ScriptBase> = HashMap()
             val path = Main.config.getString("games.$name.layout")
@@ -62,8 +61,7 @@ class GameFactory {
                 if (!file.isFile)
                     throw FaultyConfiguration("Game \'$name\' does not have layout.yml")
 
-                reader = BufferedReader(FileReader(file, Main.charset))
-                layout = YamlConfiguration.loadConfiguration(reader)
+                layout = YamlConfiguration.loadConfiguration(BufferedReader(FileReader(file, Main.charset)))
             } catch (e: IOException) {
                 throw FaultyConfiguration("Unable to read ${file.toPath()} for $name. Is it missing?", e)
             } catch (e: IllegalArgumentException) {
@@ -103,8 +101,14 @@ class GameFactory {
             }
 
             val label = Main.config.getString("worlds.directory-label")!!
+            val tagPath = layout.getString("block-tags.path")
+                    ?: throw FaultyConfiguration("block-tags.path is not defined in ${file.toPath()}.")
+            val tagFile = Main.instance.dataFolder.resolve(tagPath)
             val game: Game
             val map: GameMap
+
+            if (!tagFile.isFile)
+                throw FaultyConfiguration("File not found: ${tagFile.toPath()}")
 
             Bukkit.getWorldContainer().listFiles()?.forEach {
                 if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
@@ -117,14 +121,15 @@ class GameFactory {
                 }
             }
             game = Game(nextID, name, scriptRegistry)
-            map = GameMap(game, mapRegistry)
+            map = GameMap(game, tagFile, mapRegistry)
+            map.tagConfig
             game.map = map
-            runners[nextID++] = game
+            gameRegistry[nextID++] = game
             return game
         }
 
         internal fun purge(id: Int) {
-            runners.remove(id)
+            gameRegistry.remove(id)
         }
     }
 }
