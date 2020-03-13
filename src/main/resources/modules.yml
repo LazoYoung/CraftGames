@@ -5,10 +5,12 @@ game.intervene:
   active: false
 game.team:
   active: false
-lobby.system:
+lobby.local:
   active: false
+  timer: 30
 lobby.ready-sign:
   active: false
+  required: -1
 player.spawnpoint:
   active: false
 player.quota:
@@ -19,13 +21,16 @@ spectator.spawnpoint:
   active: false
 moderator.spawnpoint:
   active: false
-death.mode:
-  spectate:
-    active: true
-item.mode:
+eliminated:
+  mode: spectate
+  respawn:
+    timer: 10
+item:
+  mode: none
 item.restore:
   active: false
 finale.length:
   active: false
+  timer: 10
 finale.return:
   active: false
