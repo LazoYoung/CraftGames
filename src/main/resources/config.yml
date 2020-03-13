@@ -12,5 +12,5 @@ worlds:
 # The root folder is equivalent to: plugins/CraftGames/
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
 games:
-  example: # Game ID. Turn on 'install-sample' to test it!
+  example: # Title of sample game. Turn on 'install-sample' above to test it!
     layout: Sample/example/layout.yml # Path to layout.yml

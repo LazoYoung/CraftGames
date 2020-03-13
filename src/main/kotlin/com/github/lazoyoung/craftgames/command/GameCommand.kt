@@ -20,14 +20,11 @@ class GameCommand : TabExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val game: Game?
 
-        if (command.name != "game")
-            return true
-
         if (args.isEmpty()) {
             sender.sendMessage(arrayOf(
-                    "/game start <name> [mapID]",
+                    "/game start <title> [mapID]",
                     "/game stop <id>",
-                    "/game script <name> <scriptID> execute"
+                    "/game script <title> <scriptID> execute"
             ))
             return true
         }
@@ -75,10 +72,10 @@ class GameCommand : TabExecutor {
                 return false
 
             try {
-                if (GameFactory.findByID(id)!!.stop()) {
+                if (GameFactory.findByID(id)?.stop() == true) {
                     sender.sendMessage("The game has been stopped.")
                 } else {
-                    sender.sendMessage("Unexpected error.")
+                    sender.sendMessage("That game does not exist.")
                 }
             } catch (e: NullPointerException) {
                 sender.sendMessage("No game is running with id $id.")
@@ -128,14 +125,14 @@ class GameCommand : TabExecutor {
         if (args.size == 1)
             return arrayListOf("start", "stop", "script")
 
-        fun getGames() : MutableList<String> {
+        fun getGameNames() : MutableList<String> {
             return Main.config.getConfigurationSection("games")?.getKeys(false)!!.toMutableList()
         }
 
         when {
             args[0].equals("start", true) -> {
                 return when (args.size) {
-                    2 -> getGames()
+                    2 -> getGameNames()
                     3 -> {
                         val reg = GameFactory.getDummy(args[1]).map.mapRegistry
                         reg.mapNotNull { it["id"] as String? }.toMutableList()
@@ -151,7 +148,7 @@ class GameCommand : TabExecutor {
             }
             args[0].equals("script", true) -> {
                 when (args.size) {
-                    2 -> return getGames()
+                    2 -> return getGameNames()
                     3 -> {
                         return try {
                             GameFactory.getDummy(args[1]).scriptReg.keys.toMutableList()

@@ -6,3 +6,7 @@ commands:
   game:
     description: Manage games.
     usage: Type /game to see command list.
+  coord:
+    description: Manage coordinate tags.
+    usage: Type /ct to see command list.
+    aliases: [ ctag, coordtag ]
