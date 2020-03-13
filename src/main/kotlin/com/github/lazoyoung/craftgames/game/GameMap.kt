@@ -13,42 +13,70 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.util.function.Consumer
 
-class GameMap(private val game: Game) {
-    var name: String? = null
+class GameMap(
+        internal val game: Game,
+        private val mapRegistry: MutableList<Map<*, *>>
+) {
+    /** ID of selected map **/
+    internal var mapID: String? = null
+
+    /** Alias name to be displayed **/
+    internal var alias: String? = null
+
+    /** World instance **/
     internal var world: World? = null
+
+    /** Directory name of this world **/
+    internal var worldName: String? = null
+
+    /** Path to world directory **/
     private var worldPath: Path? = null
-    private val worldName = game.worldName
 
     /**
-     * Load the map by given name in asynchronous thread.
+     * Install a map from repository and generate it in asynchronous thread.
      *
-     * @param name Name of map to load
-     * @param callback Function consuming the loaded world (is null if it's already loaded)
+     * @param mapID ID of the map you want to be loaded
+     * @param callback Consumer of generated world (which is null if the other map is in use).
      * @throws MapNotFound
      * @throws RuntimeException
      * @throws FaultyConfiguration
      */
-    fun load(name: String, callback: Consumer<World?>) {
-        val iter = game.mapRegistry.listIterator()
+    fun generate(mapID: String, callback: Consumer<World?>) {
         var thisID: String? = null
         var pathStr: String? = null
+        var alias: String? = null
+        val iter = mapRegistry.listIterator()
         val mapSource: Path?
         val mapTarget: Path
         val scheduler = Bukkit.getScheduler()
+        val label = Main.config.getString("worlds.directory-label")
+        val worldName: String
+
+        if (this.mapID == mapID) {
+            callback.accept(null)
+            return
+        }
+
+        try {
+            worldName = label.plus('_').plus(game.id)
+        } catch (e: NullPointerException) {
+            throw FaultyConfiguration("worlds.directory-label is missing in config.yml", e)
+        }
 
         while (iter.hasNext()) {
             val map = iter.next()
-            val id = map["id"] as String
+            val iterID = map["id"] as String
 
-            if (id == name) {
-                thisID = id
+            if (iterID == mapID) {
+                thisID = mapID
+                alias = map["alias"] as String
                 pathStr = map["path"] as String
                 break
             }
         }
 
         if (thisID == null || pathStr == null)
-            throw MapNotFound("Map $name does not exist.")
+            throw MapNotFound("Map $mapID does not exist.")
 
         // Load world container
         try {
@@ -63,10 +91,6 @@ class GameMap(private val game: Game) {
 
             if (mapSource == null || mapSource.fileName == null)
                 throw FaultyConfiguration("Illegal path of map $thisID for ${game.name}: $pathStr}")
-            if (mapSource.fileName.toString() == this.name) {
-                callback.accept(null)
-                return
-            }
         } catch (e: InvalidPathException) {
             throw FaultyConfiguration("Unable to locate map $thisID at $pathStr for ${game.name}", e)
         }
@@ -97,6 +121,7 @@ class GameMap(private val game: Game) {
 
             // Load world
             scheduler.runTask(Main.instance, Runnable{
+                this.worldName = worldName  // Assign worldName so that WorldInitEvent listener can detect it.
                 val world = WorldCreator(worldName).createWorld()
 
                 try {
@@ -105,8 +130,9 @@ class GameMap(private val game: Game) {
                     else {
                         world.keepSpawnInMemory = false
                         world.isAutoSave = false
+                        this.alias = alias
                         this.world = world
-                        this.name = name
+                        this.mapID = mapID
                         this.worldPath = mapTarget.resolve(worldName)
                     }
                     callback.accept(world)
@@ -126,9 +152,10 @@ class GameMap(private val game: Game) {
                 try {
                     if (Bukkit.unloadWorld(it, false)) {
                         FileUtil(Main.instance.logger).deleteFileTree(worldPath!!)
+                        worldName = null
                         worldPath = null
                         world = null
-                        name = null
+                        mapID = null
                         return true
                     }
                 } catch (e: Exception) {

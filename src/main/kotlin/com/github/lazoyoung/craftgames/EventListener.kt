@@ -12,7 +12,7 @@ class EventListener : Listener {
         val name = event.world.name
 
         for (game in GameFactory.get()) {
-            if (name == game.worldName) {
+            if (name == game.map.worldName) {
                 event.world.keepSpawnInMemory = false
                 break
             }

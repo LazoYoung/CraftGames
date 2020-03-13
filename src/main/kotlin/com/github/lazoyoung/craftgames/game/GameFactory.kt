@@ -53,15 +53,10 @@ class GameFactory {
 
             val reader: BufferedReader
             val layout: YamlConfiguration
-            val confMaps: MutableList<Map<*, *>>
-            val confScripts: MutableList<Map<*, *>>
             val scriptRegistry: MutableMap<String, ScriptBase> = HashMap()
-            val mapItr: MutableListIterator<Map<*, *>>
-            val scriptItr: MutableListIterator<Map<*, *>>
             val path = Main.config.getString("games.$name.layout")
                     ?: throw GameNotFound("Game \'$name\' is not defined in config.yml")
             val file = Main.instance.dataFolder.resolve(path)
-            val label = Main.config.getString("world.map-label")!!
 
             try {
                 if (!file.isFile)
@@ -75,17 +70,17 @@ class GameFactory {
                 throw FaultyConfiguration("File is empty: ${file.toPath()}")
             }
 
-            confMaps = layout.getMapList("maps")
-            confScripts = layout.getMapList("scripts")
-            mapItr = confMaps.listIterator()
-            scriptItr = confScripts.listIterator()
+            val mapRegistry = layout.getMapList("maps")
+            val confScripts = layout.getMapList("scripts")
+            val mapItr = mapRegistry.listIterator()
+            val scriptItr = confScripts.listIterator()
 
             while (mapItr.hasNext()) {
                 val map = mapItr.next().toMutableMap()
                 val mapID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of map is missing in ${file.toPath()}")
                 if (!map.containsKey("alias")) {
                     map["alias"] = mapID; mapItr.set(map)
-                    layout.set("maps", confMaps); layout.save(file)
+                    layout.set("maps", mapRegistry); layout.save(file)
                 }
                 if (!map.containsKey("path"))
                     throw FaultyConfiguration("Entry \'path\' of $mapID is missing in ${file.toPath()}")
@@ -107,6 +102,10 @@ class GameFactory {
                 scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
             }
 
+            val label = Main.config.getString("worlds.directory-label")!!
+            val game: Game
+            val map: GameMap
+
             Bukkit.getWorldContainer().listFiles()?.forEach {
                 if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
                     val id = Regex("(_\\d+)").findAll(it.name).last().value.drop(1).toInt()
@@ -117,8 +116,11 @@ class GameFactory {
                     }
                 }
             }
-            runners[nextID] = Game(nextID, name, label.plus('_').plus(nextID), scriptRegistry, confMaps)
-            return runners[nextID++]!!
+            game = Game(nextID, name, scriptRegistry)
+            map = GameMap(game, mapRegistry)
+            game.map = map
+            runners[nextID++] = game
+            return game
         }
 
         internal fun purge(id: Int) {

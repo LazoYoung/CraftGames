@@ -1,11 +1,11 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameFactory
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
+import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameFactory
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
 import org.bukkit.command.Command
@@ -60,14 +60,17 @@ class GameCommand : CommandExecutor {
             }
 
             try {
-                game.map.load(args[2], Consumer{
+                game.map.generate(args[2], Consumer{
                     if (it == null) {
-                        sender.sendMessage("That map is already loaded.")
-                    } else {
-                        if (sender is Player)
-                        { sender.teleport(it.spawnLocation) }
-                        sender.sendMessage("Started $name with map: ${game.map.name}")
+                        sender.sendMessage("Started $name.")
+                        return@Consumer
                     }
+
+                    if (sender is Player) {
+                        // TODO This function will be replaced by Game#start()
+                        sender.teleport(it.spawnLocation)
+                    }
+                    sender.sendMessage("Started $name with map: ${game.map.mapID}")
                 })
             } catch (e: RuntimeException) {
                 e.printStackTrace()
@@ -120,7 +123,7 @@ class GameCommand : CommandExecutor {
             }
 
             val scriptID: String = args[2]
-            val script: ScriptBase? = game.scriptRegistry[scriptID]
+            val script: ScriptBase? = game.scriptReg[scriptID]
 
             if (script == null) {
                 sender.sendMessage("That script ($scriptID) does not exist.")
