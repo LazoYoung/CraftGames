@@ -9,5 +9,5 @@ scripts:
   - id: core  # Script ID
     path: Sample/example/core.groovy # Path to script file
 modules.path: Sample/example/modules.yml
-block-tags.path: Sample/example/data/block-tags.yml
+coordinate-tags.path: Sample/example/data/coordinate-tag.yml
 players.path: Sample/example/data/players.yml

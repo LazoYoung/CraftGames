@@ -16,13 +16,14 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.util.function.Consumer
 
-class GameMap(
+class GameMap internal constructor(
         /** The game associated to this map **/
         internal val game: Game,
 
         /** File pathname of tagConfig **/
         internal val tagFile: File,
 
+        /** List of maps available **/
         private val mapRegistry: MutableList<Map<*, *>>
 ) {
     /** ID of selected map **/
@@ -52,7 +53,7 @@ class GameMap(
      * @throws RuntimeException
      * @throws FaultyConfiguration
      */
-    fun generate(mapID: String, callback: Consumer<World?>) {
+    fun generate(mapID: String, callback: Consumer<World?>? = null) {
         var thisID: String? = null
         var pathStr: String? = null
         var alias: String? = null
@@ -64,7 +65,7 @@ class GameMap(
         val worldName: String
 
         if (this.mapID == mapID) {
-            callback.accept(null)
+            callback?.accept(null)
             return
         }
 
@@ -106,7 +107,7 @@ class GameMap(
             throw FaultyConfiguration("Unable to locate map $thisID at $pathStr for ${game.name}", e)
         }
 
-        // Copy files in the repository to world container
+        // Copy map files to world container
         scheduler.runTaskAsynchronously(Main.instance, Runnable{
             try {
                 val targetRoot = mapTarget.resolve(mapSource.fileName)
@@ -146,7 +147,7 @@ class GameMap(
                         this.mapID = mapID
                         this.worldPath = mapTarget.resolve(worldName)
                     }
-                    callback.accept(world)
+                    callback?.accept(world)
                 } catch (e: InvalidPathException) {
                     throw RuntimeException(e)
                 }

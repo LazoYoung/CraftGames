@@ -101,14 +101,15 @@ class GameFactory {
             }
 
             val label = Main.config.getString("worlds.directory-label")!!
-            val tagPath = layout.getString("block-tags.path")
-                    ?: throw FaultyConfiguration("block-tags.path is not defined in ${file.toPath()}.")
+            val tagPath = layout.getString("coordinate-tags.path")
+                    ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${file.toPath()}.")
             val tagFile = Main.instance.dataFolder.resolve(tagPath)
             val game: Game
-            val map: GameMap
 
-            if (!tagFile.isFile)
-                throw FaultyConfiguration("File not found: ${tagFile.toPath()}")
+            if (!tagFile.isFile && !tagFile.createNewFile())
+                throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
+            if (tagFile.extension != "yml")
+                throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
 
             Bukkit.getWorldContainer().listFiles()?.forEach {
                 if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
@@ -120,10 +121,7 @@ class GameFactory {
                     }
                 }
             }
-            game = Game(nextID, name, scriptRegistry)
-            map = GameMap(game, tagFile, mapRegistry)
-            map.tagConfig
-            game.map = map
+            game = Game(nextID, name, scriptRegistry, tagFile, mapRegistry)
             gameRegistry[nextID++] = game
             return game
         }
