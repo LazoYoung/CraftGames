@@ -18,9 +18,8 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
-    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots' }
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     maven { url 'https://repo.jenkins-ci.org/releases/' }
+    maven { url 'https://papermc.io/repo/repository/maven-public/' }
 }
 
 dependencies {
@@ -29,7 +28,7 @@ dependencies {
     implementation 'org.codehaus.groovy:groovy-groovysh:3.0.1'
     implementation 'org.codehaus.groovy:groovy-jsr223:3.0.1'
     implementation 'org.kohsuke:groovy-sandbox:1.25'
-    compileOnly 'org.spigotmc:spigot-api:1.15.2-R0.1-SNAPSHOT'
+    compileOnly 'com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT'
     // compile 'org.graalvm.js:js:20.0.0' for JavaScript engine (GraalVM required)
 }
 

@@ -13,8 +13,8 @@ abstract class ScriptBase(file: File, sender: CommandSender?) {
     protected val reader: Reader
     protected val charset: Charset
     protected val name: String
-    private val sender: CommandSender
     private val ext: String
+    private val sender: CommandSender
 
     init {
         charset = Charset.forName(Main.config.getString("files.encoding"))
