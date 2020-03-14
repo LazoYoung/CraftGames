@@ -12,14 +12,18 @@ class Game(
         internal var id: Int,
         val name: String,
         val scriptReg: Map<String, ScriptBase>,
-        tagFile: File,
+
+        /* File pathname of tagConfig */
+        internal val tagFile: File,
+
         mapReg: MutableList<Map<*, *>>
 ) {
 
     /** Serialization data of BlockTags **/
     internal var tagConfig: FileConfiguration = YamlConfiguration.loadConfiguration(tagFile)
 
-    val map = GameMap(this, tagFile, mapReg)
+    /** Map Handler **/
+    val map = GameMap(this, mapReg)
 
     fun canJoin() : Boolean {
         return true
@@ -49,10 +53,10 @@ class Game(
     }
 
     fun reloadConfig() {
-        map.reloadConfig()
+        tagConfig.load(tagFile)
     }
 
     fun saveConfig() {
-        map.saveConfig()
+        tagConfig.save(tagFile)
     }
 }

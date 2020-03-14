@@ -127,10 +127,7 @@ class GameCommand : CommandBase {
             args[0].equals("start", true) -> {
                 return when (args.size) {
                     2 -> getGameTitles(args[1])
-                    3 -> {
-                        val reg = GameFactory.getDummy(args[1]).map.mapRegistry
-                        getCompletions(args[2], *reg.mapNotNull { it["id"] as String? }.toTypedArray())
-                    }
+                    3 -> getCompletions(args[2], *GameFactory.getDummy(args[1]).map.getMapList())
                     else -> mutableListOf()
                 }
             }

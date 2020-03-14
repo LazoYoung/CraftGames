@@ -20,9 +20,6 @@ class GameMap internal constructor(
         /** The game associated to this map **/
         internal val game: Game,
 
-        /** File pathname of tagConfig **/
-        internal val tagFile: File,
-
         /** List of maps available **/
         internal val mapRegistry: MutableList<Map<*, *>>
 ) {
@@ -175,11 +172,10 @@ class GameMap internal constructor(
         return false
     }
 
-    fun reloadConfig() {
-        tagConfig.load(tagFile)
-    }
-
-    fun saveConfig() {
-        tagConfig.save(tagFile)
+    /**
+     * Returns ID list of all maps available.
+     */
+    fun getMapList() : Array<String> {
+        return mapRegistry.mapNotNull { it["id"] as String? }.toTypedArray()
     }
 }
