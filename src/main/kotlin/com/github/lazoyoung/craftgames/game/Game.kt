@@ -3,6 +3,8 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import org.bukkit.Bukkit
 import org.bukkit.World
+import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.function.Consumer
 
@@ -13,6 +15,10 @@ class Game(
         tagFile: File,
         mapReg: MutableList<Map<*, *>>
 ) {
+
+    /** Serialization data of BlockTags **/
+    internal var tagConfig: FileConfiguration = YamlConfiguration.loadConfiguration(tagFile)
+
     val map = GameMap(this, tagFile, mapReg)
 
     fun canJoin() : Boolean {

@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
@@ -124,40 +123,33 @@ class GameCommand : CommandBase {
         if (args.size == 1)
             return getCompletions(args[0], "start", "stop", "script")
 
-        fun getGameNames() : MutableList<String> {
-            return getCompletions(
-                    query = args[1],
-                    args = Main.config.getConfigurationSection("games")
-                            ?.getKeys(false)
-                            ?.toList()
-                            ?: emptyList()
-            )
-        }
-
         when {
             args[0].equals("start", true) -> {
                 return when (args.size) {
-                    2 -> getGameNames()
+                    2 -> getGameTitles(args[1])
                     3 -> {
                         val reg = GameFactory.getDummy(args[1]).map.mapRegistry
-                        getCompletions(args[2], reg.mapNotNull { it["id"] as String? })
+                        getCompletions(args[2], *reg.mapNotNull { it["id"] as String? }.toTypedArray())
                     }
                     else -> mutableListOf()
                 }
             }
             args[0].equals("stop", true) -> {
                 return when (args.size) {
-                    2 -> getCompletions(args[1], GameFactory.find().map { it.id.toString() })
+                    2 -> getCompletions(args[1], *GameFactory.find().map { it.id.toString() }.toTypedArray())
                     else -> mutableListOf()
                 }
             }
             args[0].equals("script", true) -> {
                 return when (args.size) {
-                    2 -> getGameNames()
+                    2 -> getGameTitles(args[1])
                     3 -> {
                         var compl: MutableList<String> = mutableListOf()
                         try {
-                            compl = getCompletions(args[2], GameFactory.getDummy(args[1]).scriptReg.keys.toList())
+                            compl = getCompletions(
+                                    query = args[2],
+                                    args = *GameFactory.getDummy(args[1]).scriptReg.keys.toList().toTypedArray()
+                            )
                         } catch (e: Exception) { /* Neglect any exception */ }
                         compl
                     }

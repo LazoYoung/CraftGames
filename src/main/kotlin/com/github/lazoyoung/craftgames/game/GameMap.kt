@@ -38,9 +38,6 @@ class GameMap internal constructor(
     /** Directory name of this world **/
     internal var worldName: String? = null
 
-    /** Serialization data of BlockTags **/
-    internal var tagConfig: FileConfiguration = YamlConfiguration.loadConfiguration(tagFile)
-
     /** Path to world directory **/
     private var worldPath: Path? = null
 

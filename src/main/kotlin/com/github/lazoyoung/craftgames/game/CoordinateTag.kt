@@ -5,25 +5,35 @@ import org.bukkit.Location
 import java.math.BigDecimal
 import java.math.MathContext
 
-class CoordinateTag(private val map: GameMap, private val name: String, private val mode: TagMode) {
-
-    fun exists() : Boolean {
-        return map.tagConfig.getStringList(getKey()).isNotEmpty()
-    }
+class CoordinateTag(private val game: Game/*, private val name: String, private val mode: TagMode*/) {
 
     fun add(loc: Location) {
-        val result = map.tagConfig.getStringList(getKey())
+        val result = game.tagConfig.getStringList(getKey())
         result.add(serialize(loc))
-        map.tagConfig.set(getKey(), result)
+        game.tagConfig.set(getKey(), result)
     }
 
-    fun get() : List<Location> {
-        return map.tagConfig.getStringList(getKey()).map { deserialize(it) }
-        /*
-        if (arr.isNullOrEmpty())
-            throw FaultyConfiguration("Block tag $groupName is not defined for: " +
-                    "Game: ${map.game.name}, Map: ${map.mapID}")
-         */
+    /**
+     * Gets all tags by reading through coordinate_tags.yml
+     * @param mode is used to filter the result.
+     * @return The list of tag names
+     */
+    fun getTags(mode: TagMode? = null) : List<String> {
+        if (mode == null)
+            return getTags(TagMode.BLOCK).plus(getTags(TagMode.ENTITY))
+
+        return game.tagConfig.getConfigurationSection(mode.label)
+                ?.getKeys(false)
+                ?.toList()
+                ?: emptyList()
+    }
+
+    fun getCaptures(mode: TagMode? = null, name: String? = null, mapID: String) : List<Location> {
+        if (mode == null) {
+            getTags(mode)
+        }
+
+        return game.tagConfig.getStringList(getKey(mode, name, mapID)).map { deserialize(it) }
     }
 
     private fun serialize(loc: Location) : String {
@@ -67,11 +77,8 @@ class CoordinateTag(private val map: GameMap, private val name: String, private 
         return Location(map.world, x, y, z)
     }
 
-    private fun getKey() : String {
-        if (map.mapID == null || map.world == null)
-            throw MapNotFound("Unable to load blocktag: Map unavailable.")
-
-        return mode.label.plus(".").plus(name).plus(".").plus(map.mapID)
+    private fun getKey(mode: TagMode, name: String, mapID: String) : String {
+        return mode.label.plus(".").plus(name).plus(".").plus(mapID)
     }
 }
 
