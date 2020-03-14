@@ -2,9 +2,8 @@ package com.github.lazoyoung.craftgames.command
 
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
-import org.bukkit.command.TabExecutor
 
-class CoordtagCommand : TabExecutor {
+class CoordtagCommand : CommandBase {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (args.isEmpty() || args[0].equals("help", true)) {
@@ -36,10 +35,10 @@ class CoordtagCommand : TabExecutor {
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String>? {
         if (args.isEmpty())
-            return null
+            return command.aliases
 
         if (args.size == 1)
-            return listOf("help", "select", "create", "remove", "list").filter { args[0].isEmpty() || it.startsWith(args[0]) }.toMutableList()
+            return getCompletions(args[0], "help", "select", "create", "remove", "list")
 
         if (args[0].equals("add", true)) {
             TODO()

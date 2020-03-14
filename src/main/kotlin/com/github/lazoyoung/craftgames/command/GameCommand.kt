@@ -11,11 +11,10 @@ import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
-import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
 import java.util.function.Consumer
 
-class GameCommand : TabExecutor {
+class GameCommand : CommandBase {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val game: Game?
@@ -120,18 +119,19 @@ class GameCommand : TabExecutor {
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>)
             : MutableList<String>? {
         if (args.isEmpty())
-            return null
+            return command.aliases
 
         if (args.size == 1)
-            return listOf("start", "stop", "script")
-                    .filter { args[0].isEmpty() || it.startsWith(args[0]) }
-                    .toMutableList()
+            return getCompletions(args[0], "start", "stop", "script")
 
         fun getGameNames() : MutableList<String> {
-            return Main.config.getConfigurationSection("games")
-                    ?.getKeys(false)!!
-                    .filter { args[1].isEmpty() || it.startsWith(args[1]) }
-                    .toMutableList()
+            return getCompletions(
+                    query = args[1],
+                    args = Main.config.getConfigurationSection("games")
+                            ?.getKeys(false)
+                            ?.toList()
+                            ?: emptyList()
+            )
         }
 
         when {
@@ -140,41 +140,33 @@ class GameCommand : TabExecutor {
                     2 -> getGameNames()
                     3 -> {
                         val reg = GameFactory.getDummy(args[1]).map.mapRegistry
-                        reg.mapNotNull { it["id"] as String? }
-                                .filter { args[2].isEmpty() || it.startsWith(args[2]) }
-                                .toMutableList()
+                        getCompletions(args[2], reg.mapNotNull { it["id"] as String? })
                     }
-                    else -> null
+                    else -> mutableListOf()
                 }
             }
             args[0].equals("stop", true) -> {
                 return when (args.size) {
-                    2 -> {
-                        GameFactory.find()
-                                .map { it.id.toString() }
-                                .filter { args[1].isEmpty() || it.startsWith(args[1]) }
-                                .toMutableList()
-                    }
-                    else -> null
+                    2 -> getCompletions(args[1], GameFactory.find().map { it.id.toString() })
+                    else -> mutableListOf()
                 }
             }
             args[0].equals("script", true) -> {
-                when (args.size) {
-                    2 -> return getGameNames()
+                return when (args.size) {
+                    2 -> getGameNames()
                     3 -> {
-                        return try {
-                            GameFactory.getDummy(args[1]).scriptReg.keys
-                                    .filter { args[1].isEmpty() || it.startsWith(args[1]) }
-                                    .toMutableList()
-                        } catch (e: Exception) {
-                            null
-                        }
+                        var compl: MutableList<String> = mutableListOf()
+                        try {
+                            compl = getCompletions(args[2], GameFactory.getDummy(args[1]).scriptReg.keys.toList())
+                        } catch (e: Exception) { /* Neglect any exception */ }
+                        compl
                     }
-                    4 -> return arrayListOf("execute")
+                    4 -> getCompletions(args[3], "execute")
+                    else -> mutableListOf()
                 }
             }
         }
-        return null
+        return mutableListOf()
     }
 
     private fun getGame(name: String, sender: CommandSender): Game? {
