@@ -13,16 +13,17 @@ class Spectator(
     companion object {
         private val registry = HashMap<UUID, Spectator>()
 
-        fun from(playerID: UUID, game: Game): Spectator {
+        fun from(playerID: UUID, gameID: Int): Spectator {
             if (PlayerState.get(playerID) != PlayerState.NONE)
                 throw ConcurrentPlayerState(null)
 
             var instance = registry[playerID]
 
             if (instance == null) {
-                instance = Spectator(playerID, game.id)
+                instance = Spectator(playerID, gameID)
                 registry[playerID] = instance
             }
+            PlayerState.set(playerID, PlayerState.WATCHING)
             return instance
         }
     }

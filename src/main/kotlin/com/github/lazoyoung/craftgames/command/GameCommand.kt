@@ -1,11 +1,10 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.exception.GameNotFound
-import com.github.lazoyoung.craftgames.exception.MapNotFound
-import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
+import com.github.lazoyoung.craftgames.exception.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameFactory
+import com.github.lazoyoung.craftgames.player.GameEditor
+import com.github.lazoyoung.craftgames.player.PlayerState
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
 import org.bukkit.World
@@ -36,15 +35,18 @@ class GameCommand : CommandBase {
                 if (args.size < 3)
                     return false
 
+                if (sender !is Player) {
+                    sender.sendMessage("This cannot be done from console.")
+                    return true
+                }
+
                 val game = getGame(args[1], sender) ?: return true
                 generateMap(sender, game, args[2], Consumer{
                     if (it == null)
                         return@Consumer
 
-                    if (sender is Player) {
-                        // TODO Future redundant: Players are moved into the map by Game#start()
-                        sender.teleport(it.spawnLocation)
-                    }
+                    // TODO Future redundant: Players are moved into the map by Game#start()
+                    sender.teleport(it.spawnLocation)
                     sender.sendMessage("Started ${game.name} with map: ${game.map.mapID}")
                 })
             }
@@ -66,18 +68,44 @@ class GameCommand : CommandBase {
                 }
             }
             "edit" -> {
-                if (args.size < 3 || sender !is Player)
+                if (args.size < 3)
                     return false
 
-                val game = getGame(args[1], sender,true) ?: return true // TODO Retrieve the game via editor
-                generateMap(sender, game, args[2], Consumer{
-                    if (it == null)
-                        return@Consumer
+                if (sender !is Player) {
+                    sender.sendMessage("This cannot be done from console.")
+                    return true
+                }
 
-                    // TODO Module: editor spawnpoint
-                    sender.teleport(it.spawnLocation)
-                    sender.sendMessage("Started editing ${game.map.mapID} inside ${game.name}.")
-                })
+                when (PlayerState.get(sender.uniqueId)) {
+                    PlayerState.WATCHING, PlayerState.PLAYING -> {
+                        sender.sendMessage("You have to leave the game you're at.")
+                        return true
+                    }
+                    PlayerState.EDITING -> {
+                        sender.sendMessage("You're already in editor mode.")
+                        return true
+                    }
+                    PlayerState.NONE -> {
+                        try {
+                            GameEditor.startEdit(sender, args[1], args[2], Consumer{
+                                if (it == null) {
+                                    sender.sendMessage("Error occurred.")
+                                } else {
+                                    val map = it.map.mapID
+                                    val gameId = it.map.game.id
+                                    sender.sendMessage("You started editing $map inside $gameId.")
+                                }
+                            })
+                        } catch (e: NumberFormatException) {
+                            return false
+                        } catch (e: ConcurrentPlayerState) {
+                            sender.sendMessage("Error occurred.")
+                            e.printStackTrace()
+                        } catch (e: MapNotFound) {
+                            sender.sendMessage(e.message!!)
+                        }
+                    }
+                }
             }
             "script" -> {
                 if (args.size < 4)

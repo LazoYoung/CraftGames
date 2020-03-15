@@ -15,16 +15,17 @@ class GamePlayer(
     companion object {
         private val registry = HashMap<UUID, GamePlayer>()
 
-        fun from(playerID: UUID, game: Game): GamePlayer {
+        fun from(playerID: UUID, gameID: Int): GamePlayer {
             if (PlayerState.get(playerID) != PlayerState.NONE)
                 throw ConcurrentPlayerState(null)
 
             var instance = registry[playerID]
 
             if (instance == null) {
-                instance = GamePlayer(playerID, game.id)
+                instance = GamePlayer(playerID, gameID)
                 registry[playerID] = instance
             }
+            PlayerState.set(playerID, PlayerState.PLAYING)
             return instance
         }
     }

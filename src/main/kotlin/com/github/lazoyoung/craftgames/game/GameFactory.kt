@@ -13,36 +13,34 @@ import java.io.IOException
 
 class GameFactory {
     companion object {
-        /** Games running live. (Key: ID of the game) **/
-        private val gamesAlive: MutableMap<Int, Game> = HashMap()
-
-        /** Games under maintenance. (Key: Name of the game) **/
-        private val gamesInEdit: MutableMap<String, Game> = HashMap()
+        /** Games Registry. (Key: ID of the game) **/
+        private val gameRegistry: MutableMap<Int, Game> = HashMap()
 
         /** Next ID for new game **/
         private var nextID = 0
 
         /**
-         * Find the running games matching the parameter conditions.
-         * You can avoid filtering a condition by passing null argument.
+         * Find games with the given filters.
          *
-         * @param name Accept the certain type of games only, if specified.
-         * @param canJoin Accept the games where a player can join at this moment, if specified.
-         * @return A list of games matching the conditions.
+         * @param name The name of the game to find. (Pass null to search everything)
+         * @param isEditMode Find the games that are in edit mode. Defaults to false.
+         * @return A list of games found by given arguments.
          */
-        fun find(name: String? = null, canJoin: Boolean? = null) : List<Game> {
-            return gamesAlive.values.filter {
-                (name == null || it.name == name) // TODO canJoin check
+        fun find(name: String? = null, isEditMode: Boolean = false) : List<Game> {
+            return gameRegistry.values.filter {
+                (name == null || it.name == name) && it.editMode == isEditMode
             }
         }
 
         /**
          * Returns the running game matching the id. (Each game has its unique id)
          *
+         * Note that the games in editor mode have no assigned ID.
+         *
          * @param id Instance ID
          */
         fun findByID(id: Int) : Game? {
-            return gamesAlive[id]
+            return gameRegistry[id]
         }
 
         /**
@@ -148,35 +146,12 @@ class GameFactory {
                 }
             }
             game.id = nextID
-            gamesAlive[nextID++] = game
-            return game
-        }
-
-        /**
-         * Make a new game instance with given name.
-         * Only the admins in editor mode can access to it.
-         *
-         * @param name Classifies the type of game
-         * @throws GameNotFound No such game exists with given id.
-         * @throws FaultyConfiguration Configuration is not complete.
-         * @throws RuntimeException Unexpected issue has arrised.
-         */
-        fun openEdit(name: String) : Game? {
-            if (gamesInEdit.containsKey(name))
-                return null
-
-            val game = openNew(name)
-            game.editMode = true
-            gamesInEdit[name] = game
+            gameRegistry[nextID++] = game
             return game
         }
 
         internal fun purge(game: Game) {
-            if (game.editMode) {
-                gamesInEdit.remove(game.name)
-            } else {
-                gamesAlive.remove(game.id)
-            }
+            gameRegistry.remove(game.id)
         }
     }
 }

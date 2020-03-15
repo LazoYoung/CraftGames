@@ -28,11 +28,16 @@ class Game(
     /** Map Handler **/
     val map = GameMap(this, mapReg)
 
+    /**
+     * Start the game.
+     *
+     * @param mapConsumer Consumes the generated world. (Null if the other map is in use)
+     */
     fun start(mapID: String? = null, mapConsumer: Consumer<World?>? = null) : Boolean {
-        if (id >= 0 && mapID != null) {
-            map.generate(mapID, mapConsumer)
-        }
+        if (id < 0 || mapID == null)
+            return false // TODO Throw exception
 
+        map.generate(mapID, mapConsumer)
         // TODO Load other stuff
         return true
     }

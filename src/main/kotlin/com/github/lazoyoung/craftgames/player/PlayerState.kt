@@ -7,10 +7,14 @@ enum class PlayerState {
     NONE, PLAYING, WATCHING, EDITING;
 
     companion object {
-        val state = HashMap<UUID, PlayerState>()
+        private val state = HashMap<UUID, PlayerState>()
 
         fun get(playerId: UUID): PlayerState {
             return state[playerId] ?: NONE
+        }
+
+        fun set(playerID: UUID, value: PlayerState) {
+            state[playerID] = value
         }
     }
 }
