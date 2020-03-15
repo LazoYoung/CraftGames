@@ -5,8 +5,8 @@ file-encoding: UTF-8
 # Install the sample of game configuration?
 install-sample: false
 
-worlds:
-  directory-label: Game # Naming convention of world directories.
+# Naming convention of world directories.
+world-name: Game
 
 # Specification for every games.
 # The root folder is equivalent to: plugins/CraftGames/

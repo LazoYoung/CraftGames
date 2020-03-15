@@ -13,7 +13,13 @@ import java.io.IOException
 
 class GameFactory {
     companion object {
+        /** Games running live. (Key: ID of the game) **/
         private val gamesAlive: MutableMap<Int, Game> = HashMap()
+
+        /** Games under maintenance. (Key: Name of the game) **/
+        private val gamesInEdit: MutableMap<String, Game> = HashMap()
+
+        /** Next ID for new game **/
         private var nextID = 0
 
         /**
@@ -26,7 +32,7 @@ class GameFactory {
          */
         fun find(name: String? = null, canJoin: Boolean? = null) : List<Game> {
             return gamesAlive.values.filter {
-                (name == null || it.name == name) && (canJoin == null || canJoin == it.canJoin())
+                (name == null || it.name == name) // TODO canJoin check
             }
         }
 
@@ -41,9 +47,11 @@ class GameFactory {
 
         /**
          * Make a dummy game with given name.
-         * This instance is not registered thus it cannot go live.
+         * Dummy games cannot generate its map.
+         * The purpose is merely to access data underneath it.
          *
          * @param name Classifies the type of game
+         * @return The new dummy instance.
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
@@ -111,15 +119,16 @@ class GameFactory {
             if (tagFile.extension != "yml")
                 throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
 
-            game = Game(-1, name, scriptRegistry, tagFile, mapRegistry)
+            game = Game(-1, tagFile, false, name, scriptRegistry, mapRegistry)
             return game
         }
 
         /**
          * Make a new game instance with given name.
-         * This instance will be registered and go live immediately.
+         * This goes live and available for players to join.
          *
          * @param name Classifies the type of game
+         * @return The new game instance.
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
@@ -143,8 +152,31 @@ class GameFactory {
             return game
         }
 
-        internal fun purge(id: Int) {
-            gamesAlive.remove(id)
+        /**
+         * Make a new game instance with given name.
+         * Only the admins in editor mode can access to it.
+         *
+         * @param name Classifies the type of game
+         * @throws GameNotFound No such game exists with given id.
+         * @throws FaultyConfiguration Configuration is not complete.
+         * @throws RuntimeException Unexpected issue has arrised.
+         */
+        fun openEdit(name: String) : Game? {
+            if (gamesInEdit.containsKey(name))
+                return null
+
+            val game = openNew(name)
+            game.editMode = true
+            gamesInEdit[name] = game
+            return game
+        }
+
+        internal fun purge(game: Game) {
+            if (game.editMode) {
+                gamesInEdit.remove(game.name)
+            } else {
+                gamesAlive.remove(game.id)
+            }
         }
     }
 }

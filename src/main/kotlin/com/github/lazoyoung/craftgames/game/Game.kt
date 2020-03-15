@@ -3,34 +3,33 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import org.bukkit.Bukkit
 import org.bukkit.World
-import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.function.Consumer
 
 class Game(
         internal var id: Int,
-        val name: String,
-        val scriptReg: Map<String, ScriptBase>,
 
         /* File pathname of tagConfig */
         internal val tagFile: File,
 
+        /** Is this game in Edit Mode? **/
+        internal var editMode: Boolean,
+
+        val name: String,
+
+        val scriptReg: Map<String, ScriptBase>,
+
         mapReg: MutableList<Map<*, *>>
 ) {
-
-    /** Serialization data of BlockTags **/
-    internal var tagConfig: FileConfiguration = YamlConfiguration.loadConfiguration(tagFile)
+    /** CoordTags configuration across all maps. **/
+    internal var tagConfig = YamlConfiguration.loadConfiguration(tagFile)
 
     /** Map Handler **/
     val map = GameMap(this, mapReg)
 
-    fun canJoin() : Boolean {
-        return true
-    }
-
     fun start(mapID: String? = null, mapConsumer: Consumer<World?>? = null) : Boolean {
-        if (mapID != null) {
+        if (id >= 0 && mapID != null) {
             map.generate(mapID, mapConsumer)
         }
 
@@ -40,13 +39,13 @@ class Game(
 
     fun stop() : Boolean {
         map.world?.players?.forEach {
-            // TODO Use global lobby module
+            // TODO Module: global lobby spawnpoint
             it.teleport(Bukkit.getWorld("world")!!.spawnLocation)
             it.sendMessage("Returned back to world.")
         }
 
         if (map.destruct()) {
-            GameFactory.purge(id)
+            GameFactory.purge(this)
             return true
         }
         return false

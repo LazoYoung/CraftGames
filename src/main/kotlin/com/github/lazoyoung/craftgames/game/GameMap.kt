@@ -7,9 +7,6 @@ import com.github.lazoyoung.craftgames.exception.MapNotFound
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
-import org.bukkit.configuration.file.FileConfiguration
-import org.bukkit.configuration.file.YamlConfiguration
-import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -42,7 +39,7 @@ class GameMap internal constructor(
      * Install a map from repository and generate it in asynchronous thread.
      *
      * @param mapID ID of the map you want to be loaded
-     * @param callback Consumer of generated world (which is null if the other map is in use).
+     * @param callback Consume generated world (which is null if the other map is in use!).
      * @throws MapNotFound
      * @throws RuntimeException
      * @throws FaultyConfiguration
@@ -55,18 +52,17 @@ class GameMap internal constructor(
         val mapSource: Path?
         val mapTarget: Path
         val scheduler = Bukkit.getScheduler()
-        val label = Main.config.getString("worlds.directory-label")
-        val worldName: String
+        val label = Main.config.getString("world-name")
+                    ?: throw FaultyConfiguration("world-name is missing in config.yml")
+        val worldName = if (game.editMode) {
+            StringBuilder(game.id).append('_').append(mapID).toString()
+        } else {
+            StringBuilder(label).append('_').append(game.id).toString()
+        }
 
         if (this.mapID == mapID) {
             callback?.accept(null)
             return
-        }
-
-        try {
-            worldName = label.plus('_').plus(game.id)
-        } catch (e: NullPointerException) {
-            throw FaultyConfiguration("worlds.directory-label is missing in config.yml", e)
         }
 
         while (iter.hasNext()) {

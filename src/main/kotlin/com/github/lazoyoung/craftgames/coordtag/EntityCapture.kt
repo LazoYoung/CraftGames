@@ -1,16 +1,18 @@
 package com.github.lazoyoung.craftgames.coordtag
 
-import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameMap
 import java.math.BigDecimal
 import java.math.MathContext
 
 class EntityCapture(
+        map: GameMap,
+        name: String,
         x: Double,
         y: Double,
         z: Double,
         private val yaw: Float,
         private val pitch: Float
-) : CoordTag(x, y, z) {
+) : CoordTag(map, name, x, y, z) {
 
     override fun serialize() : String {
         val c = MathContext(2)
@@ -26,11 +28,11 @@ class EntityCapture(
         return str.toString()
     }
 
-    override fun add(game: Game, name: String, mapID: String) {
-        val key = getKey(TagMode.ENTITY, name, mapID)
-        val result = game.tagConfig.getStringList(key)
+    override fun capture() {
+        val key = getKey(TagMode.ENTITY, name, map.mapID!!)
+        val result = map.game.tagConfig.getStringList(key)
         result.add(serialize())
-        game.tagConfig.set(key, result)
+        map.game.tagConfig.set(key, result)
     }
 
 }

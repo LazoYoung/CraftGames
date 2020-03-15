@@ -25,33 +25,25 @@ class CoordtagCommand : CommandBase {
             if (args.size < 2 || args[1] == "1") {
                 sender.sendMessage(arrayOf(
                         "--------------------------------------",
-                        "CoordTag Command Manual (Page 1/3)",
-                        "/ctag select -game <title>",
-                        "/ctag select -mode <block/entity>",
-                        "/ctag select -tag <name>",
-                        "/ctag select -map <mapID>",
-                        "/ctag select -reset",
+                        "CoordTag Command Manual (Page 1/2)",
+                        "To use these commands, you must be in editor mode.", // TODO Clickable hyperlink command: /game edit
+                        "/ctag create <tag> : Create a new tag with given name.",
+                        "/ctag capture <tag> : Capture a coordinate into the selected tag.",
+                        "/ctag remove <tag> : Remove the selected tag.",
+                        "/ctag tp <tag> <random/capture> : Teleport to the selected tag.", // TODO tp to randomized or specified capture(s)
                         "□ Move page: /ctag help <page>",
                         "--------------------------------------"
                 ))
             } else if (args[1] == "2") {
                 sender.sendMessage(arrayOf(
                         "--------------------------------------",
-                        "CoordTag Command Manual (Page 2/3)",
-                        "Select flag prior to using this command.", // TODO Clickable hyperlink text
-                        "/ctag create <name> : Create a new tag based on flags.",
-                        "/ctag capture : Capture a coordinate into the selected tag.",
-                        "/ctag remove : Remove the selected tag.",
-                        "□ Move page: /ctag help <page>",
-                        "--------------------------------------"
-                ))
-            } else if (args[1] == "3") {
-                sender.sendMessage(arrayOf(
-                        "--------------------------------------",
-                        "CoordTag Command Manual (Page 3/3)",
-                        "Select flag prior to using this command.",
+                        "CoordTag Command Manual (Page 2/2)",
+                        "To use these commands, you must be in editor mode.", // TODO Clickable hyperlink command: /game edit
                         "/ctag list : Show all captures matching the flags.",
-                        "/ctag tp <random/capture> : Teleport to the selected tag.", // TODO tp to randomized or specified capture(s)
+                        "/ctag list -mode <block/entity>",
+                        "/ctag list -tag <name>",
+                        "/ctag list -map <mapID>",
+                        "/ctag list -reset",
                         "□ Move page: /ctag help <page>",
                         "--------------------------------------"
                 ))
@@ -60,10 +52,41 @@ class CoordtagCommand : CommandBase {
         }
 
         when (args[0].toLowerCase()) {
-            "select" -> {
+            "create" -> {
+                val dummyGame = getSelection(sender, Flag.GAME) as Game?
+                val mode = getSelection(sender, Flag.MODE) as TagMode?
+                val name = args[1]
+
+                if (dummyGame != null && mode != null) {
+                    if (CoordTag.getTagNames(dummyGame, mode).contains(name)) {
+                        sender.sendMessage("[CoordTag] This tag already exist!")
+                        return true
+                    }
+
+
+                }
+
+                if (dummyGame == null)
+                    sender.sendMessage("[CoordTag] You must select a game in advance.")
+
+                if (mode == null)
+                    sender.sendMessage("[CoordTag] You must select a mode in advance.")
+
+                return true
+            }
+            "capture" -> TODO()
+            "remove" -> TODO()
+            "tp" -> TODO()
+            "list" -> {
                 var lastOption: String? = null
 
-                for (index in args.indices) {
+                if (args.size == 1) {
+                    // TODO Display the list of result
+                }
+                else for (index in args.indices) {
+                    if (index == 0)
+                        continue
+
                     if (index % 2 == 1) {
                         lastOption = args[index]
                         continue
@@ -71,21 +94,14 @@ class CoordtagCommand : CommandBase {
 
                     val value = args[index]
                     when (lastOption) {
-                        "-game" -> selectGame(sender, value)
                         "-mode" -> selectMode(sender, value)
                         "-tag" -> selectTag(sender, value)
                         "-map" -> selectMap(sender, value)
                         "-reset" -> reset(sender)
                     }
                 }
+                return true
             }
-            "create" -> {
-
-            }
-            "capture" -> TODO()
-            "remove" -> TODO()
-            "list" -> TODO()
-            "tp" -> TODO()
         }
 
         return false
@@ -149,7 +165,7 @@ class CoordtagCommand : CommandBase {
             select(sender, Flag.MODE, TagMode.valueOf(label.toUpperCase()))
             sender.sendMessage("[CoordTag] Selected the mode: ${label.toUpperCase()}")
         } catch (e: IllegalArgumentException) {
-            sender.sendMessage("[CoordTag] Illegal option: -select ${label.toUpperCase()}")
+            sender.sendMessage("[CoordTag] Illegal flag: -select ${label.toUpperCase()}")
         }
     }
 
@@ -158,15 +174,17 @@ class CoordtagCommand : CommandBase {
             return command.aliases
 
         if (args.size == 1)
-            return getCompletions(args[0], "help", "select", "create", "capture", "remove", "list", "tp")
+            return getCompletions(args[0], "help", "create", "capture", "remove", "list", "tp")
 
         when (args[0].toLowerCase()) {
-            "help" -> return getCompletions(args[1], "1", "2", "3")
-            "select" -> {
-                when (args.size % 2) { // Interpret -option values
-                    0 -> return getCompletions(args[args.size - 1], "-game", "-tag", "-mode", "-map", "-reset")
+            "help" -> return getCompletions(args[1], "1", "2")
+            "create" -> return mutableListOf()
+            "capture" -> return mutableListOf()
+            "remove" -> return mutableListOf()
+            "list" -> {
+                when (args.size % 2) { // Interpret -flag values
+                    0 -> return getCompletions(args[args.size - 1], "-tag", "-mode", "-map", "-reset")
                     1 -> return when (args[args.size - 2].toLowerCase()) {
-                        "-game" -> getGameTitles(args[args.size - 1])
                         "-mode" -> getCompletions("block", "entity")
                         "-tag" -> {
                             val game = getSelection(sender, Flag.GAME) as Game?
@@ -182,10 +200,6 @@ class CoordtagCommand : CommandBase {
                 }
                 return mutableListOf()
             }
-            "create" -> return mutableListOf()
-            "capture" -> return mutableListOf()
-            "remove" -> return mutableListOf()
-            "list" -> return mutableListOf()
             "tp" -> {
                 when (args.size) {
                     2 -> return getCompletions(args[1], "random", "capture")
@@ -213,7 +227,7 @@ class CoordtagCommand : CommandBase {
         }
     }
 
-    private fun getSelection(sender: CommandSender, flag: Flag) : Any? {
+    private fun getSelection(sender: CommandSender, flag: Flag): Any? {
         val map = flagState[sender.name] ?: EnumMap(Flag::class.java)
         return map[flag]
     }
