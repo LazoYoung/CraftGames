@@ -8,5 +8,5 @@ commands:
     usage: Type /game to see command list.
   coord:
     description: Manage coordinate tags.
-    usage: Type /ct to see command list.
+    usage: Type /ctag to see command list.
     aliases: [ ctag, coordtag ]

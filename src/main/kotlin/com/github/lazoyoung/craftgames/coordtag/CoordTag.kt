@@ -8,7 +8,6 @@ import java.math.MathContext
 
 abstract class CoordTag(
         val map: GameMap,
-        val name: String,
         val x: Double,
         val y: Double,
         val z: Double
@@ -50,14 +49,14 @@ abstract class CoordTag(
             if (mapID == null)
                 return game.map.getMapList().flatMap { getCaptures(game, mode, name, it) }
 
-            return game.tagConfig.getStringList(getKey(mode, name, mapID)).map { deserialize(game.map, name, mode, it) }
+            return game.tagConfig.getStringList(getKey(mode, name, mapID)).map { deserialize(game.map, mode, it) }
         }
 
         internal fun getKey(mode: TagMode, name: String, mapID: String) : String {
             return mode.label.plus(".").plus(name).plus(".").plus(mapID)
         }
 
-        private fun deserialize(map: GameMap, name: String, mode: TagMode, stream: String): CoordTag {
+        private fun deserialize(map: GameMap, mode: TagMode, stream: String): CoordTag {
             val arr = stream.split(',', ignoreCase = false, limit = 5).toTypedArray()
             val c = MathContext(2)
             val x = BigDecimal(arr[0], c).toDouble()
@@ -69,17 +68,17 @@ abstract class CoordTag(
             if (mode == TagMode.ENTITY) {
                 pitch = BigDecimal(arr[3], c).toFloat()
                 yaw = BigDecimal(arr[4], c).toFloat()
-                return EntityCapture(map, name, x, y, z, yaw, pitch)
+                return EntityCapture(map, x, y, z, yaw, pitch)
             }
-            return BlockCapture(map, name, x, y, z)
+            return BlockCapture(map, x.toInt(), y.toInt(), z.toInt())
         }
     }
 
     init {
         if (map.mapID == null)
-            throw MapNotFound("Map is not found. Unable to instantiate a tag: $name.")
+            throw MapNotFound("Map is not found. Unable to instantiate a tag.")
     }
 
-    abstract fun capture()
+    abstract fun saveCapture(tagName: String)
     abstract fun serialize() : String
 }

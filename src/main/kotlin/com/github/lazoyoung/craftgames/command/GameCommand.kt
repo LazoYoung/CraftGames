@@ -4,7 +4,9 @@ import com.github.lazoyoung.craftgames.exception.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameFactory
 import com.github.lazoyoung.craftgames.player.GameEditor
-import com.github.lazoyoung.craftgames.player.PlayerState
+import com.github.lazoyoung.craftgames.player.GamePlayer
+import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
 import org.bukkit.World
@@ -26,9 +28,6 @@ class GameCommand : CommandBase {
             ))
             return true
         }
-
-        if (args.size == 1)
-            return false
 
         when (args[0].toLowerCase()) {
             "start" -> {
@@ -76,35 +75,56 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                when (PlayerState.get(sender.uniqueId)) {
-                    PlayerState.WATCHING, PlayerState.PLAYING -> {
+                when (PlayerData.get(sender)) {
+                    is Spectator, is GamePlayer -> {
                         sender.sendMessage("You have to leave the game you're at.")
                         return true
                     }
-                    PlayerState.EDITING -> {
+                    is GameEditor -> {
                         sender.sendMessage("You're already in editor mode.")
                         return true
                     }
-                    PlayerState.NONE -> {
+                    null -> {
                         try {
-                            GameEditor.startEdit(sender, args[1], args[2], Consumer{
+                            GameEditor.start(sender, args[1], args[2], Consumer{
                                 if (it == null) {
                                     sender.sendMessage("Error occurred.")
                                 } else {
-                                    val map = it.map.mapID
-                                    val gameId = it.map.game.id
+                                    val map = it.game.map.mapID
+                                    val gameId = it.game.id
                                     sender.sendMessage("You started editing $map inside $gameId.")
                                 }
                             })
                         } catch (e: NumberFormatException) {
                             return false
                         } catch (e: ConcurrentPlayerState) {
-                            sender.sendMessage("Error occurred.")
+                            sender.sendMessage("Unexpected error! See console for details.")
                             e.printStackTrace()
                         } catch (e: MapNotFound) {
                             sender.sendMessage(e.message!!)
+                        } catch (e: GameNotFound) {
+                            sender.sendMessage(e.message!!)
+                        } catch (e: FaultyConfiguration) {
+                            sender.sendMessage(e.message!!)
+                        } catch (e: RuntimeException) {
+                            sender.sendMessage("Unexpected error! See console for details.")
+                            e.printStackTrace()
                         }
                     }
+                }
+            }
+            "save" -> {
+                if (sender !is Player) {
+                    sender.sendMessage("This cannot be done from console.")
+                    return true
+                }
+
+                val playerData = PlayerData.get(sender)
+
+                if (playerData !is GameEditor) {
+                    sender.sendMessage("You must be in editor mode.")
+                } else {
+                    playerData.saveAndLeave()
                 }
             }
             "script" -> {
@@ -136,7 +156,6 @@ class GameCommand : CommandBase {
             }
             else -> return false
         }
-
         return true
     }
 

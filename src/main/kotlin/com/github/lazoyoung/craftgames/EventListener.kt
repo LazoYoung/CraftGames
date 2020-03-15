@@ -1,7 +1,8 @@
 package com.github.lazoyoung.craftgames
 
-import com.github.lazoyoung.craftgames.command.CommandBase
 import com.github.lazoyoung.craftgames.game.GameFactory
+import com.github.lazoyoung.craftgames.player.GameEditor
+import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerInteractEvent
@@ -24,10 +25,10 @@ class EventListener : Listener {
     @EventHandler
     fun onBlockClick(event: PlayerInteractEvent) {
         event.clickedBlock?.let {
-            CommandBase.blockPrompt.forEach { (uuid, consumer) ->
-                if (uuid == event.player.uniqueId) {
-                    consumer.accept(it)
-                }
+            val playerData = PlayerData.get(event.player) ?: return
+
+            if (playerData is GameEditor) {
+                playerData.callBlockPrompt(it)
             }
         }
     }

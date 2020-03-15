@@ -6,13 +6,12 @@ import java.math.MathContext
 
 class EntityCapture(
         map: GameMap,
-        name: String,
         x: Double,
         y: Double,
         z: Double,
         private val yaw: Float,
         private val pitch: Float
-) : CoordTag(map, name, x, y, z) {
+) : CoordTag(map, x, y, z) {
 
     override fun serialize() : String {
         val c = MathContext(2)
@@ -28,8 +27,8 @@ class EntityCapture(
         return str.toString()
     }
 
-    override fun capture() {
-        val key = getKey(TagMode.ENTITY, name, map.mapID!!)
+    override fun saveCapture(tagName: String) {
+        val key = getKey(TagMode.ENTITY, tagName, map.mapID!!)
         val result = map.game.tagConfig.getStringList(key)
         result.add(serialize())
         map.game.tagConfig.set(key, result)

@@ -33,7 +33,7 @@ class GameMap internal constructor(
     internal var worldName: String? = null
 
     /** Path to world directory **/
-    private var worldPath: Path? = null
+    internal var worldPath: Path? = null
 
     /**
      * Install a map from repository and generate it in asynchronous thread.

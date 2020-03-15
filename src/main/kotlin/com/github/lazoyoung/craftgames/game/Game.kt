@@ -1,10 +1,15 @@
 package com.github.lazoyoung.craftgames.game
 
+import com.github.lazoyoung.craftgames.player.GamePlayer
+import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.entity.Player
 import java.io.File
+import java.util.*
 import java.util.function.Consumer
 
 class Game(
@@ -27,6 +32,9 @@ class Game(
 
     /** Map Handler **/
     val map = GameMap(this, mapReg)
+
+    /** List of players in any PlayerState **/
+    private val players = ArrayList<UUID>()
 
     /**
      * Start the game.
@@ -54,6 +62,21 @@ class Game(
             return true
         }
         return false
+    }
+
+    fun join(player: Player) {
+        players.add(player.uniqueId)
+        GamePlayer.register(player, this)
+    }
+
+    fun spectate(player: Player) {
+        players.add(player.uniqueId)
+        Spectator.register(player, this)
+    }
+
+    fun leave(player: Player) {
+        players.remove(player.uniqueId)
+        PlayerData.get(player)!!.unregister()
     }
 
     fun reloadConfig() {

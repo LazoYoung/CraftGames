@@ -2,33 +2,24 @@ package com.github.lazoyoung.craftgames.player
 
 import com.github.lazoyoung.craftgames.exception.ConcurrentPlayerState
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameFactory
-import java.util.*
+import org.bukkit.entity.Player
 
-class Spectator(
-        val playerID: UUID,
-        val gameID: Int
-) {
+class Spectator private constructor(
+        player: Player,
+        game: Game
+): PlayerData(player, game) {
 
     companion object {
-        private val registry = HashMap<UUID, Spectator>()
+        fun register(player: Player, game: Game): Spectator {
+            val pid = player.uniqueId
 
-        fun from(playerID: UUID, gameID: Int): Spectator {
-            if (PlayerState.get(playerID) != PlayerState.NONE)
+            if (get(player) != null)
                 throw ConcurrentPlayerState(null)
 
-            var instance = registry[playerID]
-
-            if (instance == null) {
-                instance = Spectator(playerID, gameID)
-                registry[playerID] = instance
-            }
-            PlayerState.set(playerID, PlayerState.WATCHING)
+            val instance = Spectator(player, game)
+            registry[pid] = instance
             return instance
         }
     }
 
-    fun getGame() : Game? {
-        return GameFactory.findByID(gameID)
-    }
 }
