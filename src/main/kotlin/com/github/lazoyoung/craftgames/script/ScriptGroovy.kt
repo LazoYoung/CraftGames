@@ -15,12 +15,12 @@ class ScriptGroovy(file: File, sender: CommandSender?) : ScriptBase(file, sender
     private var script: Script? = null
 
     init {
-        val conf = CompilerConfiguration().addCompilationCustomizers(SandboxTransformer())
-        conf.sourceEncoding = Main.charset.name()
+        val shellConfig = CompilerConfiguration().addCompilationCustomizers(SandboxTransformer())
+        shellConfig.sourceEncoding = Main.charset.name()
         filter = object : GroovyValueFilter() {
             // TODO Intercept abusive actions
         }
-        shell = GroovyShell(conf)
+        shell = GroovyShell(shellConfig)
     }
 
     override fun setVariable(name: String, obj: Any) {

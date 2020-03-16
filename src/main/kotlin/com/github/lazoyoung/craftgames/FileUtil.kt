@@ -11,15 +11,17 @@ class FileUtil(val logger: Logger?) {
      * Clones the whole content inside the source directory.
      * @param source The root of the content to be cloned.
      * @param target Path to target directory.
-     * @throws IllegalArgumentException Thrown if either source or target does not indicate a directory
+     * @param options You may define the copying behavior if desired.
+     * @throws IllegalArgumentException Thrown if source does not indicate a directory
      * @throws SecurityException Thrown if system denied access to any file.
      * @throws IOException Thrown if copy-paste I/O process has failed.
      */
-    fun cloneFileTree(source: Path, target: Path) {
+    fun cloneFileTree(source: Path, target: Path, vararg options: CopyOption?) {
         if (!Files.isDirectory(source))
             throw IllegalArgumentException("source is not a directory!")
-        if (!Files.isDirectory(target))
-            throw IllegalArgumentException("target is not a directory!")
+        if (!Files.isDirectory(target)) {
+            Files.createDirectory(target)
+        }
 
 
         Files.walkFileTree(source, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Int.MAX_VALUE, object : SimpleFileVisitor<Path>() {
@@ -33,12 +35,13 @@ class FileUtil(val logger: Logger?) {
                 }
                 logger?.info("Copying directory: ${dir.fileName} -> $targetDir")
                 try {
-                    Files.copy(dir, targetDir)
+                    if(targetDir.toFile().listFiles().isNullOrEmpty())
+                        Files.copy(dir, targetDir, *options)
                 } catch (e: FileAlreadyExistsException) {
                     if (!Files.isDirectory(targetDir)) {
-                        e.printStackTrace()
                         logger?.severe("Not a valid target: $targetDir")
                     }
+                    e.printStackTrace()
                 }
                 return FileVisitResult.CONTINUE
             }
@@ -50,7 +53,7 @@ class FileUtil(val logger: Logger?) {
                         else -> target.resolve(source.parent.relativize(file).toString())
                     }
                     logger?.info("Copying file: ${file.fileName} -> ${targetPath.normalize()}")
-                    Files.copy(file, targetPath)
+                    Files.copy(file, targetPath, *options)
                 }
                 return FileVisitResult.CONTINUE
             }

@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames
 
+import com.github.lazoyoung.craftgames.command.CoordtagCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
@@ -23,11 +24,18 @@ class Main : JavaPlugin(), CommandExecutor {
     }
 
     override fun onEnable() {
+        val gameCmd = getCommand("game")!!
+        val ctCmd = getCommand("coord")!!
+        val gameExecutor = GameCommand()
+        val ctExecutor = CoordtagCommand()
         instance = this
 
         loadConfig()
         loadAsset()
-        getCommand("game")!!.setExecutor(GameCommand())
+        gameCmd.setExecutor(gameExecutor)
+        ctCmd.setExecutor(ctExecutor)
+        gameCmd.tabCompleter = gameExecutor
+        ctCmd.tabCompleter = ctExecutor
         Bukkit.getPluginManager().registerEvents(EventListener(), this)
     }
 
