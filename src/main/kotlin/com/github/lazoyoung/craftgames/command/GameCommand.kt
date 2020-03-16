@@ -91,8 +91,7 @@ class GameCommand : CommandBase {
                                     sender.sendMessage("Error occurred.")
                                 } else {
                                     val map = it.game.map.mapID
-                                    val gameId = it.game.id
-                                    sender.sendMessage("You started editing $map inside $gameId.")
+                                    sender.sendMessage("You started editing $map.")
                                 }
                             })
                         } catch (e: NumberFormatException) {
@@ -131,10 +130,21 @@ class GameCommand : CommandBase {
                 if (args.size < 4)
                     return false
 
-                val name = args[1]
-                val game = getGame(name, sender) ?: return true // TODO Retrieve the game via editor
-                val scriptID: String = args[2]
-                val script: ScriptBase? = game.scriptReg[scriptID]
+                if (sender !is Player) {
+                    sender.sendMessage("This cannot be done from console.")
+                    return true
+                }
+
+                val playerData = PlayerData.get(sender)
+                val scriptID = args[2]
+                val script: ScriptBase?
+
+                if (playerData !is GameEditor) {
+                    sender.sendMessage("You must be in editor mode.")
+                    return true
+                }
+
+                script = playerData.game.scriptReg[scriptID]
 
                 if (script == null) {
                     sender.sendMessage("That script ($scriptID) does not exist.")
@@ -171,7 +181,11 @@ class GameCommand : CommandBase {
             "start", "edit" -> {
                 return when (args.size) {
                     2 -> getGameTitles(args[1])
-                    3 -> getCompletions(args[2], *GameFactory.getDummy(args[1]).map.getMapList())
+                    3 -> {
+                        try {
+                            getCompletions(args[2], *GameFactory.getDummy(args[1]).map.getMapList())
+                        } catch (e: Exception) { return mutableListOf() }
+                    }
                     else -> mutableListOf()
                 }
             }
@@ -185,14 +199,12 @@ class GameCommand : CommandBase {
                 return when (args.size) {
                     2 -> getGameTitles(args[1])
                     3 -> {
-                        var compl: MutableList<String> = mutableListOf()
                         try {
-                            compl = getCompletions(
+                            getCompletions(
                                     query = args[2],
                                     args = *GameFactory.getDummy(args[1]).scriptReg.keys.toList().toTypedArray()
                             )
-                        } catch (e: Exception) { /* Neglect any exception */ }
-                        compl
+                        } catch (e: Exception) { return mutableListOf() }
                     }
                     4 -> getCompletions(args[3], "execute")
                     else -> mutableListOf()

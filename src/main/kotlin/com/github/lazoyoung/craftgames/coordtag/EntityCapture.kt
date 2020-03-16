@@ -1,17 +1,20 @@
 package com.github.lazoyoung.craftgames.coordtag
 
-import com.github.lazoyoung.craftgames.game.GameMap
+import com.github.lazoyoung.craftgames.game.Game
 import java.math.BigDecimal
 import java.math.MathContext
 
 class EntityCapture(
-        map: GameMap,
+        game: Game,
+        mapID: String,
         x: Double,
         y: Double,
         z: Double,
         private val yaw: Float,
-        private val pitch: Float
-) : CoordTag(map, x, y, z) {
+        private val pitch: Float,
+        tagName: String? = null,
+        index: Int? = null
+) : CoordTag(game, mapID, x, y, z, tagName, index) {
 
     override fun serialize() : String {
         val c = MathContext(2)
@@ -27,11 +30,22 @@ class EntityCapture(
         return str.toString()
     }
 
-    override fun saveCapture(tagName: String) {
-        val key = getKey(TagMode.ENTITY, tagName, map.mapID!!)
-        val result = map.game.tagConfig.getStringList(key)
-        result.add(serialize())
-        map.game.tagConfig.set(key, result)
+    override fun saveCapture(tagName: String?) {
+        val key: String
+        val result: List<String>
+        var name = tagName
+
+        if (name.isNullOrBlank())
+            name = this.tagName
+
+        try {
+            key = getKey(TagMode.ENTITY, name!!, mapID)
+            result = game.tagConfig.getStringList(key)
+            result.add(serialize())
+            game.tagConfig.set(key, result)
+        } catch (e: NullPointerException) {
+            throw IllegalArgumentException(e)
+        }
     }
 
 }

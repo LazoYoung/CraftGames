@@ -1,16 +1,17 @@
 package com.github.lazoyoung.craftgames.coordtag
 
-import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameMap
 import java.math.BigDecimal
 import java.math.MathContext
 
 abstract class CoordTag(
-        val map: GameMap,
+        val game: Game,
+        val mapID: String,
         val x: Double,
         val y: Double,
-        val z: Double
+        val z: Double,
+        val tagName: String?,
+        val index: Int?
 ) {
     companion object Registry {
         /**
@@ -49,14 +50,16 @@ abstract class CoordTag(
             if (mapID == null)
                 return game.map.getMapList().flatMap { getCaptures(game, mode, name, it) }
 
-            return game.tagConfig.getStringList(getKey(mode, name, mapID)).map { deserialize(game.map, mode, it) }
+            return game.tagConfig.getStringList(getKey(mode, name, mapID)).mapIndexed { index, stream ->
+                deserialize(game, mapID, mode, name, index, stream)
+            }
         }
 
         internal fun getKey(mode: TagMode, name: String, mapID: String) : String {
             return mode.label.plus(".").plus(name).plus(".").plus(mapID)
         }
 
-        private fun deserialize(map: GameMap, mode: TagMode, stream: String): CoordTag {
+        private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String, index: Int, stream: String): CoordTag {
             val arr = stream.split(',', ignoreCase = false, limit = 5).toTypedArray()
             val c = MathContext(2)
             val x = BigDecimal(arr[0], c).toDouble()
@@ -68,17 +71,18 @@ abstract class CoordTag(
             if (mode == TagMode.ENTITY) {
                 pitch = BigDecimal(arr[3], c).toFloat()
                 yaw = BigDecimal(arr[4], c).toFloat()
-                return EntityCapture(map, x, y, z, yaw, pitch)
+                return EntityCapture(game, mapID, x, y, z, yaw, pitch, tagName, index)
             }
-            return BlockCapture(map, x.toInt(), y.toInt(), z.toInt())
+            return BlockCapture(game, mapID, x.toInt(), y.toInt(), z.toInt(), tagName, index)
         }
     }
 
-    init {
-        if (map.mapID == null)
-            throw MapNotFound("Map is not found. Unable to instantiate a tag.")
-    }
-
-    abstract fun saveCapture(tagName: String)
+    /**
+     * Save this instance to configuration. Remember to save it before you wipe up everything.
+     *
+     * @param tagName It can be omitted if this instance already have it.
+     * @throws IllegalArgumentException Thrown if tagName is undefined
+     */
+    abstract fun saveCapture(tagName: String?)
     abstract fun serialize() : String
 }

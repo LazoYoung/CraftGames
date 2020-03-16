@@ -12,8 +12,8 @@ open class PlayerData(
     companion object {
         internal val registry = HashMap<UUID, PlayerData>()
 
-        fun get(player: Player): PlayerData? {
-            return registry[player.uniqueId]
+        fun get(player: Player?): PlayerData? {
+            return registry[player?.uniqueId]
         }
     }
 
