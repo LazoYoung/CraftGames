@@ -1,6 +1,9 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
+import org.bukkit.Location
+import org.bukkit.entity.Player
+import org.bukkit.event.player.PlayerTeleportEvent
 
 class BlockCapture(
         game: Game,
@@ -15,6 +18,11 @@ class BlockCapture(
     override fun serialize() : String {
         return StringBuilder().append(x.toString()).append(",")
                 .append(y.toString()).append(",").append(z.toString()).toString()
+    }
+
+    override fun teleport(player: Player) {
+        val loc = Location(game.map.world, x, y, z)
+        player.teleport(loc, PlayerTeleportEvent.TeleportCause.PLUGIN)
     }
 
     override fun saveCapture(tagName: String?) {

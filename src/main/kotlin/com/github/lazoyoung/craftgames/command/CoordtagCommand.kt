@@ -26,9 +26,9 @@ class CoordtagCommand : CommandBase {
                         "CoordTag Command Manual (Page 1/2)",
                         "To use these commands, you must be in editor mode.", // TODO Clickable hyperlink command: /game edit
                         "/ctag create <tag> <mode> : Create a new tag.",
-                        "/ctag capture <mode> : Capture a coordinate into the selected tag.",
+                        "/ctag capture <tag> : Capture a coordinate into the tag.",
                         "/ctag remove <tag> : Remove the selected tag.",
-                        "/ctag tp <tag> <random/capture> : Teleport to the selected tag.",
+                        "/ctag tp <tag> [index] : Teleport to tag location.",
                         "□ Move page: /ctag help <page>",
                         "--------------------------------------"
                 ))
@@ -93,33 +93,70 @@ class CoordtagCommand : CommandBase {
                 if (args.size < 2)
                     return false
 
-                val mapID = editor.game.map.mapID
-
                 try {
-                    when (TagMode.valueOf(args[1].toUpperCase())) {
+                    val mapID = editor.game.map.mapID
+                    val tag = args[1]
+
+                    when (CoordTag.getTagMode(editor.game, tag)) {
+                        TagMode.ENTITY -> {
+                            val loc = sender.location
+                            val capture = EntityCapture(editor.game, mapID!!,
+                                    loc.x, loc.y, loc.z, loc.yaw, loc.pitch)
+                            capture.saveCapture(tag)
+                            sender.sendMessage("[CoordTag] Captured an entity coordinate.")
+                        }
                         TagMode.BLOCK -> {
                             editor.requestBlockPrompt(Consumer {
-                                editor.capture = BlockCapture(editor.game, mapID!!, it.x, it.y, it.z)
+                                val capture = BlockCapture(editor.game, mapID!!, it.x, it.y, it.z)
+                                capture.saveCapture(tag)
                                 sender.sendMessage("[CoordTag] Captured a block coordinate.")
                             })
                             sender.sendMessage("[CoordTag] Please click a block to capture it.")
                         }
-                        TagMode.ENTITY -> {
-                            val loc = sender.location
-                            editor.capture = EntityCapture(editor.game, mapID!!,
-                                    loc.x, loc.y, loc.z, loc.yaw, loc.pitch)
-                            sender.sendMessage("[CoordTag] Captured an entity coordinate.")
+                        else -> {
+                            sender.sendMessage("[CoordTag] That tag does not exist.")
                         }
                     }
-                } catch (e: IllegalArgumentException) {
-                    sender.sendMessage("[CoordTag] Illegal tag mode: ${args[2]}")
                 } catch (e: NullPointerException) {
                     sender.sendMessage("[CoordTag] Unexpected error! See console for details.")
                     e.printStackTrace()
                 }
             }
-            "remove" -> TODO()
-            "tp" -> TODO()
+            "remove" -> {
+                if (args.size < 2)
+                    return false
+
+                val game = editor.game
+
+                if (CoordTag.removeTag(game, args[1], game.map.mapID)) {
+                    sender.sendMessage("[CoordTag] Removed tag: ${args[1]}")
+                } else {
+                    sender.sendMessage("[CoordTag] That tag doesn't exist in this map.")
+                }
+            }
+            "tp" -> {
+                if (args.size < 2)
+                    return false
+
+                val game = editor.game
+                var captures = CoordTag.getCaptures(game, null, args[1], game.map.mapID)
+
+                if (args.size == 3) {
+                    captures = captures.filter { it.index == args[2].toIntOrNull() }
+
+                    if (captures.isEmpty()) {
+                        editor.player.sendMessage("[CoordTag] Unable to find a capture with index: ${args[2]}")
+                    } else {
+                        captures.first().teleport(editor.player)
+                        editor.player.sendMessage("[CoordTag] Teleported to ${args[1]} index ${args[2]}.")
+                    }
+                } else if (captures.isEmpty()) {
+                    editor.player.sendMessage("[CoordTag] Tag ${args[1]} does not exist in this map.")
+                } else {
+                    captures.first().teleport(editor.player)
+                    editor.player.sendMessage("[CoordTag] Teleported to a random capture within tag: ${args[1]}.")
+                }
+            }
             "list" -> {
                 var lastOption: String? = null
 
@@ -131,7 +168,11 @@ class CoordtagCommand : CommandBase {
                         continue
 
                     if (index % 2 == 1) {
-                        lastOption = args[index]
+                        if (args[index].equals("-reset", true)) {
+                            reset(editor)
+                        }
+
+                        lastOption = args[index].toLowerCase()
                         continue
                     }
 
@@ -140,13 +181,69 @@ class CoordtagCommand : CommandBase {
                         "-mode" -> selectMode(editor, value)
                         "-tag" -> selectTag(editor, value)
                         "-map" -> selectMap(editor, value)
-                        "-reset" -> reset(editor)
                     }
                 }
             }
             else -> return false
         }
         return true
+    }
+
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String>? {
+        if (args.isEmpty())
+            return command.aliases
+
+        if (args.size == 1)
+            return getCompletions(args[0], "help", "create", "capture", "remove", "list", "tp")
+
+        when (args[0].toLowerCase()) {
+            "help" -> return getCompletions(args[1], "1", "2")
+            "create" -> if (args.size == 3) {
+                return getCompletions(args[2], "block", "entity")
+            }
+            "capture", "remove", "tp" -> {
+                val playerData = PlayerData.get(sender as? Player)
+
+                if (playerData !is GameEditor)
+                    return mutableListOf()
+
+                if (args[0].equals("tp", true) && args.size == 3) {
+                    val game = playerData.game
+                    return getCompletions(
+                            query = args[2],
+                            args = *CoordTag.getCaptures(game, null, args[1], game.map.mapID)
+                                    .map { it.index.toString() }.toTypedArray()
+                    )
+                } else if (args.size == 2) {
+                    val list = CoordTag.getTagNames(playerData.game, null)
+                    return getCompletions(args[1], *list.toTypedArray())
+                }
+            }
+            "list" -> {
+                val playerData = PlayerData.get(sender as? Player)
+
+                if (playerData !is GameEditor)
+                    return mutableListOf()
+
+                when (args.size % 2) { // Interpret -flag values
+                    0 -> return getCompletions(args[args.size - 1], "-tag", "-mode", "-map", "-reset")
+                    1 -> return when (args[args.size - 2].toLowerCase()) {
+                        "-mode" -> getCompletions(args[args.size - 1], "block", "entity")
+                        "-tag" -> {
+                            val mode = modeSel[playerData.player.uniqueId]
+                            getCompletions(args[args.size - 1],
+                                    *CoordTag.getTagNames(playerData.game, mode).toTypedArray())
+                        }
+                        "-map" -> {
+                            playerData.game.map.getMapList().toMutableList()
+                        }
+                        else -> mutableListOf()
+                    }
+                }
+                return mutableListOf()
+            }
+        }
+        return mutableListOf()
     }
 
     private fun showCaptureList(editor: GameEditor) {
@@ -186,7 +283,7 @@ class CoordtagCommand : CommandBase {
                 val mapID = tag.mapID
 
                 if (tag is BlockCapture)
-                    player.sendMessage("Block capture $i at ($x, $y, $z) inside $mapID")
+                    player.sendMessage("Block capture $i at ($x, $y, $z) inside $mapID") // TODO Clickable text
                 else if (tag is EntityCapture)
                     player.sendMessage("Entity capture $i at ($x, $y, $z) inside $mapID")
             }
@@ -195,7 +292,9 @@ class CoordtagCommand : CommandBase {
     }
 
     private fun reset(editor: GameEditor) {
+        mapSel.remove(editor.player.uniqueId)
         modeSel.remove(editor.player.uniqueId)
+        tagSel.remove(editor.player.uniqueId)
         editor.player.sendMessage("[CoordTag] Previous flags have been reset.")
     }
 
@@ -231,60 +330,5 @@ class CoordtagCommand : CommandBase {
         } catch (e: IllegalArgumentException) {
             player.sendMessage("[CoordTag] Illegal flag: -select ${label.toUpperCase()}")
         }
-    }
-
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String>? {
-        if (args.isEmpty())
-            return command.aliases
-
-        if (args.size == 1)
-            return getCompletions(args[0], "help", "create", "capture", "remove", "list", "tp")
-
-        when (args[0].toLowerCase()) {
-            "help" -> return getCompletions(args[1], "1", "2")
-            "capture" -> if (args.size == 2) {
-                return getCompletions(args[1], "block", "entity")
-            }
-            "create" -> if (args.size == 3) {
-                return getCompletions(args[2], "block", "entity")
-            }
-            "remove" -> {
-                val playerData = PlayerData.get(sender as? Player)
-
-                if (playerData is GameEditor) {
-                    val list = CoordTag.getTagNames(playerData.game, null)
-                    return getCompletions(args[1], *list.toTypedArray())
-                }
-            }
-            "list" -> {
-                val playerData = PlayerData.get(sender as? Player)
-
-                if (playerData !is GameEditor)
-                    return mutableListOf()
-
-                when (args.size % 2) { // Interpret -flag values
-                    0 -> return getCompletions(args[args.size - 1], "-tag", "-mode", "-map", "-reset")
-                    1 -> return when (args[args.size - 2].toLowerCase()) {
-                        "-mode" -> getCompletions(args[args.size - 1], "block", "entity")
-                        "-tag" -> {
-                            val mode = modeSel[playerData.player.uniqueId]
-                            getCompletions(args[args.size - 1],
-                                    *CoordTag.getTagNames(playerData.game, mode).toTypedArray())
-                        }
-                        "-map" -> {
-                            playerData.game.map.getMapList().toMutableList()
-                        }
-                        else -> mutableListOf()
-                    }
-                }
-                return mutableListOf()
-            }
-            "tp" -> {
-                if (args.size == 2) {
-                    return getCompletions(args[1], "random", "capture")
-                }
-            }
-        }
-        return mutableListOf()
     }
 }
