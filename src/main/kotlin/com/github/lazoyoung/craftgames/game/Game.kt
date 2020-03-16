@@ -39,11 +39,11 @@ class Game(
     /**
      * Start the game.
      *
-     * @param mapConsumer Consumes the generated world. (Null if the other map is in use)
+     * @param mapConsumer Consumes the generated world. (Null if the other map is in use.
      */
     fun start(mapID: String? = null, mapConsumer: Consumer<World?>? = null) : Boolean {
         if (id < 0 || mapID == null)
-            return false // TODO Throw exception
+            throw RuntimeException("Illegal state of Game attributes.")
 
         map.generate(mapID, mapConsumer)
         // TODO Load other stuff

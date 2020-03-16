@@ -1,6 +1,8 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
+import org.bukkit.entity.Player
+import java.math.BigDecimal
 
 abstract class CoordTag(
         val game: Game,
@@ -34,23 +36,48 @@ abstract class CoordTag(
          * Gets all captures(coordinates) inside the sorted tags. A capture is fundamental unit of CoordinateTag.
          * Each parameter is like a filter sorting out captures.
          * @param mode Filter out all except the ones matching this tag mode.
-         * @param name Filter out all except the ones matching this tag name.
+         * @param tagName Filter out all except the ones matching this tag name.
          * @param mapID Filter out all except the ones inside the given map.
          * @return A list of captures inside the sorted tags.
          */
-        fun getCaptures(game: Game, mode: TagMode? = null, name: String? = null, mapID: String? = null): List<CoordTag> {
+        fun getCaptures(game: Game, mode: TagMode? = null, tagName: String? = null, mapID: String? = null): List<CoordTag> {
             if (mode == null)
-                return getCaptures(game, TagMode.BLOCK, name, mapID).plus(getCaptures(game, TagMode.ENTITY, name, mapID))
+                return getCaptures(game, TagMode.BLOCK, tagName, mapID).plus(getCaptures(game, TagMode.ENTITY, tagName, mapID))
 
-            if (name == null)
+            if (tagName == null)
                 return getTagNames(game, mode).flatMap { getCaptures(game, mode, it, mapID) }
 
             if (mapID == null)
-                return game.map.getMapList().flatMap { getCaptures(game, mode, name, it) }
+                return game.map.getMapList().flatMap { getCaptures(game, mode, tagName, it) }
 
-            return game.tagConfig.getStringList(getKey(mode, name, mapID)).mapIndexed { index, stream ->
-                deserialize(game, mapID, mode, name, index, stream)
+            return game.tagConfig.getStringList(getKey(mode, tagName, mapID)).mapIndexed { index, stream ->
+                deserialize(game, mapID, mode, tagName, index, stream)
             }
+        }
+
+        fun getTagMode(game: Game, tagName: String): TagMode? {
+            return when {
+                getTagNames(game, TagMode.ENTITY).contains(tagName) -> {
+                    TagMode.ENTITY
+                }
+                getTagNames(game, TagMode.BLOCK).contains(tagName) -> {
+                    TagMode.BLOCK
+                }
+                else -> {
+                    null
+                }
+            }
+        }
+
+        fun removeTag(game: Game, name: String, mapID: String?): Boolean {
+            val mode = getTagMode(game, name) ?: return false
+            var key = mode.label.plus(".").plus(name)
+
+            if (mapID != null)
+                key = key.plus(".").plus(mapID)
+
+            game.tagConfig.set(key, null)
+            return true
         }
 
         internal fun getKey(mode: TagMode, name: String, mapID: String) : String {
@@ -59,16 +86,17 @@ abstract class CoordTag(
 
         private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String, index: Int, stream: String): CoordTag {
             val arr = stream.split(',', ignoreCase = false, limit = 5).toTypedArray()
-            val x = arr[0].toBigDecimal().toDouble()
-            val y = arr[1].toBigDecimal().toDouble()
-            val z = arr[2].toBigDecimal().toDouble()
-            val yaw: Float
-            val pitch: Float
+            val x = arr[0].toBigDecimal()
+            val y = arr[1].toBigDecimal()
+            val z = arr[2].toBigDecimal()
+            val yaw: BigDecimal
+            val pitch: BigDecimal
 
             if (mode == TagMode.ENTITY) {
-                yaw = arr[3].toBigDecimal().toFloat()
-                pitch = arr[4].toBigDecimal().toFloat()
-                return EntityCapture(game, mapID, x, y, z, yaw, pitch, tagName, index)
+                yaw = arr[3].toBigDecimal()
+                pitch = arr[4].toBigDecimal()
+                return EntityCapture(game, mapID, x.toDouble(), y.toDouble(), z.toDouble(),
+                        yaw.toFloat(), pitch.toFloat(), tagName, index)
             }
             return BlockCapture(game, mapID, x.toInt(), y.toInt(), z.toInt(), tagName, index)
         }
@@ -82,4 +110,5 @@ abstract class CoordTag(
      */
     abstract fun saveCapture(tagName: String?)
     abstract fun serialize() : String
+    abstract fun teleport(player: Player)
 }

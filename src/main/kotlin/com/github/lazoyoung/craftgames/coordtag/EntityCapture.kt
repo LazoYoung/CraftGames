@@ -1,7 +1,11 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
+import org.bukkit.Location
+import org.bukkit.entity.Player
+import org.bukkit.event.player.PlayerTeleportEvent
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 class EntityCapture(
         game: Game,
@@ -16,21 +20,22 @@ class EntityCapture(
 ) : CoordTag(game, mapID, x, y, z, tagName, index) {
 
     override fun serialize() : String {
-        val x = BigDecimal(x)
-        val y = BigDecimal(y)
-        val z = BigDecimal(z)
+        val r = RoundingMode.HALF_UP
+        val x = x.toBigDecimal().setScale(1, r)
+        val y = y.toBigDecimal().setScale(1, r)
+        val z = z.toBigDecimal().setScale(1, r)
         val yaw = BigDecimal(yaw.toDouble())
         val pitch = BigDecimal(pitch.toDouble())
         val str = StringBuilder()
-        x.setScale(1)
-        y.setScale(1)
-        z.setScale(1)
-        yaw.setScale(2)
-        pitch.setScale(2)
 
         str.append(x.toString()).append(",").append(y.toString()).append(",")
                 .append(z.toString()).append(",").append(yaw).append(",").append(pitch)
         return str.toString()
+    }
+
+    override fun teleport(player: Player) {
+        val loc = Location(game.map.world, x, y, z, yaw, pitch)
+        player.teleport(loc, PlayerTeleportEvent.TeleportCause.PLUGIN)
     }
 
     override fun saveCapture(tagName: String?) {
