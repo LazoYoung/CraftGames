@@ -151,30 +151,33 @@ class CoordtagCommand : CommandBase {
 
     private fun showCaptureList(editor: GameEditor) {
         val player = editor.player
-        val mode = modeSel[editor.player.uniqueId]
+        val modeSel = modeSel[editor.player.uniqueId]
         val tagSel = tagSel[editor.player.uniqueId]
-        val map = mapSel[editor.player.uniqueId]
-        val modeLabel = mode?.label ?: "all"
-        val mapLabel = if (map.isNullOrBlank()) {
+        val mapSel = mapSel[editor.player.uniqueId]
+        val modeLabel = modeSel?.label ?: "all"
+        val mapLabel = if (mapSel.isNullOrBlank()) {
             "every maps"
         } else {
-            map
+            mapSel
         }
-        val result = CoordTag.getCaptures(editor.game, mode, tagSel, map)
-
-        if (tagSel == null) {
-            player.sendMessage("Searching for $modeLabel captures inside $mapLabel...")
+        val result = if (tagSel.isNullOrEmpty()) {
+            CoordTag.getCaptures(editor.game, modeSel, null, mapSel)
         } else {
-            player.sendMessage("Searching for $modeLabel captures of $tagSel tag inside $mapLabel...")
+            CoordTag.getCaptures(editor.game, null, tagSel, mapSel)
+        }
+        if (tagSel == null) {
+            player.sendMessage("[CoordTag] Searching for $modeLabel tags inside $mapLabel...")
+        } else {
+            player.sendMessage("[CoordTag] Searching for $tagSel tag inside $mapLabel...")
         }
 
         if (result.isEmpty()) {
-            player.sendMessage("No result.")
+            player.sendMessage("No result found.")
             return
         }
 
         result.groupBy { it.tagName }.forEach { (tagName, tagList) ->
-            player.sendMessage("[Captures of Tag $tagName]")
+            player.sendMessage(arrayOf(" ", "Tag \'$tagName\' >"))
             for (tag in tagList) {
                 val i = tag.index
                 val x = tag.x
@@ -183,9 +186,9 @@ class CoordtagCommand : CommandBase {
                 val mapID = tag.mapID
 
                 if (tag is BlockCapture)
-                    player.sendMessage("Block capture $i - $x, $y, $z inside $mapID")
+                    player.sendMessage("Block capture $i at ($x, $y, $z) inside $mapID")
                 else if (tag is EntityCapture)
-                    player.sendMessage("Entity capture $i - $x, $y, $z inside $mapID")
+                    player.sendMessage("Entity capture $i at ($x, $y, $z) inside $mapID")
             }
             player.sendMessage(" ")
         }
@@ -239,11 +242,20 @@ class CoordtagCommand : CommandBase {
 
         when (args[0].toLowerCase()) {
             "help" -> return getCompletions(args[1], "1", "2")
-            "capture", "create" -> return when (args.size) {
-                3 -> getCompletions(args[args.size - 1], "block", "entity")
-                else -> mutableListOf()
+            "capture" -> if (args.size == 2) {
+                return getCompletions(args[1], "block", "entity")
             }
-            "remove" -> return mutableListOf()
+            "create" -> if (args.size == 3) {
+                return getCompletions(args[2], "block", "entity")
+            }
+            "remove" -> {
+                val playerData = PlayerData.get(sender as? Player)
+
+                if (playerData is GameEditor) {
+                    val list = CoordTag.getTagNames(playerData.game, null)
+                    return getCompletions(args[1], *list.toTypedArray())
+                }
+            }
             "list" -> {
                 val playerData = PlayerData.get(sender as? Player)
 
@@ -268,13 +280,11 @@ class CoordtagCommand : CommandBase {
                 return mutableListOf()
             }
             "tp" -> {
-                return if (args.size == 2) {
-                    getCompletions(args[1], "random", "capture")
-                } else {
-                    mutableListOf()
+                if (args.size == 2) {
+                    return getCompletions(args[1], "random", "capture")
                 }
             }
-            else -> return mutableListOf()
         }
+        return mutableListOf()
     }
 }

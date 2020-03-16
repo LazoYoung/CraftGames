@@ -15,6 +15,7 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.function.Consumer
 
 class GameEditor private constructor(
@@ -87,17 +88,26 @@ class GameEditor private constructor(
     fun saveAndLeave() {
         val scheduler = Bukkit.getScheduler()
 
-        get(player)!!.unregister()
+        get(player)?.unregister()
         game.saveConfig()
         actionBarTask.cancel()
 
-        // Save map
+        // Save world
+        try {
+            game.map.world!!.save()
+        } catch (e: NullPointerException) {
+            throw RuntimeException("Unable to save map because the world is null.", e)
+        }
+
+        // Clone map files to disk
         scheduler.runTaskAsynchronously(Main.instance, Runnable{
+            val fileUtil = FileUtil(Main.instance.logger)
             val source = game.map.worldPath
-            val target: Path
+            var target: Path
+            val renameTo: Path
 
             if (source == null || !Files.isDirectory(source))
-                throw RuntimeException("World files are missing! Unable to save the map.")
+                throw RuntimeException("Unable to locate world files to save!")
 
             try {
                 target = Main.instance.dataFolder.toPath()
@@ -107,7 +117,14 @@ class GameEditor private constructor(
             }
 
             try {
-                FileUtil(Main.instance.logger).cloneFileTree(source, target)
+                if (Files.isDirectory(target)) {
+                    fileUtil.deleteFileTree(target)
+                }
+
+                renameTo = target.fileName
+                target = target.parent ?: target.root!!
+                fileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
+                Files.move(target.resolve(source.fileName), target.resolve(renameTo))
                 scheduler.runTask(Main.instance, Runnable{
                     player.sendMessage("Saved the changes! Leaving editor mode...")
                     game.stop()

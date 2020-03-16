@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
 import java.math.BigDecimal
-import java.math.MathContext
 
 class EntityCapture(
         game: Game,
@@ -17,13 +16,17 @@ class EntityCapture(
 ) : CoordTag(game, mapID, x, y, z, tagName, index) {
 
     override fun serialize() : String {
-        val c = MathContext(2)
-        val x = BigDecimal(x, c)
-        val y = BigDecimal(y, c)
-        val z = BigDecimal(z, c)
-        val yaw = BigDecimal(yaw.toDouble(), c)
-        val pitch = BigDecimal(pitch.toDouble(), c)
+        val x = BigDecimal(x)
+        val y = BigDecimal(y)
+        val z = BigDecimal(z)
+        val yaw = BigDecimal(yaw.toDouble())
+        val pitch = BigDecimal(pitch.toDouble())
         val str = StringBuilder()
+        x.setScale(1)
+        y.setScale(1)
+        z.setScale(1)
+        yaw.setScale(2)
+        pitch.setScale(2)
 
         str.append(x.toString()).append(",").append(y.toString()).append(",")
                 .append(z.toString()).append(",").append(yaw).append(",").append(pitch)

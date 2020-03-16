@@ -1,8 +1,6 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
-import java.math.BigDecimal
-import java.math.MathContext
 
 abstract class CoordTag(
         val game: Game,
@@ -61,16 +59,15 @@ abstract class CoordTag(
 
         private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String, index: Int, stream: String): CoordTag {
             val arr = stream.split(',', ignoreCase = false, limit = 5).toTypedArray()
-            val c = MathContext(2)
-            val x = BigDecimal(arr[0], c).toDouble()
-            val y = BigDecimal(arr[1], c).toDouble()
-            val z = BigDecimal(arr[2], c).toDouble()
+            val x = arr[0].toBigDecimal().toDouble()
+            val y = arr[1].toBigDecimal().toDouble()
+            val z = arr[2].toBigDecimal().toDouble()
             val yaw: Float
             val pitch: Float
 
             if (mode == TagMode.ENTITY) {
-                pitch = BigDecimal(arr[3], c).toFloat()
-                yaw = BigDecimal(arr[4], c).toFloat()
+                yaw = arr[3].toBigDecimal().toFloat()
+                pitch = arr[4].toBigDecimal().toFloat()
                 return EntityCapture(game, mapID, x, y, z, yaw, pitch, tagName, index)
             }
             return BlockCapture(game, mapID, x.toInt(), y.toInt(), z.toInt(), tagName, index)
