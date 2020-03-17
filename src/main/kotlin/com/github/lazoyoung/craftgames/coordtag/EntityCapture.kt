@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.coordtag
 
-import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
@@ -8,16 +7,14 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 class EntityCapture(
-        game: Game,
-        mapID: String,
         x: Double,
         y: Double,
         z: Double,
         private val yaw: Float,
         private val pitch: Float,
-        tagName: String? = null,
+        mapID: String,
         index: Int? = null
-) : CoordTag(game, mapID, x, y, z, tagName, index) {
+) : CoordCapture(x, y, z, mapID, index) {
 
     override fun serialize() : String {
         val r = RoundingMode.HALF_UP
@@ -34,26 +31,8 @@ class EntityCapture(
     }
 
     override fun teleport(player: Player) {
-        val loc = Location(game.map.world, x, y, z, yaw, pitch)
+        val loc = Location(player.world, x, y, z, yaw, pitch)
         player.teleport(loc, PlayerTeleportEvent.TeleportCause.PLUGIN)
-    }
-
-    override fun saveCapture(tagName: String?) {
-        val key: String
-        val result: List<String>
-        var name = tagName
-
-        if (name.isNullOrBlank())
-            name = this.tagName
-
-        try {
-            key = getKey(TagMode.ENTITY, name!!, mapID)
-            result = game.tagConfig.getStringList(key)
-            result.add(serialize())
-            game.tagConfig.set(key, result)
-        } catch (e: NullPointerException) {
-            throw IllegalArgumentException(e)
-        }
     }
 
 }

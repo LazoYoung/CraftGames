@@ -23,7 +23,7 @@ class GameEditor private constructor(
         game: Game
 ): PlayerData(player, game) {
 
-    var capture: CoordTag? = null
+    val mapID = game.map.mapID
 
     private var blockPrompt: Consumer<Block>? = null
 
@@ -66,8 +66,11 @@ class GameEditor private constructor(
                 consumer.accept(instance)
             })
 
-            if (!succeed)
+            if (succeed) {
+                CoordTag.reload(game)
+            } else {
                 consumer.accept(null)
+            }
         }
     }
 
@@ -78,8 +81,9 @@ class GameEditor private constructor(
         }
     }
 
-    internal fun callBlockPrompt(block: Block) {
-        blockPrompt?.accept(block)
+    internal fun callBlockPrompt(block: Block): Boolean {
+        blockPrompt?.accept(block) ?: return false
+        return true
     }
 
     /**

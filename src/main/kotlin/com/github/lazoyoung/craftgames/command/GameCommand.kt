@@ -50,10 +50,10 @@ class GameCommand : CommandBase {
                 })
             }
             "stop" -> {
-                val id = args[1].toIntOrNull()
-
-                if (args.size < 2 || id == null)
+                if (args.size < 2 || args[1].toIntOrNull() == null)
                     return false
+
+                val id = args[1].toInt()
 
                 try {
                     if (GameFactory.findByID(id)?.stop() == true) {

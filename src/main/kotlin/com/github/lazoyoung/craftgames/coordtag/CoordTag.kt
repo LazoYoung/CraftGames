@@ -1,114 +1,154 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
-import org.bukkit.entity.Player
 import java.math.BigDecimal
 
-abstract class CoordTag(
+class CoordTag private constructor(
         val game: Game,
-        val mapID: String,
-        val x: Double,
-        val y: Double,
-        val z: Double,
-        val tagName: String?,
-        val index: Int?
+        val mode: TagMode,
+        val name: String,
+        private val captures: List<CoordCapture>
 ) {
     companion object Registry {
-        /**
-         * Gets all tags by reading through coordinate_tags.yml
-         * @param mode is used to filter the result.
-         * @return The list of tag names
-         */
-        fun getTagNames(game: Game, mode: TagMode? = null): MutableList<String> {
-            if (mode == null) {
-                val names = getTagNames(game, TagMode.BLOCK)
-                names.addAll(getTagNames(game, TagMode.ENTITY))
-                return names
-            }
+        /** Key: Game name, Value: List of tags **/
+        private val tags = HashMap<String, List<CoordTag>>()
 
-            return game.tagConfig.getConfigurationSection(mode.label)
-                    ?.getKeys(false)
-                    ?.toMutableList()
-                    ?: mutableListOf()
+        /**
+         * This method allows you to access every coordinate tags in the game.
+         * CoordTag preserves a set of CoordCapture per each map.
+         * CoordCapture is fundamental unit of coordinate tags.
+         *
+         * @param game Which game to get the tags from?
+         * @return List of CoordTag matching the conditions above.
+         */
+        fun getAll(game: Game): List<CoordTag> {
+            return tags[game.name] ?: emptyList()
         }
 
         /**
-         * Gets all captures(coordinates) inside the sorted tags. A capture is fundamental unit of CoordinateTag.
-         * Each parameter is like a filter sorting out captures.
-         * @param mode Filter out all except the ones matching this tag mode.
-         * @param tagName Filter out all except the ones matching this tag name.
-         * @param mapID Filter out all except the ones inside the given map.
-         * @return A list of captures inside the sorted tags.
+         * @return CoordTag matching the name inside the game, if found.
          */
-        fun getCaptures(game: Game, mode: TagMode? = null, tagName: String? = null, mapID: String? = null): List<CoordTag> {
-            if (mode == null)
-                return getCaptures(game, TagMode.BLOCK, tagName, mapID).plus(getCaptures(game, TagMode.ENTITY, tagName, mapID))
-
-            if (tagName == null)
-                return getTagNames(game, mode).flatMap { getCaptures(game, mode, it, mapID) }
-
-            if (mapID == null)
-                return game.map.getMapList().flatMap { getCaptures(game, mode, tagName, it) }
-
-            return game.tagConfig.getStringList(getKey(mode, tagName, mapID)).mapIndexed { index, stream ->
-                deserialize(game, mapID, mode, tagName, index, stream)
-            }
+        fun get(game: Game, name: String): CoordTag? {
+            return getAll(game).firstOrNull { it.name == name }
         }
 
-        fun getTagMode(game: Game, tagName: String): TagMode? {
-            return when {
-                getTagNames(game, TagMode.ENTITY).contains(tagName) -> {
-                    TagMode.ENTITY
+        /**
+         * Reads config and reload all the tags associated with specific game.
+         */
+        fun reload(game: Game) {
+            val config = game.tagConfig
+            val list = ArrayList<CoordTag>()
+
+            for (name in config.getKeys(false)) {
+                val modeStr = config.getString(name.plus('.').plus("mode"))
+                        ?.toUpperCase() ?: continue
+                val mode = TagMode.valueOf(modeStr)
+                val captList = ArrayList<CoordCapture>()
+                val mapIterate = config.getConfigurationSection(name.plus('.').plus("captures"))
+                        ?.getKeys(false) ?: emptyList<String>()
+
+                for (map in mapIterate) {
+                    captList.addAll(deserialize(game, map, mode, name))
                 }
-                getTagNames(game, TagMode.BLOCK).contains(tagName) -> {
-                    TagMode.BLOCK
-                }
-                else -> {
-                    null
-                }
+                list.add(CoordTag(game, mode, name, captList))
             }
+            tags[game.name] = list
         }
 
-        fun removeTag(game: Game, name: String, mapID: String?): Boolean {
-            val mode = getTagMode(game, name) ?: return false
-            var key = mode.label.plus(".").plus(name)
-
-            if (mapID != null)
-                key = key.plus(".").plus(mapID)
-
-            game.tagConfig.set(key, null)
-            return true
+        fun create(game: Game, mode: TagMode, name: String) {
+            game.tagConfig.set(name.plus(".mode"), mode.label)
+            game.tagConfig.createSection(name.plus(".captures.").plus(game.map.mapID))
+            reload(game)
         }
 
-        internal fun getKey(mode: TagMode, name: String, mapID: String) : String {
-            return mode.label.plus(".").plus(name).plus(".").plus(mapID)
+        internal fun getKeyToCaptureStream(name: String, mapID: String): String {
+            return name.plus('.').plus("captures").plus('.').plus(mapID)
         }
 
-        private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String, index: Int, stream: String): CoordTag {
-            val arr = stream.split(',', ignoreCase = false, limit = 5).toTypedArray()
-            val x = arr[0].toBigDecimal()
-            val y = arr[1].toBigDecimal()
-            val z = arr[2].toBigDecimal()
-            val yaw: BigDecimal
-            val pitch: BigDecimal
+        private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
+            val list = ArrayList<CoordCapture>()
+            var index = 0
+            val stream = game.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
 
-            if (mode == TagMode.ENTITY) {
-                yaw = arr[3].toBigDecimal()
-                pitch = arr[4].toBigDecimal()
-                return EntityCapture(game, mapID, x.toDouble(), y.toDouble(), z.toDouble(),
-                        yaw.toFloat(), pitch.toFloat(), tagName, index)
+            for (line in stream) {
+                val arr = line.split(',', ignoreCase = false, limit = 5).toTypedArray()
+                val x = arr[0].toBigDecimal()
+                val y = arr[1].toBigDecimal()
+                val z = arr[2].toBigDecimal()
+                val yaw: BigDecimal
+                val pitch: BigDecimal
+
+                if (mode == TagMode.ENTITY) {
+                    yaw = arr[3].toBigDecimal()
+                    pitch = arr[4].toBigDecimal()
+                    list.add(EntityCapture(x.toDouble(), y.toDouble(), z.toDouble(),
+                            yaw.toFloat(), pitch.toFloat(), mapID, index++))
+                }
+                list.add(BlockCapture(x.toInt(), y.toInt(), z.toInt(), mapID, index++))
             }
-            return BlockCapture(game, mapID, x.toInt(), y.toInt(), z.toInt(), tagName, index)
+            return list
         }
     }
 
     /**
-     * Save this instance to configuration. Remember to save it before you wipe up everything.
+     * Returns all the captures.
      *
-     * @param tagName It can be omitted if this instance already have it.
-     * @throws IllegalArgumentException Thrown if tagName is undefined
+     * @param mapID Excludes the captures outside the given map, if specified.
+     * @return List of CoordCapture matching the conditions.
      */
-    abstract fun saveCapture(tagName: String?)
-    abstract fun serialize() : String
-    abstract fun teleport(player: Player)
+    fun getCaptures(mapID: String?): List<CoordCapture> {
+        return captures.filter { mapID == null || mapID == it.mapID }
+    }
+
+    /**
+     * Returns the captures associated with the current map.
+     *
+     * @return List of CoordCapture matching the conditions.
+     */
+    fun getLocalCaptures(): List<CoordCapture> {
+        return captures.filter { it.mapID == game.map.mapID }
+    }
+
+    /**
+     * This method scans the captures to examine if this tag is incomplete.
+     * Incomplete tags are those who omit to capture coordinate from at least one map.
+     *
+     * @return List of IDs for game-maps that are excluded from the tag.
+     */
+    fun scanIncompleteMaps(): List<String> {
+        val list = ArrayList<String>()
+
+        for (mapID in game.map.getMapList()) {
+            if (captures.any { mapID == it.mapID }) {
+                list.add(mapID)
+            }
+        }
+        return list
+    }
+
+    /**
+     * Remove the tag and the whole captures in it.
+     * You will have to manually save the config to disk.
+     */
+    fun remove() {
+        game.tagConfig.set(name, null)
+        reload(game)
+    }
+
+    /**
+     * Remove the one capture at given index and map inside this tag.
+     * You will have to manually save the config to disk.
+     */
+    fun removeCapture(index: Int, mapID: String) {
+        try {
+            val config = game.tagConfig
+            val key = getKeyToCaptureStream(name, mapID)
+            val stream = config.getStringList(key)
+            stream.removeAt(index)
+            config.set(key, stream)
+            reload(game)
+        } catch (e: NullPointerException) {
+            throw IllegalArgumentException(e)
+        }
+    }
 }

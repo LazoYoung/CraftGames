@@ -28,7 +28,8 @@ class EventListener : Listener {
             val playerData = PlayerData.get(event.player) ?: return
 
             if (playerData is GameEditor) {
-                playerData.callBlockPrompt(it)
+                if (playerData.callBlockPrompt(it))
+                    event.isCancelled = true
             }
         }
     }
