@@ -112,12 +112,13 @@ class GameFactory {
             val tagFile = Main.instance.dataFolder.resolve(tagPath)
             val game: Game
 
+            tagFile.parentFile?.mkdirs()
             if (!tagFile.isFile && !tagFile.createNewFile())
                 throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
             if (tagFile.extension != "yml")
                 throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
 
-            game = Game(-1, tagFile, false, name, scriptRegistry, mapRegistry)
+            game = Game(-1, false, tagFile, name, scriptRegistry, mapRegistry)
             return game
         }
 

@@ -87,9 +87,7 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 try {
-                    val tag = CoordTag.getAll(editor.game).firstOrNull {
-                        it.name == args[1]
-                    }
+                    val tag = CoordTag.getAll(editor.game).firstOrNull { it.name == args[1] }
 
                     if (tag == null) {
                         sender.sendMessage("[CoordTag] That tag does not exist.")

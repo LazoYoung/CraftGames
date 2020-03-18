@@ -3,7 +3,6 @@ package com.github.lazoyoung.craftgames.coordtag
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
-import java.math.BigDecimal
 import java.math.RoundingMode
 
 class EntityCapture(
@@ -21,8 +20,8 @@ class EntityCapture(
         val x = x.toBigDecimal().setScale(1, r)
         val y = y.toBigDecimal().setScale(1, r)
         val z = z.toBigDecimal().setScale(1, r)
-        val yaw = BigDecimal(yaw.toDouble())
-        val pitch = BigDecimal(pitch.toDouble())
+        val yaw = this.yaw.toBigDecimal().setScale(1, r)
+        val pitch = this.pitch.toBigDecimal().setScale(1, r)
         val str = StringBuilder()
 
         str.append(x.toString()).append(",").append(y.toString()).append(",")

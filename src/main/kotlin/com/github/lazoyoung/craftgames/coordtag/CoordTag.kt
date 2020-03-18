@@ -119,7 +119,7 @@ class CoordTag private constructor(
         val list = ArrayList<String>()
 
         for (mapID in game.map.getMapList()) {
-            if (captures.any { mapID == it.mapID }) {
+            if (captures.none { mapID == it.mapID }) {
                 list.add(mapID)
             }
         }
