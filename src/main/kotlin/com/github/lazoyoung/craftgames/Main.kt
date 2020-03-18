@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.CoordtagCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
+import com.github.lazoyoung.craftgames.game.GameFactory
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -37,6 +38,11 @@ class Main : JavaPlugin(), CommandExecutor {
         gameCmd.tabCompleter = gameExecutor
         ctCmd.tabCompleter = ctExecutor
         Bukkit.getPluginManager().registerEvents(EventListener(), this)
+    }
+
+    override fun onDisable() {
+        // Close games
+        GameFactory.find().forEach { it.stop() }
     }
 
     private fun loadConfig() {

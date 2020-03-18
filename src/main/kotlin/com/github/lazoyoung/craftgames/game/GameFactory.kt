@@ -26,9 +26,10 @@ class GameFactory {
          * @param isEditMode Find the games that are in edit mode. Defaults to false.
          * @return A list of games found by given arguments.
          */
-        fun find(name: String? = null, isEditMode: Boolean = false) : List<Game> {
+        fun find(name: String? = null, isEditMode: Boolean? = null) : List<Game> {
             return gameRegistry.values.filter {
-                (name == null || it.name == name) && it.editMode == isEditMode
+                (name == null || it.name == name)
+                        && (isEditMode == null || it.editMode == isEditMode)
             }
         }
 
