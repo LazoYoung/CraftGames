@@ -1,6 +1,9 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.coordtag.*
+import com.github.lazoyoung.craftgames.coordtag.BlockCapture
+import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.EntityCapture
+import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.command.Command
@@ -264,39 +267,38 @@ class CoordtagCommand : CommandBase {
         } else {
             mapSel
         }
-        val captures = HashMap<CoordTag, List<CoordCapture>>()
 
-        if (tagSel.isNullOrEmpty()) { // All tags matching the selection
-            for (tag in CoordTag.getAll(editor.game)) {
-                if (modeSel == null || tag.mode == modeSel) {
-                    captures[tag] = tag.getCaptures(mapSel)
+        /** The remainders that correspond to the selection **/
+        val tags = ArrayList<CoordTag>()
+
+        if (tagSel.isNullOrEmpty()) {
+            CoordTag.getAll(editor.game).forEach {
+                if (modeSel == null || modeSel == it.mode) {
+                    tags.add(it)
                 }
             }
-        } else { // Specific tag (ignore mode selection)
-            val tag = CoordTag.get(editor.game, tagSel)
-
-            if (tag != null) {
-                captures[tag] = tag.getCaptures(mapSel)
-            }
+        } else {
+            // Insert specific tag only (neglecting modeSel)
+            CoordTag.get(editor.game, tagSel)?.let { tags.add(it) }
         }
 
         if (tagSel == null) {
             player.sendMessage("[CoordTag] Searching for $modeLabel tags inside $mapLabel...")
         } else {
-            player.sendMessage("[CoordTag] Searching for $tagSel tag inside $mapLabel...")
+            player.sendMessage("[CoordTag] Searching for $tagSel inside $mapLabel...")
         }
 
-        if (captures.isEmpty()) {
+        if (tags.isEmpty()) {
             player.sendMessage("No result found.")
             return
         }
 
-        captures.forEach {
-            val mode = it.key.mode.label.capitalize()
-            val name = it.key.name
+        tags.forEach {
+            val mode = it.mode.label.capitalize()
+            val name = it.name
 
             player.sendMessage(arrayOf(" ", "$mode Tag \'$name\' >"))
-            for (capture in it.value) {
+            for (capture in it.getCaptures(mapSel)) {
                 val i = capture.index
                 val x = capture.x
                 val y = capture.y

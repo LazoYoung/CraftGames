@@ -71,7 +71,7 @@ class CoordTag private constructor(
             val stream = game.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
 
             for (line in stream) {
-                val arr = line.split(',', ignoreCase = false, limit = 5).toTypedArray()
+                val arr = line.split(',', ignoreCase = false, limit = 5)
                 val x = arr[0].toBigDecimal()
                 val y = arr[1].toBigDecimal()
                 val z = arr[2].toBigDecimal()
@@ -83,8 +83,9 @@ class CoordTag private constructor(
                     pitch = arr[4].toBigDecimal()
                     list.add(EntityCapture(x.toDouble(), y.toDouble(), z.toDouble(),
                             yaw.toFloat(), pitch.toFloat(), mapID, index++))
+                } else {
+                    list.add(BlockCapture(x.toInt(), y.toInt(), z.toInt(), mapID, index++))
                 }
-                list.add(BlockCapture(x.toInt(), y.toInt(), z.toInt(), mapID, index++))
             }
             return list
         }
