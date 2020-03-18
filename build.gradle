@@ -44,7 +44,8 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 }
 
 processResources {
-    exclude('Sample')
-    expand('version': version)
+    filesNotMatching("Sample/**") {
+        expand('version': version)
+    }
     setFilteringCharset('utf-8')
 }
