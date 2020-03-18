@@ -15,11 +15,11 @@ import java.util.function.Consumer
 class Game(
         internal var id: Int,
 
-        /* File pathname of tagConfig */
-        internal val tagFile: File,
-
         /** Is this game in Edit Mode? **/
         internal var editMode: Boolean,
+
+        /* File pathname of tagConfig */
+        private val tagFile: File,
 
         val name: String,
 

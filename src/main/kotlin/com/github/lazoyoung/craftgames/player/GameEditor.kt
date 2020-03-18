@@ -10,6 +10,10 @@ import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameFactory
+import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.chat.ClickEvent
+import net.md_5.bungee.api.chat.HoverEvent
+import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
@@ -23,7 +27,7 @@ class GameEditor private constructor(
         game: Game
 ): PlayerData(player, game) {
 
-    var capture: CoordTag? = null
+    val mapID = game.map.mapID
 
     private var blockPrompt: Consumer<Block>? = null
 
@@ -66,8 +70,11 @@ class GameEditor private constructor(
                 consumer.accept(instance)
             })
 
-            if (!succeed)
+            if (succeed) {
+                CoordTag.reload(game)
+            } else {
                 consumer.accept(null)
+            }
         }
     }
 
@@ -78,8 +85,9 @@ class GameEditor private constructor(
         }
     }
 
-    internal fun callBlockPrompt(block: Block) {
-        blockPrompt?.accept(block)
+    internal fun callBlockPrompt(block: Block): Boolean {
+        blockPrompt?.accept(block) ?: return false
+        return true
     }
 
     /**
@@ -127,6 +135,42 @@ class GameEditor private constructor(
                 Files.move(target.resolve(source.fileName), target.resolve(renameTo))
                 scheduler.runTask(Main.instance, Runnable{
                     player.sendMessage("Saved the changes! Leaving editor mode...")
+
+                    // Inform to editor if incomplete tag were found.
+                    CoordTag.getAll(game).forEach { tag ->
+                        val maps = tag.scanIncompleteMaps()
+
+                        if (maps.isNotEmpty()) {
+                            val hov1 = arrayOf(TextComponent("Click here to capture the tag."))
+                            val hov2 = arrayOf(TextComponent("Click here to edit the map."))
+                            val arr = ArrayList<TextComponent>()
+                            arr.add(0, TextComponent("You forgot to capture "))
+                            arr.add(1, TextComponent(tag.name))
+                            arr.add(2, TextComponent(" tag from "))
+                            arr.addAll(maps.mapIndexed { index, mapID ->
+                                val c4 = if (index == maps.size - 1) {
+                                    TextComponent(mapID)
+                                } else {
+                                    TextComponent(mapID.plus(", "))
+                                }
+                                c4.color = ChatColor.WHITE
+                                c4.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, hov2)
+                                c4.clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
+                                        "/game edit ${game.name} $mapID")
+                                c4.isUnderlined = true
+                                c4
+                            })
+                            arr.add(TextComponent("!"))
+                            arr[0].color = ChatColor.YELLOW
+                            arr[1].color = ChatColor.WHITE
+                            arr[1].isUnderlined = true
+                            arr[1].hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, hov1)
+                            arr[1].clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag capture ${tag.name}")
+                            arr[2].color = ChatColor.YELLOW
+                            arr[arr.lastIndex].color = ChatColor.YELLOW
+                            player.sendMessage(*arr.toTypedArray())
+                        }
+                    }
                     game.stop()
                 })
             } catch (e: Exception) {

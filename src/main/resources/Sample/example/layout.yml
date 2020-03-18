@@ -1,13 +1,13 @@
 maps:
   - id: arena1     # Map ID
-    alias: Arena 1 # Full name
+    alias: The Old Monastery  # Display name
     path: Sample/example/arena1 # Path to map folder
   - id: arena2
-    alias: Arena 2
+    alias: Santa's Christmas Village
     path: Sample/example/arena2
 scripts:
   - id: core  # Script ID
     path: Sample/example/core.groovy # Path to script file
 modules.path: Sample/example/modules.yml
-coordinate-tags.path: Sample/example/data/coordinate_tags.yml
+coordinate-tags.path: Sample/example/data/coordinate-tags.yml
 players.path: Sample/example/data/players.yml

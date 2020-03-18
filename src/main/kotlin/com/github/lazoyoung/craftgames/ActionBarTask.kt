@@ -8,6 +8,7 @@ class ActionBarTask(
         private val text: List<String>,
         interval_sec: Int
 ) : BukkitRunnable() {
+
     private var i = 0
 
     init {
