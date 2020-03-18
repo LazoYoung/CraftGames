@@ -78,10 +78,10 @@ class CoordTag private constructor(
                 val yaw: BigDecimal
                 val pitch: BigDecimal
 
-                if (mode == TagMode.ENTITY) {
+                if (mode == TagMode.SPAWN) {
                     yaw = arr[3].toBigDecimal()
                     pitch = arr[4].toBigDecimal()
-                    list.add(EntityCapture(x.toDouble(), y.toDouble(), z.toDouble(),
+                    list.add(SpawnCapture(x.toDouble(), y.toDouble(), z.toDouble(),
                             yaw.toFloat(), pitch.toFloat(), mapID, index++))
                 } else {
                     list.add(BlockCapture(x.toInt(), y.toInt(), z.toInt(), mapID, index++))

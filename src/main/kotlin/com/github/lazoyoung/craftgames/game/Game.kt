@@ -27,6 +27,11 @@ class Game(
 
         mapReg: MutableList<Map<*, *>>
 ) {
+    /** The state of game progress **/
+    enum class State { LOBBY, PLAYING, END }
+
+    var gameState = State.LOBBY
+
     /** CoordTags configuration across all maps. **/
     internal var tagConfig = YamlConfiguration.loadConfiguration(tagFile)
 
@@ -39,15 +44,14 @@ class Game(
     /**
      * Start the game.
      *
-     * @param mapConsumer Consumes the generated world. (Null if the other map is in use.
+     * @param mapConsumer Consume the generated world.
      */
-    fun start(mapID: String? = null, mapConsumer: Consumer<World?>? = null) : Boolean {
+    fun start(mapID: String? = null, mapConsumer: Consumer<World>? = null) {
         if (id < 0 || mapID == null)
             throw RuntimeException("Illegal state of Game attributes.")
 
         map.generate(mapID, mapConsumer)
         // TODO Load other stuff
-        return true
     }
 
     fun stop() : Boolean {
@@ -65,6 +69,8 @@ class Game(
     }
 
     fun join(player: Player) {
+        // TODO Module: player spawnpoint
+        player.teleportAsync(map.world!!.spawnLocation)
         players.add(player.uniqueId)
         GamePlayer.register(player, this)
     }

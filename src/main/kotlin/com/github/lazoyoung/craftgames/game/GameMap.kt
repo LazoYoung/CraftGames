@@ -36,15 +36,22 @@ class GameMap internal constructor(
     internal var worldPath: Path? = null
 
     /**
+     * Returns ID list of all maps available.
+     */
+    fun getMapList() : Array<String> {
+        return mapRegistry.mapNotNull { it["id"] as String? }.toTypedArray()
+    }
+
+    /**
      * Install a map from repository and generate it in asynchronous thread.
      *
      * @param mapID ID of the map you want to be loaded
-     * @param callback Consume generated world (which is null if the other map is in use!).
+     * @param callback Consume the generated world.
      * @throws MapNotFound
      * @throws RuntimeException
      * @throws FaultyConfiguration
      */
-    fun generate(mapID: String, callback: Consumer<World?>? = null) {
+    internal fun generate(mapID: String, callback: Consumer<World>? = null) {
         var thisID: String? = null
         var pathStr: String? = null
         var alias: String? = null
@@ -58,11 +65,6 @@ class GameMap internal constructor(
             StringBuilder(game.id).append('_').append(mapID).toString()
         } else {
             StringBuilder(label).append('_').append(game.id).toString()
-        }
-
-        if (this.mapID == mapID) {
-            callback?.accept(null)
-            return
         }
 
         while (iter.hasNext()) {
@@ -148,7 +150,7 @@ class GameMap internal constructor(
     /**
      * @return whether or not it succeed to destruct the map
      */
-    fun destruct() : Boolean {
+    internal fun destruct() : Boolean {
         world.let {
             if (it != null) {
                 try {
@@ -166,12 +168,5 @@ class GameMap internal constructor(
             }
         }
         return false
-    }
-
-    /**
-     * Returns ID list of all maps available.
-     */
-    fun getMapList() : Array<String> {
-        return mapRegistry.mapNotNull { it["id"] as String? }.toTypedArray()
     }
 }

@@ -2,7 +2,7 @@ package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.coordtag.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.EntityCapture
+import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -38,7 +38,7 @@ class CoordtagCommand : CommandBase {
                         "CoordTag Command Manual (Page 2/2)",
                         "To use these commands, you must be in editor mode.", // TODO Clickable hyperlink command: /game edit
                         "/ctag list : Show all captures matching the flags.",
-                        "/ctag list -mode <block/entity>",
+                        "/ctag list -mode <mode>",
                         "/ctag list -tag <name>",
                         "/ctag list -map <mapID>",
                         "/ctag list -reset",
@@ -96,11 +96,11 @@ class CoordtagCommand : CommandBase {
                         sender.sendMessage("[CoordTag] That tag does not exist.")
                     }
                     else when (tag.mode) {
-                        TagMode.ENTITY -> {
+                        TagMode.SPAWN -> {
                             val loc = sender.location
-                            val capture = EntityCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, editor.mapID!!)
+                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, editor.mapID!!)
                             capture.add(tag)
-                            sender.sendMessage("[CoordTag] Captured an entity coordinate.")
+                            sender.sendMessage("[CoordTag] Captured a spawn coordinate.")
                         }
                         TagMode.BLOCK -> {
                             editor.requestBlockPrompt(Consumer {
@@ -206,7 +206,7 @@ class CoordtagCommand : CommandBase {
         when (args[0].toLowerCase()) {
             "help" -> return getCompletions(args[1], "1", "2")
             "create" -> if (args.size == 3) {
-                return getCompletions(args[2], "block", "entity")
+                return getCompletions(args[2], "block", "spawn")
             }
             "tp" -> {
                 return if (args.size < 3) {
@@ -233,7 +233,7 @@ class CoordtagCommand : CommandBase {
                 when (args.size % 2) { // Interpret -flag values
                     0 -> return getCompletions(args[args.size - 1], "-tag", "-mode", "-map", "-reset")
                     1 -> return when (args[args.size - 2].toLowerCase()) {
-                        "-mode" -> getCompletions(args[args.size - 1], "block", "entity")
+                        "-mode" -> getCompletions(args[args.size - 1], "block", "spawn")
                         "-tag" -> {
                             val mode = modeSel[editor.player.uniqueId]
                             val map = mapSel[editor.player.uniqueId]
@@ -307,7 +307,7 @@ class CoordtagCommand : CommandBase {
 
                 if (capture is BlockCapture)
                     player.sendMessage("Capture $i at ($x, $y, $z) inside $mapID") // TODO Clickable text
-                else if (capture is EntityCapture)
+                else if (capture is SpawnCapture)
                     player.sendMessage("Capture $i at ($x, $y, $z) inside $mapID")
             }
             player.sendMessage(" ")
@@ -318,7 +318,7 @@ class CoordtagCommand : CommandBase {
         mapSel.remove(editor.player.uniqueId)
         modeSel.remove(editor.player.uniqueId)
         tagSel.remove(editor.player.uniqueId)
-        editor.player.sendMessage("[CoordTag] Previous flags have been reset.")
+        editor.player.sendMessage("[CoordTag] Previous flags were reset.")
     }
 
     private fun selectMap(editor: GameEditor, id: String) {

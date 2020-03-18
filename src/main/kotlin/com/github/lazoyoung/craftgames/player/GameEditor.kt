@@ -43,16 +43,15 @@ class GameEditor private constructor(
          * @param player who will edit the map
          * @param gameID Identifies the game in which the editor mode takes place.
          * @param mapID Identifies the map in which the editor mode takes place.
-         * @param consumer Consumes the new instance. (null if game fails to start)
+         * @param consumer Consumes the new instance.
          * @throws ConcurrentPlayerState Thrown if the duplicate instance were found.
          * @throws MapNotFound Thrown if map is not found.
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun start(player: Player, gameID: String, mapID: String, consumer: Consumer<GameEditor?>) {
+        fun start(player: Player, gameID: String, mapID: String, consumer: Consumer<GameEditor>) {
             val pid = player.uniqueId
-            val succeed: Boolean
 
             if (registry.containsKey(pid))
                 throw ConcurrentPlayerState("Concurrent GameEditor instances are not allowed.")
@@ -63,18 +62,13 @@ class GameEditor private constructor(
                 throw MapNotFound("Map not found: $mapID")
 
             // Start game
-            succeed = game.start(mapID, Consumer {
+            game.start(mapID, Consumer {
                 val instance = GameEditor(player, game)
                 registry[pid] = instance
-                player.teleport(it!!.spawnLocation) // TODO Module: editor spawnpoint
+                player.teleport(it.spawnLocation) // TODO Module: editor spawnpoint
                 consumer.accept(instance)
             })
-
-            if (succeed) {
-                CoordTag.reload(game)
-            } else {
-                consumer.accept(null)
-            }
+            CoordTag.reload(game)
         }
     }
 

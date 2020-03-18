@@ -9,6 +9,8 @@ import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
+import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.World
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -39,14 +41,11 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                val game = getGame(args[1], sender) ?: return true
-                generateMap(sender, game, args[2], Consumer{
-                    if (it == null)
-                        return@Consumer
+                val game = openGame(args[1], sender) ?: return true
 
-                    // TODO Future redundant: Players are moved into the map by Game#start()
-                    sender.teleport(it.spawnLocation)
+                game.start(args[2], Consumer{
                     sender.sendMessage("Started ${game.name} with map: ${game.map.mapID}")
+                    game.join(sender)
                 })
             }
             "stop" -> {
@@ -85,19 +84,17 @@ class GameCommand : CommandBase {
                         return true
                     }
                     null -> {
+                        val err = TextComponent("Unexpected error! See console for details.")
+                        err.color = ChatColor.RED
+
                         try {
                             GameEditor.start(sender, args[1], args[2], Consumer{
-                                if (it == null) {
-                                    sender.sendMessage("Error occurred.")
-                                } else {
-                                    val map = it.game.map.mapID
-                                    sender.sendMessage("You started editing $map.")
-                                }
+                                sender.sendMessage("You started editing map: ${it.mapID}")
                             })
                         } catch (e: NumberFormatException) {
                             return false
                         } catch (e: ConcurrentPlayerState) {
-                            sender.sendMessage("Unexpected error! See console for details.")
+                            sender.sendMessage(err)
                             e.printStackTrace()
                         } catch (e: MapNotFound) {
                             sender.sendMessage(e.message!!)
@@ -106,7 +103,7 @@ class GameCommand : CommandBase {
                         } catch (e: FaultyConfiguration) {
                             sender.sendMessage(e.message!!)
                         } catch (e: RuntimeException) {
-                            sender.sendMessage("Unexpected error! See console for details.")
+                            sender.sendMessage(err)
                             e.printStackTrace()
                         }
                     }
@@ -214,7 +211,7 @@ class GameCommand : CommandBase {
         return mutableListOf()
     }
 
-    private fun getGame(name: String, sender: CommandSender, dummy: Boolean = false): Game? {
+    private fun openGame(name: String, sender: CommandSender, dummy: Boolean = false): Game? {
         try {
             return if (dummy) {
                 GameFactory.getDummy(name)
@@ -236,15 +233,18 @@ class GameCommand : CommandBase {
         return null
     }
 
-    private fun generateMap(sender: CommandSender, game: Game, mapID: String, callback: Consumer<World?>) {
+    private fun generateMap(sender: CommandSender, game: Game, mapID: String, callback: Consumer<World>) {
+        val err = TextComponent("Unable to load map! See console for details.")
+        err.color = ChatColor.RED
+
         try {
             game.map.generate(mapID, callback)
         } catch (e: RuntimeException) {
             e.printStackTrace()
-            sender.sendMessage("Unable to load map.")
+            sender.sendMessage(err)
         } catch (e: FaultyConfiguration) {
             e.printStackTrace()
-            sender.sendMessage("Unable to load map.")
+            sender.sendMessage(err)
         } catch (e: MapNotFound) {
             sender.sendMessage(e.message!!)
         }

@@ -5,7 +5,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.math.RoundingMode
 
-class EntityCapture(
+class SpawnCapture(
         x: Double,
         y: Double,
         z: Double,
