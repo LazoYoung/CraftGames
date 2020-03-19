@@ -3,10 +3,10 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.exception.MapNotFound
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
+import org.bukkit.WorldType
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -18,7 +18,9 @@ class GameMap internal constructor(
         internal val game: Game,
 
         /** List of maps available **/
-        internal val mapRegistry: MutableList<Map<*, *>>
+        internal val mapRegistry: MutableList<Map<*, *>>,
+
+        internal val lobbyID: String
 ) {
     /** ID of selected map **/
     internal var mapID: String? = null
@@ -45,13 +47,13 @@ class GameMap internal constructor(
     /**
      * Install a map from repository and generate it in asynchronous thread.
      *
-     * @param mapID ID of the map you want to be loaded
+     * @param mapID ID of the map you want to be loaded.
+     * @param destructOld Whether or not to destruct the old map.
      * @param callback Consume the generated world.
-     * @throws MapNotFound
-     * @throws RuntimeException
+     * @throws RuntimeException Failed to generate map for unexpected reason.
      * @throws FaultyConfiguration
      */
-    internal fun generate(mapID: String, callback: Consumer<World>? = null) {
+    internal fun generate(mapID: String, destructOld: Boolean, callback: Consumer<World>? = null) {
         var thisID: String? = null
         var pathStr: String? = null
         var alias: String? = null
@@ -81,7 +83,7 @@ class GameMap internal constructor(
         }
 
         if (thisID == null || pathStr == null)
-            throw MapNotFound("Map $mapID does not exist.")
+            throw RuntimeException("Map $mapID is not defined in layout.yml")
 
         // Load world container
         try {
@@ -92,11 +94,13 @@ class GameMap internal constructor(
 
         // Resolve installation target
         try {
-            mapSource = plugin.dataFolder.resolve(pathStr).toPath()
+            mapSource = game.contentPath.resolve(pathStr)
 
             if (mapSource == null || mapSource.fileName == null)
                 throw FaultyConfiguration("Illegal path of map $thisID for ${game.name}: $pathStr}")
         } catch (e: InvalidPathException) {
+            throw FaultyConfiguration("Unable to locate map $thisID at $pathStr for ${game.name}", e)
+        } catch (e: NullPointerException) {
             throw FaultyConfiguration("Unable to locate map $thisID at $pathStr for ${game.name}", e)
         }
 
@@ -113,7 +117,7 @@ class GameMap internal constructor(
                 }
             } catch (e: IllegalArgumentException) {
                 if (e.message?.startsWith("source", true) == true) {
-                    throw FaultyConfiguration("$mapSource is not a directory of map $thisID for ${game.name}", e)
+                    Main.logger.config("World folder \'$mapSource\' is missing for ${game.name}. Generating a blank world...")
                 } else {
                     throw RuntimeException("$mapTarget doesn't seem to be the world container.", e)
                 }
@@ -125,10 +129,19 @@ class GameMap internal constructor(
                 throw RuntimeException(e)
             }
 
-            // Create(load) world
+            // Load world and attributes
             scheduler.runTask(plugin, Runnable{
+                if (destructOld) {
+                    // TODO Regenerating process won't work!
+                    destruct()
+                }
+
                 this.worldName = worldName  // Assign worldName so that WorldInitEvent listener can detect it.
-                val world = WorldCreator(worldName).createWorld()
+                val gen = WorldCreator(worldName)
+                val world: World?
+
+                gen.type(WorldType.FLAT)
+                world = gen.createWorld()
 
                 try {
                     if (world == null)
@@ -149,23 +162,21 @@ class GameMap internal constructor(
     }
 
     /**
+     * Players need to leave before taking this action.
+     *
      * @throws RuntimeException is thrown if plugin fails to unload world.
      * @throws NullPointerException is thrown if world is not initialized.
      */
     internal fun destruct() {
-        world!!.players.forEach {
-            // TODO Module: global lobby spawnpoint
-            it.teleport(Bukkit.getWorld("world")!!.spawnLocation)
-        }
-
         if (Bukkit.unloadWorld(world!!, false)) {
-            FileUtil(Main.instance.logger).deleteFileTree(worldPath!!)
+            FileUtil(Main.logger).deleteFileTree(worldPath!!)
             worldName = null
             worldPath = null
             world = null
+            alias = null
             mapID = null
         } else {
-            throw RuntimeException("Failed to unload world ${world!!.name} in game: ${game.name}")
+            Main.logger.warning("Failed to unload world \'${world!!.name}\' in game: ${game.name}")
         }
     }
 }

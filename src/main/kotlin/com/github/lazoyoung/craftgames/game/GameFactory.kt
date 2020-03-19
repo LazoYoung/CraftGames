@@ -3,13 +3,16 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.script.ScriptFactory
 import org.bukkit.Bukkit
+import org.bukkit.World
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.FileReader
 import java.io.IOException
+import java.util.function.Consumer
 
 class GameFactory {
     companion object {
@@ -58,43 +61,55 @@ class GameFactory {
                 throw FaultyConfiguration("Name should never start with number.")
 
             val layout: YamlConfiguration
-            val scriptRegistry: MutableMap<String, ScriptBase> = HashMap()
-            val path = Main.config.getString("games.$name.layout")
+            val layoutPathStr = Main.config.getString("games.$name.layout")
                     ?: throw GameNotFound("Game \'$name\' is not defined in config.yml")
-            val file = Main.instance.dataFolder.resolve(path)
+            val layoutFile = Main.instance.dataFolder.resolve(layoutPathStr)
 
             try {
-                if (!file.isFile)
+                if (!layoutFile.isFile)
                     throw FaultyConfiguration("Game \'$name\' does not have layout.yml")
 
-                layout = YamlConfiguration.loadConfiguration(BufferedReader(FileReader(file, Main.charset)))
+                layout = YamlConfiguration.loadConfiguration(BufferedReader(FileReader(layoutFile, Main.charset)))
             } catch (e: IOException) {
-                throw FaultyConfiguration("Unable to read ${file.toPath()} for $name. Is it missing?", e)
+                throw FaultyConfiguration("Unable to read ${layoutFile.toPath()} for $name. Is it missing?", e)
             } catch (e: IllegalArgumentException) {
-                throw FaultyConfiguration("File is empty: ${file.toPath()}")
+                throw FaultyConfiguration("File is empty: ${layoutFile.toPath()}")
             }
 
+
             val mapRegistry = layout.getMapList("maps")
-            val confScripts = layout.getMapList("scripts")
+            val scriptRegistry: MutableMap<String, ScriptBase> = HashMap()
             val mapItr = mapRegistry.listIterator()
-            val scriptItr = confScripts.listIterator()
+            val scriptItr = layout.getMapList("scripts").listIterator()
+            var lobby: String? = null
 
             while (mapItr.hasNext()) {
                 val map = mapItr.next().toMutableMap()
-                val mapID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of map is missing in ${file.toPath()}")
+                val mapID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of map is missing in ${layoutFile.toPath()}")
+
                 if (!map.containsKey("alias")) {
                     map["alias"] = mapID; mapItr.set(map)
-                    layout.set("maps", mapRegistry); layout.save(file)
+                    layout.set("maps", mapRegistry)
                 }
+
                 if (!map.containsKey("path"))
-                    throw FaultyConfiguration("Entry \'path\' of $mapID is missing in ${file.toPath()}")
+                    throw FaultyConfiguration("Entry \'path\' of $mapID is missing in ${layoutFile.toPath()}")
+
+                if (map["lobby"] == true)
+                    lobby = map["id"] as String?
+
+                layout.save(layoutFile)
             }
 
+            if (lobby.isNullOrBlank())
+                throw FaultyConfiguration("Game \'$name\' doesn't have lobby map.")
+
+            // Load script registry from layout.yml
             while (scriptItr.hasNext()) {
                 val map = scriptItr.next()
-                val scriptID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of script is missing in ${file.toPath()}")
-                val pathStr = map["path"] as String? ?: throw FaultyConfiguration("Entry \'path\' of script $scriptID is missing in ${file.toPath()}")
-                val scriptFile = Main.instance.dataFolder.resolve(pathStr)
+                val scriptID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of script is missing in ${layoutFile.toPath()}")
+                val pathStr = map["path"] as String? ?: throw FaultyConfiguration("Entry \'path\' of script $scriptID is missing in ${layoutFile.toPath()}")
+                val scriptFile = layoutFile.parentFile!!.resolve(pathStr)
 
                 try {
                     if (!scriptFile.isFile)
@@ -103,35 +118,48 @@ class GameFactory {
                     throw RuntimeException("Unable to read script: $scriptFile", e)
                 }
 
-                scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
+                try {
+                    scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
+                } catch (e: ScriptEngineNotFound) {
+                    Main.logger.warning(e.localizedMessage)
+                }
             }
 
+            // Load configuration files (coordinate tags, players restore)
+            val restorePath = layout.getString("players.path")
+                    ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
             val tagPath = layout.getString("coordinate-tags.path")
-                    ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${file.toPath()}.")
-            val tagFile = Main.instance.dataFolder.resolve(tagPath)
+                    ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
+            val restoreFile = layoutFile.parentFile!!.resolve(restorePath)
+            val tagFile = layoutFile.parentFile!!.resolve(tagPath)
             val game: Game
 
-            tagFile.parentFile?.mkdirs()
+            restoreFile.parentFile!!.mkdirs()
+            if (!restoreFile.isFile && !restoreFile.createNewFile())
+                throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
             if (!tagFile.isFile && !tagFile.createNewFile())
                 throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
+            if (restoreFile.extension != "yml")
+                throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
             if (tagFile.extension != "yml")
                 throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
 
-            game = Game(-1, false, tagFile, name, scriptRegistry, mapRegistry)
+            game = Game(-1, false, layoutFile.parentFile!!.toPath(), tagFile, restoreFile, name, scriptRegistry, mapRegistry, lobby)
             return game
         }
 
         /**
          * Make a new game instance with given name.
-         * This goes live and available for players to join.
          *
          * @param name Classifies the type of game
+         * @param genLobby Determines if lobby must be generated.
+         * @param consumer is called when lobby is generated. (Unnecessary if genLobby is false)
          * @return The new game instance.
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun openNew(name: String) : Game {
+        fun openNew(name: String, genLobby: Boolean, consumer: Consumer<World>? = null) : Game {
             val game = getDummy(name)
             val label = Main.config.getString("worlds.directory-label")!!
 
@@ -147,6 +175,11 @@ class GameFactory {
             }
             game.id = nextID
             gameRegistry[nextID++] = game
+
+            if (genLobby) { // Generate lobby
+                val map = game.map
+                map.generate(map.lobbyID, false, consumer)
+            }
             return game
         }
 

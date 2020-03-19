@@ -3,6 +3,14 @@ main: com.github.lazoyoung.craftgames.Main
 api-version: '1.15'
 version: $version
 commands:
+  join:
+    description: Join a game.
+    usage: /join [game]
+    aliases: [ play ]
+  leave:
+    description: Leave a game.
+    usage: /leave
+    aliases: [ quit ]
   game:
     description: Manage games.
     usage: Type /game to see command list.

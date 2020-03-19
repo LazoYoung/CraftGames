@@ -5,9 +5,12 @@ maps:
   - id: arena2
     alias: Santa's Christmas Village
     path: Sample/example/arena2
+  - id: lobby
+    alias: Lobby for this game
+    path: Sample/example/lobby
+    lobby: true
 scripts:
   - id: core  # Script ID
     path: Sample/example/core.groovy # Path to script file
-modules.path: Sample/example/modules.yml
 coordinate-tags.path: Sample/example/data/coordinate-tags.yml
 players.path: Sample/example/data/players.yml

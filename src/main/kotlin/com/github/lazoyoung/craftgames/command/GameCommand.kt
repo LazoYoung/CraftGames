@@ -1,6 +1,8 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.exception.*
+import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameFactory
 import com.github.lazoyoung.craftgames.player.GameEditor
@@ -9,9 +11,6 @@ import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
-import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.TextComponent
-import org.bukkit.World
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -41,11 +40,27 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                val game = openGame(args[1], sender) ?: return true
+                if (PlayerData.get(sender) != null) {
+                    sender.sendMessage("You are already in a game.")
+                    return true
+                }
 
+                val game = openGame(args[1], sender)
+
+                if (game == null) {
+                    sender.sendMessage("Failed to open game! See console for details.")
+                    return true
+                }
+
+                if (game.map.getMapList().none { it == args[2] }) {
+                    sender.sendMessage("Map \'${args[2]}\' does not exist in this game!")
+                    game.stop()
+                    return true
+                }
+
+                game.join(sender)
                 game.start(args[2], Consumer{
                     sender.sendMessage("Started ${game.name} with map: ${game.map.mapID}")
-                    game.join(sender)
                 })
             }
             "stop" -> {
@@ -55,8 +70,11 @@ class GameCommand : CommandBase {
                 val id = args[1].toInt()
 
                 try {
-                    if (GameFactory.findByID(id)?.stop() == true) {
-                        sender.sendMessage("The game has been stopped.")
+                    val game = GameFactory.findByID(id)
+
+                    if (game != null) {
+                        sender.sendMessage("Forcing to stop the game.")
+                        game.stop()
                     } else {
                         sender.sendMessage("That game does not exist.")
                     }
@@ -74,6 +92,13 @@ class GameCommand : CommandBase {
                     return true
                 }
 
+                val present = GameFactory.find(args[1], true).firstOrNull()
+
+                if (present != null && present.map.mapID == args[2]) {
+                    sender.sendMessage("That map is being edited by someone else.")
+                    return true
+                }
+
                 when (PlayerData.get(sender)) {
                     is Spectator, is GamePlayer -> {
                         sender.sendMessage("You have to leave the game you're at.")
@@ -84,28 +109,7 @@ class GameCommand : CommandBase {
                         return true
                     }
                     null -> {
-                        val err = TextComponent("Unexpected error! See console for details.")
-                        err.color = ChatColor.RED
-
-                        try {
-                            GameEditor.start(sender, args[1], args[2], Consumer{
-                                sender.sendMessage("You started editing map: ${it.mapID}")
-                            })
-                        } catch (e: NumberFormatException) {
-                            return false
-                        } catch (e: ConcurrentPlayerState) {
-                            sender.sendMessage(err)
-                            e.printStackTrace()
-                        } catch (e: MapNotFound) {
-                            sender.sendMessage(e.message!!)
-                        } catch (e: GameNotFound) {
-                            sender.sendMessage(e.message!!)
-                        } catch (e: FaultyConfiguration) {
-                            sender.sendMessage(e.message!!)
-                        } catch (e: RuntimeException) {
-                            sender.sendMessage(err)
-                            e.printStackTrace()
-                        }
+                        GameEditor.start(sender, args[1], args[2])
                     }
                 }
             }
@@ -211,43 +215,28 @@ class GameCommand : CommandBase {
         return mutableListOf()
     }
 
-    private fun openGame(name: String, sender: CommandSender, dummy: Boolean = false): Game? {
+    private fun openGame(name: String, sender: CommandSender): Game? {
+        val game: Game
+
         try {
-            return if (dummy) {
-                GameFactory.getDummy(name)
-            } else {
-                GameFactory.openNew(name)
-            }
+            game = GameFactory.openNew(name, false)
         } catch (e: GameNotFound) {
-            sender.sendMessage(e.message!!)
+            sender.sendMessage(e.localizedMessage)
+            return null
         } catch (e: FaultyConfiguration) {
             e.printStackTrace()
-            sender.sendMessage(e.message!!)
+            sender.sendMessage(e.localizedMessage)
+            return null
         } catch (e: RuntimeException) {
             e.printStackTrace()
-            sender.sendMessage(e.message!!)
+            sender.sendMessage(e.localizedMessage)
+            return null
         } catch (e: ScriptEngineNotFound) {
             e.printStackTrace()
             sender.sendMessage(e.message)
+            return null
         }
-        return null
-    }
-
-    private fun generateMap(sender: CommandSender, game: Game, mapID: String, callback: Consumer<World>) {
-        val err = TextComponent("Unable to load map! See console for details.")
-        err.color = ChatColor.RED
-
-        try {
-            game.map.generate(mapID, callback)
-        } catch (e: RuntimeException) {
-            e.printStackTrace()
-            sender.sendMessage(err)
-        } catch (e: FaultyConfiguration) {
-            e.printStackTrace()
-            sender.sendMessage(err)
-        } catch (e: MapNotFound) {
-            sender.sendMessage(e.message!!)
-        }
+        return game
     }
 
 }

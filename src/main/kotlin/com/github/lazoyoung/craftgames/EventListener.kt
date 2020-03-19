@@ -4,13 +4,15 @@ import com.github.lazoyoung.craftgames.game.GameFactory
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldInitEvent
 
 class EventListener : Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun onWorldLoad(event: WorldInitEvent) {
         val name = event.world.name
 
@@ -32,6 +34,13 @@ class EventListener : Listener {
                     event.isCancelled = true
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        val player = event.player
+
+        PlayerData.get(player)?.game?.leave(player)
     }
 
 }

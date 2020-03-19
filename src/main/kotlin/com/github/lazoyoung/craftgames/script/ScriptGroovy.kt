@@ -9,7 +9,7 @@ import org.kohsuke.groovy.sandbox.GroovyValueFilter
 import org.kohsuke.groovy.sandbox.SandboxTransformer
 import java.io.File
 
-class ScriptGroovy(file: File, sender: CommandSender?) : ScriptBase(file, sender) {
+class ScriptGroovy(val file: File, sender: CommandSender?) : ScriptBase(file, sender) {
     private val shell: GroovyShell
     private val filter: GroovyValueFilter
     private var script: Script? = null
@@ -29,6 +29,7 @@ class ScriptGroovy(file: File, sender: CommandSender?) : ScriptBase(file, sender
 
     override fun parse() {
         script = shell.parse(reader, name)
+        Main.logger.fine("Script ${file.name} has been parsed.")
     }
 
     override fun execute() {
@@ -38,5 +39,6 @@ class ScriptGroovy(file: File, sender: CommandSender?) : ScriptBase(file, sender
         filter.register()
         script?.run()
         filter.unregister()
+        Main.logger.fine("Script ${file.name} has been executed.")
     }
 }

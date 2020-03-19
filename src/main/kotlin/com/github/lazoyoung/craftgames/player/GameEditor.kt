@@ -4,10 +4,7 @@ import com.github.lazoyoung.craftgames.ActionBarTask
 import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
-import com.github.lazoyoung.craftgames.exception.ConcurrentPlayerState
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
-import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameFactory
 import net.md_5.bungee.api.ChatColor
@@ -43,32 +40,45 @@ class GameEditor private constructor(
          * @param player who will edit the map
          * @param gameID Identifies the game in which the editor mode takes place.
          * @param mapID Identifies the map in which the editor mode takes place.
-         * @param consumer Consumes the new instance.
-         * @throws ConcurrentPlayerState Thrown if the duplicate instance were found.
-         * @throws MapNotFound Thrown if map is not found.
-         * @throws GameNotFound No such game exists with given id.
-         * @throws FaultyConfiguration Configuration is not complete.
-         * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun start(player: Player, gameID: String, mapID: String, consumer: Consumer<GameEditor>) {
+        fun start(player: Player, gameID: String, mapID: String) {
             val pid = player.uniqueId
+            val report = TextComponent()
+            report.color = ChatColor.RED
 
-            if (registry.containsKey(pid))
-                throw ConcurrentPlayerState("Concurrent GameEditor instances are not allowed.")
+            if (registry.containsKey(pid)) {
+                report.text = "Unexpected error: Concurrent GameEditor entries."
+                player.sendMessage(report)
+                Main.logger.warning(report.toPlainText())
+                return
+            }
 
-            val game = GameFactory.openNew(gameID)
+            try {
+                val game = GameFactory.openNew(gameID, false)
 
-            if (!game.map.getMapList().contains(mapID))
-                throw MapNotFound("Map not found: $mapID")
+                if (!game.map.getMapList().contains(mapID)) {
+                    report.text = "Map not found: $mapID"
+                    player.sendMessage(report)
+                    game.stop()
+                    return
+                }
 
-            // Start game
-            game.start(mapID, Consumer {
-                val instance = GameEditor(player, game)
-                registry[pid] = instance
-                player.teleport(it.spawnLocation) // TODO Module: editor spawnpoint
-                consumer.accept(instance)
-            })
-            CoordTag.reload(game)
+                game.map.generate(mapID, false, Consumer {
+                    val instance = GameEditor(player, game)
+                    registry[pid] = instance
+                    game.edit(player)
+                })
+                CoordTag.reload(game)
+            } catch (e: GameNotFound) {
+                report.text = e.localizedMessage
+                player.sendMessage(report)
+                return
+            } catch (e: Exception) {
+                report.text = e.localizedMessage
+                player.sendMessage(report)
+                Main.logger.warning(report.toPlainText())
+                return
+            }
         }
     }
 
@@ -93,8 +103,7 @@ class GameEditor private constructor(
         val source = game.map.worldPath
         val targetOrigin: Path
 
-        get(player)?.unregister()
-        game.saveConfig()
+        game.leave(player)
         actionBarTask.cancel()
 
         // Save world
@@ -105,7 +114,7 @@ class GameEditor private constructor(
         }
 
         try {
-            targetOrigin = plugin.dataFolder.toPath()
+            targetOrigin = game.contentPath
                     .resolve(game.map.mapRegistry.first { it["id"] == game.map.mapID }["path"] as String)
         } catch (e: Exception) {
             throw RuntimeException("Unable to resolve target path for map saving.", e)
@@ -166,6 +175,8 @@ class GameEditor private constructor(
                             player.sendMessage(*arr.toTypedArray())
                         }
                     }
+
+                    // Close the game
                     game.stop()
                 })
             } catch (e: Exception) {
