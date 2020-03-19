@@ -278,7 +278,7 @@ class CoordtagCommand : CommandBase {
                 }
             }
         } else {
-            // Insert specific tag only (neglecting modeSel)
+            // Insert specific tag only. Disregard modeSel
             CoordTag.get(editor.game, tagSel)?.let { tags.add(it) }
         }
 

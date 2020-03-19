@@ -89,6 +89,9 @@ class GameEditor private constructor(
      */
     fun saveAndLeave() {
         val scheduler = Bukkit.getScheduler()
+        val plugin = Main.instance
+        val source = game.map.worldPath
+        val targetOrigin: Path
 
         get(player)?.unregister()
         game.saveConfig()
@@ -101,33 +104,31 @@ class GameEditor private constructor(
             throw RuntimeException("Unable to save map because the world is null.", e)
         }
 
+        try {
+            targetOrigin = plugin.dataFolder.toPath()
+                    .resolve(game.map.mapRegistry.first { it["id"] == game.map.mapID }["path"] as String)
+        } catch (e: Exception) {
+            throw RuntimeException("Unable to resolve target path for map saving.", e)
+        }
+
         // Clone map files to disk
-        scheduler.runTaskAsynchronously(Main.instance, Runnable{
-            val fileUtil = FileUtil(Main.instance.logger)
-            val source = game.map.worldPath
-            var target: Path
+        scheduler.runTaskAsynchronously(plugin, Runnable{
+            val fileUtil = FileUtil(plugin.logger)
+            val target = targetOrigin.parent ?: targetOrigin.root!!
             val renameTo: Path
 
             if (source == null || !Files.isDirectory(source))
                 throw RuntimeException("Unable to locate world files to save!")
 
             try {
-                target = Main.instance.dataFolder.toPath()
-                        .resolve(game.map.mapRegistry.first { it["id"] == game.map.mapID }["path"] as String)
-            } catch (e: Exception) {
-                throw RuntimeException("Unable to resolve target path for map saving.", e)
-            }
-
-            try {
-                if (Files.isDirectory(target)) {
-                    fileUtil.deleteFileTree(target)
+                if (Files.isDirectory(targetOrigin)) {
+                    fileUtil.deleteFileTree(targetOrigin)
                 }
 
-                renameTo = target.fileName
-                target = target.parent ?: target.root!!
+                renameTo = targetOrigin.fileName
                 fileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
                 Files.move(target.resolve(source.fileName), target.resolve(renameTo))
-                scheduler.runTask(Main.instance, Runnable{
+                scheduler.runTask(plugin, Runnable{
                     player.sendMessage("Saved the changes! Leaving editor mode...")
 
                     // Inform to editor if incomplete tag were found.

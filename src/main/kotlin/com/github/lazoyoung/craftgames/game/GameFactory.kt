@@ -20,7 +20,7 @@ class GameFactory {
         private var nextID = 0
 
         /**
-         * Find games with the given filters.
+         * Find live games with the given filters.
          *
          * @param name The name of the game to find. (Pass null to search everything)
          * @param isEditMode Find the games that are in edit mode. Defaults to false.
@@ -34,9 +34,7 @@ class GameFactory {
         }
 
         /**
-         * Returns the running game matching the id. (Each game has its unique id)
-         *
-         * Note that the games in editor mode have no assigned ID.
+         * Find the exact live game by id. (Every game has unique id)
          *
          * @param id Instance ID
          */

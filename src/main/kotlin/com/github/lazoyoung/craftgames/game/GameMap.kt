@@ -38,7 +38,7 @@ class GameMap internal constructor(
     /**
      * Returns ID list of all maps available.
      */
-    fun getMapList() : Array<String> {
+    fun getMapList(): Array<String> {
         return mapRegistry.mapNotNull { it["id"] as String? }.toTypedArray()
     }
 
@@ -58,6 +58,7 @@ class GameMap internal constructor(
         val iter = mapRegistry.listIterator()
         val mapSource: Path?
         val mapTarget: Path
+        val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
         val label = Main.config.getString("world-name")
                     ?: throw FaultyConfiguration("world-name is missing in config.yml")
@@ -91,7 +92,7 @@ class GameMap internal constructor(
 
         // Resolve installation target
         try {
-            mapSource = Main.instance.dataFolder.resolve(pathStr).toPath()
+            mapSource = plugin.dataFolder.resolve(pathStr).toPath()
 
             if (mapSource == null || mapSource.fileName == null)
                 throw FaultyConfiguration("Illegal path of map $thisID for ${game.name}: $pathStr}")
@@ -100,12 +101,12 @@ class GameMap internal constructor(
         }
 
         // Copy map files to world container
-        scheduler.runTaskAsynchronously(Main.instance, Runnable{
+        scheduler.runTaskAsynchronously(plugin, Runnable{
             try {
                 val targetRoot = mapTarget.resolve(mapSource.fileName)
 
                 if (!Files.isRegularFile(targetRoot.resolve("level.dat"))) {
-                    FileUtil(Main.instance.logger).cloneFileTree(mapSource, mapTarget)
+                    FileUtil(plugin.logger).cloneFileTree(mapSource, mapTarget)
 
                     if (!targetRoot.toFile().renameTo(mapTarget.resolve(worldName).toFile()))
                         throw RuntimeException("Unable to rename folder ${mapSource.fileName} to $worldName.")
@@ -125,7 +126,7 @@ class GameMap internal constructor(
             }
 
             // Create(load) world
-            scheduler.runTask(Main.instance, Runnable{
+            scheduler.runTask(plugin, Runnable{
                 this.worldName = worldName  // Assign worldName so that WorldInitEvent listener can detect it.
                 val world = WorldCreator(worldName).createWorld()
 
@@ -148,25 +149,23 @@ class GameMap internal constructor(
     }
 
     /**
-     * @return whether or not it succeed to destruct the map
+     * @throws RuntimeException is thrown if plugin fails to unload world.
+     * @throws NullPointerException is thrown if world is not initialized.
      */
-    internal fun destruct() : Boolean {
-        world.let {
-            if (it != null) {
-                try {
-                    if (Bukkit.unloadWorld(it, false)) {
-                        FileUtil(Main.instance.logger).deleteFileTree(worldPath!!)
-                        worldName = null
-                        worldPath = null
-                        world = null
-                        mapID = null
-                        return true
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+    internal fun destruct() {
+        world!!.players.forEach {
+            // TODO Module: global lobby spawnpoint
+            it.teleport(Bukkit.getWorld("world")!!.spawnLocation)
         }
-        return false
+
+        if (Bukkit.unloadWorld(world!!, false)) {
+            FileUtil(Main.instance.logger).deleteFileTree(worldPath!!)
+            worldName = null
+            worldPath = null
+            world = null
+            mapID = null
+        } else {
+            throw RuntimeException("Failed to unload world ${world!!.name} in game: ${game.name}")
+        }
     }
 }

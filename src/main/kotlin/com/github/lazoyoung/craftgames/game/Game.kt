@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.game
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
@@ -8,8 +9,10 @@ import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
+import org.bukkit.event.player.PlayerTeleportEvent
 import java.io.File
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
 class Game(
@@ -27,10 +30,13 @@ class Game(
 
         mapReg: MutableList<Map<*, *>>
 ) {
-    /** The state of game progress **/
-    enum class State { LOBBY, PLAYING, END }
+    enum class State { LOBBY, PLAYING, FINISH }
 
-    var gameState = State.LOBBY
+    /** The state of game progress **/
+    var state = State.LOBBY
+
+    /** Can players can join at this moment? **/
+    var canJoin = true
 
     /** CoordTags configuration across all maps. **/
     internal var tagConfig = YamlConfiguration.loadConfiguration(tagFile)
@@ -50,29 +56,50 @@ class Game(
         if (id < 0 || mapID == null)
             throw RuntimeException("Illegal state of Game attributes.")
 
+        state = State.PLAYING
+        canJoin = false
         map.generate(mapID, mapConsumer)
         // TODO Load other stuff
     }
 
-    fun stop() : Boolean {
-        map.world?.players?.forEach {
-            // TODO Module: global lobby spawnpoint
-            it.teleport(Bukkit.getWorld("world")!!.spawnLocation)
-            it.sendMessage("Returned back to world.")
+    fun finish() {
+
+    }
+
+    fun stop() {
+        for (player in players.mapNotNull { Bukkit.getPlayer(it) }) {
+            player.teleport(Bukkit.getWorld("world")!!.spawnLocation)
         }
 
-        if (map.destruct()) {
-            GameFactory.purge(this)
-            return true
+        try {
+            map.destruct()
+        } catch (e: RuntimeException) {
+            e.printStackTrace()
+        } catch (e: RuntimeException) {
+            // We can disregard this
         }
-        return false
+        GameFactory.purge(this)
     }
 
     fun join(player: Player) {
         // TODO Module: player spawnpoint
-        player.teleportAsync(map.world!!.spawnLocation)
-        players.add(player.uniqueId)
-        GamePlayer.register(player, this)
+        val plugin = Main.instance
+        val scheduler = Bukkit.getScheduler()
+        val future = player.teleportAsync(map.world!!.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+
+        scheduler.runTaskAsynchronously(plugin, Runnable {
+            val succeed = future.get(10L, TimeUnit.SECONDS)
+
+            scheduler.runTask(plugin, Runnable {
+                if (succeed) {
+                    players.add(player.uniqueId)
+                    GamePlayer.register(player, this)
+                    player.sendMessage("You joined $name.")
+                } else {
+                    player.sendMessage("Failed to load world! Please try again later.")
+                }
+            })
+        })
     }
 
     fun spectate(player: Player) {
