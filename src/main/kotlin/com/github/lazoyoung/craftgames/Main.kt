@@ -3,7 +3,7 @@ package com.github.lazoyoung.craftgames
 import com.github.lazoyoung.craftgames.command.CoordtagCommand
 import com.github.lazoyoung.craftgames.command.GameAccessCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
-import com.github.lazoyoung.craftgames.game.GameFactory
+import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -55,7 +55,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
     override fun onDisable() {
         // Close games
-        GameFactory.find().forEach { it.stop() }
+        Game.find().forEach { it.stop() }
     }
 
     private fun loadConfig() {
@@ -91,7 +91,7 @@ class Main : JavaPlugin(), CommandExecutor {
             }
 
             try {
-                FileUtil(logger).cloneFileTree(source, target)
+                FileUtil.cloneFileTree(source, target)
             } catch (e: SecurityException) {
                 e.printStackTrace()
                 logger.severe("Access denied! Unable to install sample files.")

@@ -5,46 +5,43 @@ import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.player.GameEditor
+import com.github.lazoyoung.craftgames.player.GamePlayer
+import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.player.Spectator
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.TextComponent
+import org.bukkit.Location
+import org.bukkit.World
 import org.bukkit.entity.Mob
-import org.bukkit.entity.Player
 
 class SpawnModuleImpl(val game: Game) : SpawnModule {
 
-    var personal: CoordTag? = null
-    var editor: CoordTag? = null
-    var spectator: CoordTag? = null
+    private var personal: CoordTag? = null
+    private var editor: CoordTag? = null
+    private var spectator: CoordTag? = null
     private val notFound: TextComponent = TextComponent("Unable to locate spawnpoint!")
 
     init {
         notFound.color = ChatColor.YELLOW
     }
 
-    fun spawnPersonal(player: Player) {
-        if (personal == null) {
-            game.map.world?.spawnLocation?.let { player.teleport(it) }
-            player.sendMessage(notFound)
-        } else {
-            personal?.getLocalCaptures()?.random()?.teleport(player)
+    fun spawnPlayer(world: World, playerData: PlayerData) {
+        val player = playerData.player
+        val tag = when (playerData) {
+            is GameEditor -> editor
+            is GamePlayer -> personal
+            is Spectator -> spectator
+            else -> null
         }
-    }
 
-    fun spawnEditor(player: Player) {
-        if (editor == null) {
-            game.map.world?.spawnLocation?.let { player.teleport(it) }
+        if (tag == null) {
+            world.spawnLocation.let { player.teleport(it) }
             player.sendMessage(notFound)
         } else {
-            editor?.getLocalCaptures()?.random()?.teleport(player)
-        }
-    }
-
-    fun spawnSpectator(player: Player) {
-        if (spectator == null) {
-            game.map.world?.spawnLocation?.let { player.teleport(it) }
-            player.sendMessage(notFound)
-        } else {
-            spectator?.getLocalCaptures()?.random()?.teleport(player)
+            tag.getCaptures(null).random().let {
+                player.teleport(Location(world, it.x, it.y, it.z))
+            }
         }
     }
 

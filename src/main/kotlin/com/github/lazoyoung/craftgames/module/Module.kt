@@ -7,7 +7,7 @@ class Module(game: Game) {
     internal val spawn = SpawnModuleImpl(game)
 
     init {
-        for (entry in game.scriptReg) {
+        for (entry in game.resource.scriptRegistry) {
             val script = entry.value
 
             script.setVariable("SpawnModule", spawn as SpawnModule)

@@ -6,7 +6,6 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameFactory
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.HoverEvent
@@ -38,10 +37,10 @@ class GameEditor private constructor(
          * Make the player jump into editor mode for specific map.
          *
          * @param player who will edit the map
-         * @param gameID Identifies the game in which the editor mode takes place.
+         * @param gameName Identifies the game in which the editor mode takes place.
          * @param mapID Identifies the map in which the editor mode takes place.
          */
-        fun start(player: Player, gameID: String, mapID: String) {
+        fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
             val report = TextComponent()
             report.color = ChatColor.RED
@@ -54,19 +53,20 @@ class GameEditor private constructor(
             }
 
             try {
-                val game = GameFactory.openNew(gameID, false)
+                val game = Game.openNew(gameName, editMode = true, genLobby = false)
+                val map = game.resource.mapRegistry[mapID]
 
-                if (!game.map.getMapList().contains(mapID)) {
+                if (map == null) {
                     report.text = "Map not found: $mapID"
                     player.sendMessage(report)
                     game.stop()
                     return
                 }
 
-                game.map.generate(mapID, false, Consumer {
+                map.generate(game, Consumer {
                     val instance = GameEditor(player, game)
                     registry[pid] = instance
-                    game.edit(player)
+                    game.edit(instance)
                 })
                 CoordTag.reload(game)
             } catch (e: GameNotFound) {
@@ -101,7 +101,7 @@ class GameEditor private constructor(
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val source = game.map.worldPath
-        val targetOrigin: Path
+        val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
 
         game.leave(player)
         actionBarTask.cancel()
@@ -113,16 +113,8 @@ class GameEditor private constructor(
             throw RuntimeException("Unable to save map because the world is null.", e)
         }
 
-        try {
-            targetOrigin = game.contentPath
-                    .resolve(game.map.mapRegistry.first { it["id"] == game.map.mapID }["path"] as String)
-        } catch (e: Exception) {
-            throw RuntimeException("Unable to resolve target path for map saving.", e)
-        }
-
         // Clone map files to disk
         scheduler.runTaskAsynchronously(plugin, Runnable{
-            val fileUtil = FileUtil(plugin.logger)
             val target = targetOrigin.parent ?: targetOrigin.root!!
             val renameTo: Path
 
@@ -131,11 +123,11 @@ class GameEditor private constructor(
 
             try {
                 if (Files.isDirectory(targetOrigin)) {
-                    fileUtil.deleteFileTree(targetOrigin)
+                    FileUtil.deleteFileTree(targetOrigin)
                 }
 
                 renameTo = targetOrigin.fileName
-                fileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
+                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
                 Files.move(target.resolve(source.fileName), target.resolve(renameTo))
                 scheduler.runTask(plugin, Runnable{
                     player.sendMessage("Saved the changes! Leaving editor mode...")

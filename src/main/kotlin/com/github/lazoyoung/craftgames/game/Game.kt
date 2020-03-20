@@ -1,44 +1,30 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
-import com.github.lazoyoung.craftgames.script.ScriptBase
 import org.bukkit.Bukkit
 import org.bukkit.World
-import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
-import java.io.File
-import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
 class Game(
+        val name: String,
+
         internal var id: Int,
 
         /** Is this game in Edit Mode? **/
         internal var editMode: Boolean,
 
-        /** Pathname of layout.yml **/
-        internal val contentPath: Path,
-
-        /* Pathname of coordinate-tags.yml */
-        private val tagFile: File,
-
-        /* Pathname of players.yml */
-        private val restoreFile: File,
-
-        val name: String,
-
-        val scriptReg: Map<String, ScriptBase>,
-
-        mapReg: MutableList<Map<*, *>>,
-
-        lobbyID: String
+        /** Configurable resources **/
+        internal val resource: GameResource
 ) {
     enum class State { LOBBY, PLAYING, FINISH }
 
@@ -48,28 +34,110 @@ class Game(
     /** Can players can join at this moment? **/
     var canJoin = true
 
-    /** Map Handler **/
-    val map = GameMap(this, mapReg, lobbyID)
-
     /** All kind of modules **/
     val module = Module(this)
 
-    /** CoordTags configuration across all maps. **/
-    internal var tagConfig = YamlConfiguration.loadConfiguration(tagFile)
-
-    /** Storage config for player inventory and spawnpoint. **/
-    internal var restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
+    /** Map Handler **/
+    var map = resource.lobbyMap
 
     /** List of players in any PlayerState **/
     private val players = ArrayList<UUID>()
+
+    companion object {
+
+        /** Games Registry. (Key: ID of the game) **/
+        private val gameRegistry: MutableMap<Int, Game> = HashMap()
+
+        /** Next ID for new game **/
+        private var nextID = 0
+
+        /**
+         * Find live games with the given filters.
+         *
+         * @param name The name of the game to find. (Pass null to search everything)
+         * @param isEditMode Find the games that are in edit mode. Defaults to false.
+         * @return A list of games found by given arguments.
+         */
+        fun find(name: String? = null, isEditMode: Boolean? = null) : List<Game> {
+            return gameRegistry.values.filter {
+                (name == null || it.name == name)
+                        && (isEditMode == null || it.editMode == isEditMode)
+            }
+        }
+
+        /**
+         * Find the exact live game by id. (Every game has unique id)
+         *
+         * @param id Instance ID
+         */
+        fun findByID(id: Int) : Game? {
+            return gameRegistry[id]
+        }
+
+        fun getMapList(gameName: String): Set<String> {
+            return GameResource(gameName).mapRegistry.keys
+        }
+
+        /**
+         * Make a new game instance with given name.
+         *
+         * @param name Classifies the type of game
+         * @param editMode The game is in editor mode, if true.
+         * @param genLobby Determines if lobby must be generated.
+         * @param consumer is called when lobby is generated. (Unnecessary if genLobby is false)
+         * @return The new game instance.
+         * @throws GameNotFound No such game exists with given id.
+         * @throws FaultyConfiguration Configuration is not complete.
+         * @throws RuntimeException Unexpected issue has arrised.
+         */
+        fun openNew(name: String, editMode: Boolean, genLobby: Boolean, consumer: Consumer<World>? = null) : Game {
+            val resource = GameResource(name)
+            val game = Game(name, -1, editMode, resource)
+
+            assignID(game)
+
+            if (genLobby) {
+                val map = game.resource.lobbyMap
+                map.generate(game, consumer)
+            }
+            return game
+        }
+
+        internal fun purge(game: Game) {
+            gameRegistry.remove(game.id)
+        }
+
+        internal fun reassignID(game: Game) {
+            gameRegistry.remove(game.id)
+            assignID(game)
+        }
+
+        private fun assignID(game: Game) {
+            val label = Main.config.getString("worlds.directory-label")!!
+
+            Bukkit.getWorldContainer().listFiles()?.forEach {
+                if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
+                    val id = Regex("(_\\d+)").findAll(it.name).last().value.drop(1).toInt()
+
+                    // Prevents possible conflict with an existing world
+                    if (id >= nextID) {
+                        nextID = id + 1
+                    }
+                }
+            }
+
+            game.id = nextID
+            gameRegistry[nextID++] = game
+        }
+    }
 
     /**
      * Leave the lobby (if present) and start the game.
      *
      * @param mapConsumer Consume the generated world.
      */
-    fun start(mapID: String? = null, mapConsumer: Consumer<World>? = null) {
-        if (id < 0 || mapID == null || editMode)
+    fun start(mapID: String, mapConsumer: Consumer<World>? = null) {
+        if (id < 0 || editMode)
             throw RuntimeException("Illegal state of Game.")
 
         val plugin = Main.instance
@@ -78,19 +146,20 @@ class Game(
         canJoin = false
 
         try {
-            val regen = map.world != null
-
-            map.generate(mapID, regen, Consumer { world ->
+            val thisMap = resource.mapRegistry[mapID] ?: map
+            thisMap.generate(this, Consumer { world ->
                 for (uid in players) {
                     val player = Bukkit.getPlayer(uid)!!
 
                     scheduler.runTaskAsynchronously(plugin, Runnable {
-                        val future = player.teleportAsync(map.world!!.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                        val succeed = future.get(10L, TimeUnit.SECONDS)
+                        val future
+                                = player.teleportAsync(thisMap.world!!.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                        val succeed
+                                = future.get(10L, TimeUnit.SECONDS)
 
                         scheduler.runTask(plugin, Runnable {
                             if (succeed) {
-                                player.sendMessage("Moved to ${map.alias}")
+                                player.sendMessage("Moved to ${thisMap.alias}")
                             } else {
                                 player.sendMessage("Failed to teleport in async!")
                             }
@@ -116,40 +185,42 @@ class Game(
 
     fun stop() {
         players.mapNotNull { id -> Bukkit.getPlayer(id) }.forEach { leave(it) }
-        saveConfig()
+        resource.saveToDisk()
 
         if (map.world != null) {
             map.destruct()
         }
-        GameFactory.purge(this)
+        purge(this)
     }
 
     fun join(player: Player) {
         val uid = player.uniqueId
+        val playerData = GamePlayer.register(player, this)
 
         // TODO Config fails to parse location if World is not present.
-        restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPersonal(player)
+        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+        module.spawn.spawnPlayer(map.world!!, playerData)
         players.add(uid)
-        GamePlayer.register(player, this)
         player.sendMessage("You joined $name.")
     }
 
     fun spectate(player: Player) {
         val uid = player.uniqueId
+        val playerData = Spectator.register(player, this)
 
-        restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnSpectator(player)
+        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+        module.spawn.spawnPlayer(map.world!!, playerData)
         players.add(uid)
         Spectator.register(player, this)
         player.sendMessage("You are spectating $name.")
     }
 
-    fun edit(player: Player) {
+    fun edit(playerData: PlayerData) {
+        val player = playerData.player
         val uid = player.uniqueId
 
-        restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnEditor(player)
+        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+        module.spawn.spawnPlayer(map.world!!, playerData)
         players.add(uid)
         player.sendMessage("You are in editor mode on $name-${map.mapID}.")
     }
@@ -157,18 +228,11 @@ class Game(
     fun leave(player: Player) {
         val uid = player.uniqueId
 
-        restoreConfig.getLocation(uid.toString().plus(".location"))?.let {
+        resource.restoreConfig.getLocation(uid.toString().plus(".location"))?.let {
             player.teleport(it, PlayerTeleportEvent.TeleportCause.PLUGIN)
         }
         players.remove(uid)
-        PlayerData.get(player)!!.unregister()
+        PlayerData.get(player)?.unregister() ?: Main.logger.fine("PlayerData is lost unexpectedly.")
         player.sendMessage("You left $name.")
-    }
-
-    fun saveConfig() {
-        restoreConfig.save(restoreFile)
-        restoreConfig.load(restoreFile)
-        tagConfig.save(tagFile)
-        tagConfig.load(tagFile)
     }
 }

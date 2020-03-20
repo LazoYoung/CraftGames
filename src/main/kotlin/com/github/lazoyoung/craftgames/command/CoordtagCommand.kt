@@ -4,8 +4,10 @@ import com.github.lazoyoung.craftgames.coordtag.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.TagMode
+import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
+import org.bukkit.Location
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -98,13 +100,13 @@ class CoordtagCommand : CommandBase {
                     else when (tag.mode) {
                         TagMode.SPAWN -> {
                             val loc = sender.location
-                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, editor.mapID!!)
+                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, editor.mapID)
                             capture.add(tag)
                             sender.sendMessage("[CoordTag] Captured a spawn coordinate.")
                         }
                         TagMode.BLOCK -> {
                             editor.requestBlockPrompt(Consumer {
-                                val capture = BlockCapture(it.x, it.y, it.z, editor.mapID!!)
+                                val capture = BlockCapture(it.x, it.y, it.z, editor.mapID)
                                 capture.add(tag)
                                 sender.sendMessage("[CoordTag] Captured a block coordinate.")
                             })
@@ -144,14 +146,24 @@ class CoordtagCommand : CommandBase {
                         sender.sendMessage("[CoordTag] Tag ${args[1]} has no captures in this map.")
                     }
                     args.size == 2 -> {
-                        captures.random().teleport(sender)
+                        when (val it = captures.random()) {
+                            is BlockCapture
+                                -> sender.teleport(Location(sender.world, it.x, it.y, it.z))
+                            is SpawnCapture
+                                -> sender.teleport(Location(sender.world, it.x, it.y, it.z, it.yaw, it.pitch))
+                        }
                         sender.sendMessage("[CoordTag] Teleported to a random capture within tag: ${args[1]}.")
                     }
                     else -> {
                         val capture = captures.firstOrNull { it.index == args[2].toIntOrNull() }
 
                         if (capture != null) {
-                            capture.teleport(sender)
+                            when (val it = captures.random()) {
+                                is BlockCapture
+                                    -> sender.teleport(Location(sender.world, it.x, it.y, it.z))
+                                is SpawnCapture
+                                    -> sender.teleport(Location(sender.world, it.x, it.y, it.z, it.yaw, it.pitch))
+                            }
                             sender.sendMessage("[CoordTag] Teleported to capture ${args[2]} within tag: ${args[1]}.")
                         } else {
                             sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
@@ -245,7 +257,7 @@ class CoordtagCommand : CommandBase {
                                             .map { it.name }.toTypedArray())
                         }
                         "-map" -> {
-                            editor.game.map.getMapList().toMutableList()
+                            Game.getMapList(editor.game.name).toMutableList()
                         }
                         else -> mutableListOf()
                     }
@@ -324,7 +336,7 @@ class CoordtagCommand : CommandBase {
     private fun selectMap(editor: GameEditor, id: String) {
         val player = editor.player
 
-        if (editor.game.map.getMapList().contains(id)) {
+        if (Game.getMapList(editor.game.name).contains(id)) {
             mapSel[editor.player.uniqueId] = id
             player.sendMessage("[CoordTag] Selected the map: $id")
         } else {

@@ -2,8 +2,8 @@ package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
-import com.github.lazoyoung.craftgames.game.GameFactory
-import com.github.lazoyoung.craftgames.player.GamePlayer
+import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.TextComponent
@@ -36,10 +36,10 @@ class GameAccessCommand : CommandBase {
                 warn.color = ChatColor.RED
 
                 try {
-                    var game = GameFactory.find(args[0], false).firstOrNull { it.canJoin }
+                    var game = Game.find(args[0], false).firstOrNull { it.canJoin }
 
                     if (game == null) {
-                        game = GameFactory.openNew(args[0], true, Consumer{
+                        game = Game.openNew(args[0], editMode = false, genLobby = true, consumer = Consumer{
                             game!!.join(sender)
                         })
                     }
@@ -62,10 +62,16 @@ class GameAccessCommand : CommandBase {
             "leave" -> {
                 val player = PlayerData.get(sender)
 
-                if (player is GamePlayer) {
-                    player.game.leave(sender)
-                } else {
-                    sender.sendMessage("You're not in game.")
+                when {
+                    player is GameEditor -> {
+                        player.saveAndLeave()
+                    }
+                    player != null -> {
+                        player.game.leave(sender)
+                    }
+                    else -> {
+                        sender.sendMessage("You're not in game.")
+                    }
                 }
             }
         }

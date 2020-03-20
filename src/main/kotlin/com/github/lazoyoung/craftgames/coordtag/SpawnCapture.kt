@@ -9,8 +9,8 @@ class SpawnCapture(
         x: Double,
         y: Double,
         z: Double,
-        private val yaw: Float,
-        private val pitch: Float,
+        val yaw: Float,
+        val pitch: Float,
         mapID: String,
         index: Int? = null
 ) : CoordCapture(x, y, z, mapID, index) {

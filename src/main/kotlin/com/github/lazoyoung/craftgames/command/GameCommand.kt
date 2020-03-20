@@ -4,7 +4,7 @@ import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameFactory
+import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -45,16 +45,15 @@ class GameCommand : CommandBase {
                     return true
                 }
 
+                if (!Game.getMapList(args[1]).contains(args[2])) {
+                    sender.sendMessage("Map \'${args[2]}\' does not exist in this game!")
+                    return true
+                }
+
                 val game = openGame(args[1], sender)
 
                 if (game == null) {
                     sender.sendMessage("Failed to open game! See console for details.")
-                    return true
-                }
-
-                if (game.map.getMapList().none { it == args[2] }) {
-                    sender.sendMessage("Map \'${args[2]}\' does not exist in this game!")
-                    game.stop()
                     return true
                 }
 
@@ -70,11 +69,11 @@ class GameCommand : CommandBase {
                 val id = args[1].toInt()
 
                 try {
-                    val game = GameFactory.findByID(id)
+                    val game = Game.findByID(id)
 
                     if (game != null) {
-                        sender.sendMessage("Forcing to stop the game.")
                         game.stop()
+                        sender.sendMessage("Game \'${game.name}\' has been stopped.")
                     } else {
                         sender.sendMessage("That game does not exist.")
                     }
@@ -92,7 +91,7 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                val present = GameFactory.find(args[1], true).firstOrNull()
+                val present = Game.find(args[1], true).firstOrNull()
 
                 if (present != null && present.map.mapID == args[2]) {
                     sender.sendMessage("That map is being edited by someone else.")
@@ -145,7 +144,7 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                script = playerData.game.scriptReg[scriptID]
+                script = playerData.game.resource.scriptRegistry[scriptID]
 
                 if (script == null) {
                     sender.sendMessage("That script ($scriptID) does not exist.")
@@ -184,7 +183,7 @@ class GameCommand : CommandBase {
                     2 -> getGameTitles(args[1])
                     3 -> {
                         try {
-                            getCompletions(args[2], *GameFactory.getDummy(args[1]).map.getMapList())
+                            getCompletions(args[2], *Game.getMapList(args[1]).toTypedArray())
                         } catch (e: Exception) { return mutableListOf() }
                     }
                     else -> mutableListOf()
@@ -192,7 +191,7 @@ class GameCommand : CommandBase {
             }
             "stop" -> {
                 return when (args.size) {
-                    2 -> getCompletions(args[1], *GameFactory.find().map { it.id.toString() }.toTypedArray())
+                    2 -> getCompletions(args[1], *Game.find().map { it.id.toString() }.toTypedArray())
                     else -> mutableListOf()
                 }
             }
@@ -203,7 +202,7 @@ class GameCommand : CommandBase {
                         try {
                             getCompletions(
                                     query = args[2],
-                                    args = *GameFactory.getDummy(args[1]).scriptReg.keys.toList().toTypedArray()
+                                    args = *GameResource(args[1]).scriptRegistry.keys.toTypedArray()
                             )
                         } catch (e: Exception) { return mutableListOf() }
                     }
@@ -219,7 +218,7 @@ class GameCommand : CommandBase {
         val game: Game
 
         try {
-            game = GameFactory.openNew(name, false)
+            game = Game.openNew(name, editMode = false, genLobby = false)
         } catch (e: GameNotFound) {
             sender.sendMessage(e.localizedMessage)
             return null
