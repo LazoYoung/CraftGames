@@ -31,7 +31,6 @@ class GameAccessCommand : CommandBase {
                     TODO("Auto matching is not implemented.")
                 }
 
-
                 val warn = TextComponent()
                 warn.color = ChatColor.RED
 
@@ -42,6 +41,8 @@ class GameAccessCommand : CommandBase {
                         game = Game.openNew(args[0], editMode = false, genLobby = true, consumer = Consumer{
                             game!!.join(sender)
                         })
+                    } else {
+                        game.join(sender)
                     }
                 } catch (e: GameNotFound) {
                     warn.color = ChatColor.YELLOW

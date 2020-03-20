@@ -38,7 +38,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val ctExecutor = CoordtagCommand()
         val accessExecutor = GameAccessCommand()
         instance = this
-        Main.logger = logger
+        Main.logger = Logger.getLogger("CraftGames")
 
         loadConfig()
         loadAsset()

@@ -54,7 +54,7 @@ class GameMap internal constructor(
 
         if (game.map.isGenerated) {
             regen = true
-            Main.logger.fine("Regenerating world...")
+            Main.logger.info("Regenerating world...")
             Game.reassignID(game)
         }
         worldName = StringBuilder(label).append('_').append(game.id).toString()
@@ -98,7 +98,7 @@ class GameMap internal constructor(
 
                 gen.type(WorldType.FLAT)
                 world = gen.createWorld()
-                Main.logger.fine("World $worldName generated.")
+                Main.logger.info("World $worldName generated.")
 
                 try {
                     if (world != null) {

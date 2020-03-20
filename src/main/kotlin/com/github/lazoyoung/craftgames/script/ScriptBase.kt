@@ -24,7 +24,7 @@ abstract class ScriptBase(file: File, sender: CommandSender?) {
     abstract fun setVariable(name: String, obj: Any)
 
     /**
-     * Reads the file and compiles(parses) it into a script.
+     * Reads the file and compile it into a script.
      */
     abstract fun parse()
 

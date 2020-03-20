@@ -8,9 +8,6 @@ install-sample: false
 # Naming convention of world directories.
 world-name: Game
 
-# Do you like the plugin's verbose message in console?
-verbose: true
-
 # Specification for every games.
 # The root folder is equivalent to: plugins/CraftGames/
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell

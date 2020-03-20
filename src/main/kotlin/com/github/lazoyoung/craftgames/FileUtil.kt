@@ -33,7 +33,7 @@ class FileUtil {
                         null -> target.resolve(dir.toString())
                         else -> target.resolve(source.parent.relativize(dir).toString())
                     }
-                    Main.logger.fine("Copying directory: ${dir.fileName} -> $targetDir")
+                    Main.logger.info("Copying directory: ${dir.fileName} -> $targetDir")
                     try {
                         if (targetDir.toFile().listFiles().isNullOrEmpty())
                             Files.copy(dir, targetDir, *options)
@@ -52,7 +52,7 @@ class FileUtil {
                             null -> target.resolve(file.toString())
                             else -> target.resolve(source.parent.relativize(file).toString())
                         }
-                        Main.logger.fine("Copying file: ${file.fileName} -> ${targetPath.normalize()}")
+                        Main.logger.info("Copying file: ${file.fileName} -> ${targetPath.normalize()}")
                         Files.copy(file, targetPath, *options)
                     }
                     return FileVisitResult.CONTINUE
@@ -75,13 +75,13 @@ class FileUtil {
             Files.walkFileTree(root, object : SimpleFileVisitor<Path>(), FileVisitor<Path> {
                 override fun postVisitDirectory(dir: Path?, exc: IOException?): FileVisitResult {
                     Files.delete(dir!!)
-                    Main.logger.fine("Delete folder: $dir")
+                    Main.logger.info("Delete folder: $dir")
                     return FileVisitResult.CONTINUE
                 }
 
                 override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
                     Files.delete(file!!)
-                    Main.logger.fine("Delete file: $file")
+                    Main.logger.info("Delete file: $file")
                     return FileVisitResult.CONTINUE
                 }
 
