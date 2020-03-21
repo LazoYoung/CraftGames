@@ -117,6 +117,7 @@ class GameMap internal constructor(
 
                         // Feed new instance into the Game
                         world.isAutoSave = false
+                        this.isGenerated = true
                         this.world = world
                         this.worldPath = container.resolve(worldName)
                         game.map = this
