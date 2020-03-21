@@ -38,7 +38,8 @@ class Main : JavaPlugin(), CommandExecutor {
         val ctExecutor = CoordtagCommand()
         val accessExecutor = GameAccessCommand()
         instance = this
-        Main.logger = Logger.getLogger("CraftGames")
+        Main.logger = logger
+
 
         loadConfig()
         loadAsset()
@@ -55,7 +56,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
     override fun onDisable() {
         // Close games
-        Game.find().forEach { it.stop() }
+        Game.find().forEach { it.stop(false) }
     }
 
     private fun loadConfig() {

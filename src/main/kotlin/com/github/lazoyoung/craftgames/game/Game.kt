@@ -183,12 +183,12 @@ class Game(
         stop()
     }
 
-    fun stop() {
+    fun stop(async: Boolean = true) {
         players.mapNotNull { id -> Bukkit.getPlayer(id) }.forEach { leave(it) }
         resource.saveToDisk()
 
         if (map.world != null) {
-            map.destruct()
+            map.destruct(async)
         }
         purge(this)
     }

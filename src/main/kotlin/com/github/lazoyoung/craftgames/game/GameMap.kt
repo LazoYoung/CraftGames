@@ -127,14 +127,19 @@ class GameMap internal constructor(
     /**
      * Players need to leave before taking this action.
      *
+     * @param async Determines to unload the world asynchronously or not.
      * @throws RuntimeException is thrown if plugin fails to unload world.
      * @throws NullPointerException is thrown if world is not initialized.
      */
-    internal fun destruct() {
+    internal fun destruct(async: Boolean = true) {
         if (Bukkit.unloadWorld(world!!, false)) {
-            Bukkit.getScheduler().runTaskAsynchronously(Main.instance, Runnable{
-                FileUtil.deleteFileTree(worldPath!!)
-            })
+            val run = Runnable{ FileUtil.deleteFileTree(worldPath!!) }
+
+            if (async) {
+                Bukkit.getScheduler().runTaskAsynchronously(Main.instance, run)
+            } else {
+                run.run()
+            }
             isGenerated = false
         } else {
             Main.logger.warning("Failed to unload world \'$worldName\' at $worldPath")
