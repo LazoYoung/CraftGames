@@ -69,6 +69,7 @@ class GameEditor private constructor(
                             val instance = GameEditor(player, game)
                             registry[pid] = instance
                             game.edit(instance)
+                            game.updatePhase(Game.Phase.PLAYING)
                         })
                     }
                 })
