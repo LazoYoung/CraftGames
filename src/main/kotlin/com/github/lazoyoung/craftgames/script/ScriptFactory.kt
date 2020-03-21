@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.script
 
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
-import org.bukkit.command.CommandSender
 import java.io.File
 
 class ScriptFactory {
@@ -9,9 +8,9 @@ class ScriptFactory {
         /**
          * @throws ScriptEngineNotFound thrown if file extension is not recognized.
          */
-        fun getInstance(file: File, sender: CommandSender?) : ScriptBase {
+        fun getInstance(file: File) : ScriptBase {
             return when (file.extension) {
-                "groovy" -> ScriptGroovy(file, sender)
+                "groovy" -> ScriptGroovy(file)
                 else -> throw ScriptEngineNotFound("Unsupported type: .${file.extension}")
             }
         }

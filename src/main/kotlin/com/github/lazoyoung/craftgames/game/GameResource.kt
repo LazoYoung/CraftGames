@@ -17,11 +17,11 @@ import java.nio.file.Path
 
 class GameResource(gameName: String) {
 
+    lateinit var script: ScriptBase
+
     var lobbyMap: GameMap
 
     val mapRegistry = HashMap<String, GameMap>()
-
-    val scriptRegistry = HashMap<String, ScriptBase>()
 
     val restoreFile: File
 
@@ -37,7 +37,9 @@ class GameResource(gameName: String) {
     val root: Path
 
     init {
-        // Read layout.yml
+        /*
+         * Read layout.yml
+         */
         val layoutFile: File
         val layoutConfig: YamlConfiguration
         val layoutPathStr = Main.config.getString("games.$gameName.layout")
@@ -60,16 +62,17 @@ class GameResource(gameName: String) {
 
         val mapSection = layoutConfig.getMapList("maps")
         val mapItr = mapSection.listIterator()
-        val scriptItr = layoutConfig.getMapList("scripts").listIterator()
         var lobbyMap: GameMap? = null
 
-        // Load maps from config
+        /*
+         * Load maps from config
+         */
         while (mapItr.hasNext()) {
             val mutmap = mapItr.next().toMutableMap()
             val mapID = mutmap["id"] as String?
             val rawPath = mutmap["path"] as String?
             val repository: Path?  // Path to original map folder
-            val lobby = mutmap["lobby"] as Boolean?
+            val lobby = mutmap["lobby"] as Boolean? ?: false
             var alias = mutmap["alias"] as String?  // Subname
 
             if (mapID == null) {
@@ -101,10 +104,10 @@ class GameResource(gameName: String) {
                 throw FaultyConfiguration("Unable to access file to map '$mapID' for $gameName", e)
             }
 
-            val map = GameMap(mapID, alias, repository)
+            val map = GameMap(mapID, alias, repository, lobby)
             mapRegistry[mapID] = map
 
-            if (lobby == true) {
+            if (lobby) {
                 lobbyMap = map
             }
         }
@@ -116,25 +119,24 @@ class GameResource(gameName: String) {
             throw FaultyConfiguration("Game \'$gameName\' doesn't have lobby map.")
         }
 
-        // Load scripts from config
-        while (scriptItr.hasNext()) {
-            val map = scriptItr.next()
-            val scriptID = map["id"] as String? ?: throw FaultyConfiguration("Entry \'id\' of script is missing in ${layoutFile.toPath()}")
-            val pathStr = map["path"] as String? ?: throw FaultyConfiguration("Entry \'path\' of script $scriptID is missing in ${layoutFile.toPath()}")
-            val scriptFile = layoutFile.parentFile!!.resolve(pathStr)
+        /*
+         * Load scripts from config
+         */
+        val scriptPath = layoutConfig.getString("script.path")
+                ?: throw FaultyConfiguration("Script is not defined in ${layoutFile.toPath()}")
+        val scriptFile = layoutFile.parentFile!!.resolve(scriptPath)
 
-            try {
-                if (!scriptFile.isFile)
-                    throw FaultyConfiguration("Unable to locate the script: $scriptFile")
-            } catch (e: SecurityException) {
-                throw RuntimeException("Unable to read script: $scriptFile", e)
-            }
+        try {
+            if (!scriptFile.isFile)
+                throw FaultyConfiguration("Unable to locate the script: $scriptFile")
+        } catch (e: SecurityException) {
+            throw RuntimeException("Unable to read script: $scriptFile", e)
+        }
 
-            try {
-                scriptRegistry[scriptID] = ScriptFactory.getInstance(scriptFile, null)
-            } catch (e: ScriptEngineNotFound) {
-                Main.logger.warning(e.localizedMessage)
-            }
+        try {
+            script = ScriptFactory.getInstance(scriptFile)
+        } catch (e: ScriptEngineNotFound) {
+            Main.logger.warning(e.localizedMessage)
         }
 
         // Load coordinate tags, player restoration data
@@ -160,8 +162,16 @@ class GameResource(gameName: String) {
         tagConfig = YamlConfiguration.loadConfiguration(tagFile)
     }
 
-    internal fun saveToDisk() {
+    internal fun saveToDisk(saveTag: Boolean) {
+        // TODO Restore Module: Concurrent modification is not handled!
         restoreConfig.save(restoreFile)
-        tagConfig.save(tagFile)
+
+        if (saveTag) {
+            tagConfig.save(tagFile)
+        }
+    }
+
+    internal fun getRandomMap(): GameMap {
+        return mapRegistry.filterValues { !it.isLobby }.values.random()
     }
 }

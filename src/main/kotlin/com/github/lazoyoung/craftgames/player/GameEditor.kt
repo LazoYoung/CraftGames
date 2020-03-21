@@ -6,6 +6,7 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameResource
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.HoverEvent
@@ -52,23 +53,25 @@ class GameEditor private constructor(
                 return
             }
 
-            try {
-                val game = Game.openNew(gameName, editMode = true, genLobby = false)
-                val map = game.resource.mapRegistry[mapID]
+            if (mapID == GameResource(gameName).lobbyMap.mapID) {
+                Game.openNew(gameName, editMode = true, genLobby = true)
+            } else try {
+                Game.openNew(gameName, editMode = true, genLobby = false, consumer = Consumer
+                { game ->
+                    val map = game.resource.mapRegistry[mapID]
 
-                if (map == null) {
-                    report.text = "Map not found: $mapID"
-                    player.sendMessage(report)
-                    game.stop()
-                    return
-                }
-
-                map.generate(game, Consumer {
-                    val instance = GameEditor(player, game)
-                    registry[pid] = instance
-                    game.edit(instance)
+                    if (map == null) {
+                        report.text = "Map not found: $mapID"
+                        player.sendMessage(report)
+                        game.stop()
+                    } else {
+                        map.generate(game, Consumer {
+                            val instance = GameEditor(player, game)
+                            registry[pid] = instance
+                            game.edit(instance)
+                        })
+                    }
                 })
-                CoordTag.reload(game)
             } catch (e: GameNotFound) {
                 report.text = e.localizedMessage
                 player.sendMessage(report)
@@ -134,7 +137,8 @@ class GameEditor private constructor(
 
                     // Inform to editor if incomplete tag were found.
                     CoordTag.getAll(game).forEach { tag ->
-                        val maps = tag.scanIncompleteMaps()
+                        val maps = tag.scanIncompleteMaps().toMutableList()
+                        maps.remove(game.resource.lobbyMap.mapID)
 
                         if (maps.isNotEmpty()) {
                             val hov1 = arrayOf(TextComponent("Click here to capture the tag."))

@@ -1,16 +1,14 @@
 maps:
   - id: arena1     # Map ID
     alias: The Old Monastery  # Display name
-    path: Sample/example/arena1 # Path to map folder
+    path: arena1 # Path to map folder
   - id: arena2
     alias: Santa's Christmas Village
-    path: Sample/example/arena2
+    path: arena2
   - id: lobby
     alias: Lobby for this game
-    path: Sample/example/lobby
+    path: lobby
     lobby: true
-scripts:
-  - id: core  # Script ID
-    path: Sample/example/core.groovy # Path to script file
-coordinate-tags.path: Sample/example/data/coordinate-tags.yml
-players.path: Sample/example/data/players.yml
+script.path: core.groovy
+coordinate-tags.path: data/coordinate-tags.yml
+players.path: data/players.yml

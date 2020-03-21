@@ -7,6 +7,9 @@ import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
+import net.md_5.bungee.api.chat.ClickEvent
+import net.md_5.bungee.api.chat.HoverEvent
+import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Location
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -56,9 +59,43 @@ class CoordtagCommand : CommandBase {
             return true
         }
 
-        val editor = PlayerData.get(sender)
+        val player = PlayerData.get(sender)
 
-        if (editor !is GameEditor) {
+        if (args[0].equals("list", true)) {
+            var lastOption: String? = null
+
+            if (player == null) {
+                sender.sendMessage("[CoordTag] You must be in a game.")
+                return true
+            }
+
+            if (args.size == 1) {
+                showCaptureList(player)
+            }
+            else for (index in args.indices) {
+                if (index == 0)
+                    continue
+
+                if (index % 2 == 1) {
+                    if (args[index].equals("-reset", true)) {
+                        reset(player)
+                    }
+
+                    lastOption = args[index].toLowerCase()
+                    continue
+                }
+
+                val value = args[index]
+                when (lastOption) {
+                    "-mode" -> selectMode(player, value)
+                    "-tag" -> selectTag(player, value)
+                    "-map" -> selectMap(player, value)
+                }
+            }
+            return true
+        }
+
+        if (player !is GameEditor) {
             sender.sendMessage("[CoordTag] You must be in editor mode.")
             return true
         }
@@ -78,11 +115,11 @@ class CoordtagCommand : CommandBase {
                 }
 
                 when {
-                    CoordTag.getAll(editor.game).any { it.name == args[1] } -> {
+                    CoordTag.getAll(player.game).any { it.name == args[1] } -> {
                         sender.sendMessage("[CoordTag] This tag already exist!")
                     }
                     else -> {
-                        CoordTag.create(editor.game, mode, args[1])
+                        CoordTag.create(player.game, mode, args[1])
                         sender.sendMessage("[CoordTag] Created tag: ${args[1]}")
                     }
                 }
@@ -92,7 +129,7 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 try {
-                    val tag = CoordTag.getAll(editor.game).firstOrNull { it.name == args[1] }
+                    val tag = CoordTag.getAll(player.game).firstOrNull { it.name == args[1] }
 
                     if (tag == null) {
                         sender.sendMessage("[CoordTag] That tag does not exist.")
@@ -100,13 +137,13 @@ class CoordtagCommand : CommandBase {
                     else when (tag.mode) {
                         TagMode.SPAWN -> {
                             val loc = sender.location
-                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, editor.mapID)
+                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, player.mapID)
                             capture.add(tag)
                             sender.sendMessage("[CoordTag] Captured a spawn coordinate.")
                         }
                         TagMode.BLOCK -> {
-                            editor.requestBlockPrompt(Consumer {
-                                val capture = BlockCapture(it.x, it.y, it.z, editor.mapID)
+                            player.requestBlockPrompt(Consumer {
+                                val capture = BlockCapture(it.x, it.y, it.z, player.mapID)
                                 capture.add(tag)
                                 sender.sendMessage("[CoordTag] Captured a block coordinate.")
                             })
@@ -122,7 +159,7 @@ class CoordtagCommand : CommandBase {
                 if (args.size < 2)
                     return false
 
-                val tag = CoordTag.getAll(editor.game).firstOrNull { it.name == args[1] }
+                val tag = CoordTag.getAll(player.game).firstOrNull { it.name == args[1] }
 
                 if (tag == null) {
                     sender.sendMessage("[CoordTag] That tag doesn't exist.")
@@ -135,8 +172,8 @@ class CoordtagCommand : CommandBase {
                 if (args.size < 2)
                     return false
 
-                val tag = CoordTag.getAll(editor.game).firstOrNull { it.name == args[1] }
-                val captures = tag?.getCaptures(editor.mapID)
+                val tag = CoordTag.getAll(player.game).firstOrNull { it.name == args[1] }
+                val captures = tag?.getCaptures(player.mapID)
 
                 when {
                     tag == null -> {
@@ -168,33 +205,6 @@ class CoordtagCommand : CommandBase {
                         } else {
                             sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
                         }
-                    }
-                }
-            }
-            "list" -> {
-                var lastOption: String? = null
-
-                if (args.size == 1) {
-                    showCaptureList(editor)
-                }
-                else for (index in args.indices) {
-                    if (index == 0)
-                        continue
-
-                    if (index % 2 == 1) {
-                        if (args[index].equals("-reset", true)) {
-                            reset(editor)
-                        }
-
-                        lastOption = args[index].toLowerCase()
-                        continue
-                    }
-
-                    val value = args[index]
-                    when (lastOption) {
-                        "-mode" -> selectMode(editor, value)
-                        "-tag" -> selectTag(editor, value)
-                        "-map" -> selectMap(editor, value)
                     }
                 }
             }
@@ -268,11 +278,11 @@ class CoordtagCommand : CommandBase {
         return mutableListOf()
     }
 
-    private fun showCaptureList(editor: GameEditor) {
-        val player = editor.player
-        val modeSel = modeSel[editor.player.uniqueId]
-        val tagSel = tagSel[editor.player.uniqueId]
-        val mapSel = mapSel[editor.player.uniqueId]
+    private fun showCaptureList(playerData: PlayerData) {
+        val player = playerData.player
+        val modeSel = modeSel[player.uniqueId]
+        val tagSel = tagSel[player.uniqueId]
+        val mapSel = mapSel[player.uniqueId]
         val modeLabel = modeSel?.label ?: "all"
         val mapLabel = if (mapSel.isNullOrBlank()) {
             "every maps"
@@ -284,14 +294,14 @@ class CoordtagCommand : CommandBase {
         val tags = ArrayList<CoordTag>()
 
         if (tagSel.isNullOrEmpty()) {
-            CoordTag.getAll(editor.game).forEach {
+            CoordTag.getAll(playerData.game).forEach {
                 if (modeSel == null || modeSel == it.mode) {
                     tags.add(it)
                 }
             }
         } else {
             // Insert specific tag only. Disregard modeSel
-            CoordTag.get(editor.game, tagSel)?.let { tags.add(it) }
+            CoordTag.get(playerData.game, tagSel)?.let { tags.add(it) }
         }
 
         if (tagSel == null) {
@@ -316,50 +326,56 @@ class CoordtagCommand : CommandBase {
                 val y = capture.y
                 val z = capture.z
                 val mapID = capture.mapID
+                val text = TextComponent("Capture $i at ($x, $y, $z) inside $mapID")
+                text.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        arrayOf(TextComponent("Click here to teleport.")))
+                text.clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag tp $name $i")
 
                 if (capture is BlockCapture)
-                    player.sendMessage("Capture $i at ($x, $y, $z) inside $mapID") // TODO Clickable text
+                    player.sendMessage(text)
                 else if (capture is SpawnCapture)
-                    player.sendMessage("Capture $i at ($x, $y, $z) inside $mapID")
+                    player.sendMessage(text)
             }
             player.sendMessage(" ")
         }
     }
 
-    private fun reset(editor: GameEditor) {
-        mapSel.remove(editor.player.uniqueId)
-        modeSel.remove(editor.player.uniqueId)
-        tagSel.remove(editor.player.uniqueId)
-        editor.player.sendMessage("[CoordTag] Previous flags were reset.")
+    private fun reset(playerData: PlayerData) {
+        val player = playerData.player
+
+        mapSel.remove(player.uniqueId)
+        modeSel.remove(player.uniqueId)
+        tagSel.remove(player.uniqueId)
+        player.sendMessage("[CoordTag] Previous flags were reset.")
     }
 
-    private fun selectMap(editor: GameEditor, id: String) {
-        val player = editor.player
+    private fun selectMap(playerData: PlayerData, id: String) {
+        val player = playerData.player
 
-        if (Game.getMapList(editor.game.name).contains(id)) {
-            mapSel[editor.player.uniqueId] = id
+        if (Game.getMapList(playerData.game.name).contains(id)) {
+            mapSel[playerData.player.uniqueId] = id
             player.sendMessage("[CoordTag] Selected the map: $id")
         } else {
-            player.sendMessage("[CoordTag] Map $id is not found in ${editor.game.id}!")
+            player.sendMessage("[CoordTag] Map $id is not found in ${playerData.game.id}!")
         }
     }
 
-    private fun selectTag(editor: GameEditor, name: String) {
-        val player = editor.player
+    private fun selectTag(playerData: PlayerData, name: String) {
+        val player = playerData.player
 
-        if (CoordTag.get(editor.game, name) != null) {
-            tagSel[editor.player.uniqueId] = name
+        if (CoordTag.get(playerData.game, name) != null) {
+            tagSel[playerData.player.uniqueId] = name
             player.sendMessage("[CoordTag] Selected the tag: $name")
         } else {
             player.sendMessage("[CoordTag] Tag does not exist! You should create one: /ctag create <name>")
         }
     }
 
-    private fun selectMode(editor: GameEditor, label: String) {
-        val player = editor.player
+    private fun selectMode(playerData: PlayerData, label: String) {
+        val player = playerData.player
 
         try {
-            modeSel[editor.player.uniqueId] = TagMode.valueOf(label.toUpperCase())
+            modeSel[playerData.player.uniqueId] = TagMode.valueOf(label.toUpperCase())
             player.sendMessage("[CoordTag] Selected the mode: ${label.toUpperCase()}")
         } catch (e: IllegalArgumentException) {
             player.sendMessage("[CoordTag] Illegal flag: -select ${label.toUpperCase()}")

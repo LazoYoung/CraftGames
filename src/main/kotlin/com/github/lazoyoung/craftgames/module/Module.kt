@@ -1,18 +1,31 @@
 package com.github.lazoyoung.craftgames.module
 
 import com.github.lazoyoung.craftgames.game.Game
+import javax.script.Bindings
 
 class Module(game: Game) {
 
-    internal val spawn = SpawnModuleImpl(game)
+    val spawn = SpawnModuleImpl(game)
+    internal val script = game.resource.script
+    private val bind: Bindings
 
     init {
-        for (entry in game.resource.scriptRegistry) {
-            val script = entry.value
+        bind = script.getBindings()
+        bind["SpawnModule"] = spawn as SpawnModule
+    }
 
-            script.setVariable("SpawnModule", spawn as SpawnModule)
-            script.parse()
-            script.execute()
+    fun update(newPhase: Game.Phase) {
+        script.parse()
+
+        when (newPhase) {
+            Game.Phase.LOBBY -> script.invokeFunction("initLobby")
+            Game.Phase.PLAYING -> script.invokeFunction("initGame")
+            Game.Phase.FINISH -> { /* Reward logic */ }
+            Game.Phase.SUSPEND -> {
+                bind.clear()
+                script.closeIO()
+                // TODO Scheduler Module: Suspend schedulers
+            }
         }
     }
 

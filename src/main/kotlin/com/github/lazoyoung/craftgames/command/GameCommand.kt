@@ -1,15 +1,11 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
-import com.github.lazoyoung.craftgames.script.ScriptBase
 import groovy.lang.GroovyRuntimeException
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -21,55 +17,51 @@ class GameCommand : CommandBase {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (args.isEmpty()) {
             sender.sendMessage(arrayOf(
-                    "/game start <title> <map>",
-                    "/game stop <id>",
+                    "/game start [map]",
+                    "/game stop [id]",
                     "/game edit <title> <map> : Enter the edit mode.",
                     "/game save : Save the changes and leave edit mode.",
-                    "/game script <script> execute"
+                    "/game script execute"
             ))
             return true
         }
 
         when (args[0].toLowerCase()) {
             "start" -> {
-                if (args.size < 3)
-                    return false
-
                 if (sender !is Player) {
                     sender.sendMessage("This cannot be done from console.")
                     return true
                 }
 
-                if (PlayerData.get(sender) != null) {
-                    sender.sendMessage("You are already in a game.")
-                    return true
+                when (val player = PlayerData.get(sender)) {
+                    null -> {
+                        sender.sendMessage("You're not in game.")
+                    }
+                    is GameEditor -> {
+                        sender.sendMessage("You must leave editor mode.")
+                    }
+                    else -> {
+                        player.game.start(null, Consumer {
+                            sender.sendMessage("You have forced to start the game.")
+                        })
+                    }
                 }
-
-                if (!Game.getMapList(args[1]).contains(args[2])) {
-                    sender.sendMessage("Map \'${args[2]}\' does not exist in this game!")
-                    return true
-                }
-
-                val game = openGame(args[1], sender)
-
-                if (game == null) {
-                    sender.sendMessage("Failed to open game! See console for details.")
-                    return true
-                }
-
-                game.join(sender)
-                game.start(args[2], Consumer{
-                    sender.sendMessage("Started ${game.name} with map: ${game.map.mapID}")
-                })
             }
             "stop" -> {
-                if (args.size < 2 || args[1].toIntOrNull() == null)
-                    return false
-
-                val id = args[1].toInt()
-
                 try {
-                    val game = Game.findByID(id)
+                    val playerData = PlayerData.get(sender as Player)
+                    val game = when {
+                        args.size > 1 -> {
+                            Game.findByID(args[1].toInt())
+                        }
+                        playerData != null -> {
+                            playerData.game
+                        }
+                        else -> {
+                            sender.sendMessage("You're not in a game.")
+                            return false
+                        }
+                    }
 
                     if (game != null) {
                         game.stop()
@@ -77,9 +69,8 @@ class GameCommand : CommandBase {
                     } else {
                         sender.sendMessage("That game does not exist.")
                     }
-                } catch (e: NullPointerException) {
-                    sender.sendMessage("No game is running with id $id.")
-                    return true
+                } catch (e: NumberFormatException) {
+                    return false
                 }
             }
             "edit" -> {
@@ -127,7 +118,7 @@ class GameCommand : CommandBase {
                 }
             }
             "script" -> {
-                if (args.size < 4)
+                if (args.size < 3)
                     return false
 
                 if (sender !is Player) {
@@ -136,26 +127,19 @@ class GameCommand : CommandBase {
                 }
 
                 val playerData = PlayerData.get(sender)
-                val scriptID = args[2]
-                val script: ScriptBase?
 
                 if (playerData !is GameEditor) {
                     sender.sendMessage("You must be in editor mode.")
                     return true
                 }
 
-                script = playerData.game.resource.scriptRegistry[scriptID]
-
-                if (script == null) {
-                    sender.sendMessage("That script ($scriptID) does not exist.")
-                    return true
-                }
-
-                if (args[3] == "execute") {
+                if (args[2] == "execute") {
                     try {
+                        val script = playerData.game.resource.script
+
                         script.parse()
                         script.execute()
-                        sender.sendMessage("Script $scriptID has been executed.")
+                        sender.sendMessage("Script has been executed.")
                     } catch (e: GroovyRuntimeException) {
                         sender.sendMessage("Compilation error: ${e.message}")
                         e.printStackTrace()
@@ -179,14 +163,14 @@ class GameCommand : CommandBase {
 
         when (args[0].toLowerCase()) {
             "start", "edit" -> {
-                return when (args.size) {
-                    2 -> getGameTitles(args[1])
-                    3 -> {
-                        try {
-                            getCompletions(args[2], *Game.getMapList(args[1]).toTypedArray())
-                        } catch (e: Exception) { return mutableListOf() }
-                    }
-                    else -> mutableListOf()
+                return if (args.size == 2) {
+                    try {
+                        PlayerData.get(sender as Player)?.let {
+                            getCompletions(args[2], *Game.getMapList(it.game.name).toTypedArray())
+                        } ?: mutableListOf()
+                    } catch (e: Exception) { return mutableListOf() }
+                } else {
+                    mutableListOf()
                 }
             }
             "stop" -> {
@@ -198,44 +182,12 @@ class GameCommand : CommandBase {
             "script" -> {
                 return when (args.size) {
                     2 -> getGameTitles(args[1])
-                    3 -> {
-                        try {
-                            getCompletions(
-                                    query = args[2],
-                                    args = *GameResource(args[1]).scriptRegistry.keys.toTypedArray()
-                            )
-                        } catch (e: Exception) { return mutableListOf() }
-                    }
-                    4 -> getCompletions(args[3], "execute")
+                    3 -> getCompletions(args[2], "execute")
                     else -> mutableListOf()
                 }
             }
         }
         return mutableListOf()
-    }
-
-    private fun openGame(name: String, sender: CommandSender): Game? {
-        val game: Game
-
-        try {
-            game = Game.openNew(name, editMode = false, genLobby = false)
-        } catch (e: GameNotFound) {
-            sender.sendMessage(e.localizedMessage)
-            return null
-        } catch (e: FaultyConfiguration) {
-            e.printStackTrace()
-            sender.sendMessage(e.localizedMessage)
-            return null
-        } catch (e: RuntimeException) {
-            e.printStackTrace()
-            sender.sendMessage(e.localizedMessage)
-            return null
-        } catch (e: ScriptEngineNotFound) {
-            e.printStackTrace()
-            sender.sendMessage(e.message)
-            return null
-        }
-        return game
     }
 
 }

@@ -21,7 +21,9 @@ class GameMap internal constructor(
         internal var alias: String,
 
         /** Path to the original map folder. **/
-        internal val repository: Path
+        internal val repository: Path,
+
+        internal val isLobby: Boolean = false
 ) {
 
     /** World instance **/
@@ -39,7 +41,7 @@ class GameMap internal constructor(
      * Install a map from repository and generate it in asynchronous thread.
      *
      * @param game The game in which this map generates.
-     * @param callback Consume the generated world.
+     * @param callback Returns the generated world after the end of process.
      * @throws RuntimeException Failed to generate map for unexpected reason.
      * @throws FaultyConfiguration
      */
@@ -70,11 +72,15 @@ class GameMap internal constructor(
         scheduler.runTaskAsynchronously(plugin, Runnable{
             try {
                 val targetRoot = container.resolve(repository.fileName)
+                val newRoot = container.resolve(worldName).toFile()
                 FileUtil.cloneFileTree(repository, container)
 
-                if (!targetRoot.toFile().renameTo(container.resolve(worldName).toFile())) {
+                if (!targetRoot.toFile().renameTo(newRoot)) {
                     throw RuntimeException("Unable to rename folder ${repository.fileName} to $worldName.")
                 }
+
+                // Deal with Bukkit who doesn't like to have duplicated worlds simultaneously.
+                newRoot.resolve("uid.dat").delete()
             } catch (e: IllegalArgumentException) {
                 if (e.message?.startsWith("source", true) == true) {
                     Main.logger.config("World folder \'$repository\' is missing for ${game.name}. Generating a blank world...")
@@ -89,7 +95,7 @@ class GameMap internal constructor(
                 throw RuntimeException(e)
             }
 
-            // Load world and attributes
+            // Load world
             scheduler.runTask(plugin, Runnable{
                 // Assign worldName so that WorldInitEvent detects the new world.
                 this.worldName = worldName
@@ -109,6 +115,7 @@ class GameMap internal constructor(
                             game.map.destruct()
                         }
 
+                        // Feed new instance into the Game
                         world.isAutoSave = false
                         this.world = world
                         this.worldPath = container.resolve(worldName)

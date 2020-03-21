@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.module.Module
@@ -26,10 +27,10 @@ class Game(
         /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class State { LOBBY, PLAYING, FINISH }
+    enum class Phase { LOBBY, PLAYING, FINISH, SUSPEND }
 
     /** The state of game progress **/
-    var state = State.LOBBY
+    lateinit var phase: Phase
 
     /** Can players can join at this moment? **/
     var canJoin = true
@@ -74,33 +75,43 @@ class Game(
             return gameRegistry[id]
         }
 
+        fun getGameList(): Array<String> {
+            return Main.config.getConfigurationSection("games")
+                    ?.getKeys(false)?.toTypedArray()
+                    ?: emptyArray()
+        }
+
         fun getMapList(gameName: String): Set<String> {
             return GameResource(gameName).mapRegistry.keys
         }
 
         /**
-         * Make a new game instance with given name.
+         * Make a new game instance.
          *
          * @param name Classifies the type of game
          * @param editMode The game is in editor mode, if true.
          * @param genLobby Determines if lobby must be generated.
-         * @param consumer is called when lobby is generated. (Unnecessary if genLobby is false)
-         * @return The new game instance.
+         * @param consumer Returns the new instance once it's ready.
          * @throws GameNotFound No such game exists with given id.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun openNew(name: String, editMode: Boolean, genLobby: Boolean, consumer: Consumer<World>? = null) : Game {
+        fun openNew(name: String, editMode: Boolean, genLobby: Boolean, consumer: Consumer<Game>? = null) {
             val resource = GameResource(name)
             val game = Game(name, -1, editMode, resource)
 
             assignID(game)
+            CoordTag.reload(game)
 
             if (genLobby) {
                 val map = game.resource.lobbyMap
-                map.generate(game, consumer)
+                map.generate(game, Consumer{
+                    game.updatePhase(Phase.LOBBY)
+                    consumer?.accept(game)
+                })
+            } else {
+                consumer?.accept(game)
             }
-            return game
         }
 
         internal fun purge(game: Game) {
@@ -134,38 +145,42 @@ class Game(
     /**
      * Leave the lobby (if present) and start the game.
      *
+     * @param mapID Select which map to play.
      * @param mapConsumer Consume the generated world.
      */
-    fun start(mapID: String, mapConsumer: Consumer<World>? = null) {
+    fun start(mapID: String?, mapConsumer: Consumer<World>? = null) {
         if (id < 0 || editMode)
             throw RuntimeException("Illegal state of Game.")
 
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
-        state = State.PLAYING
         canJoin = false
 
         try {
-            val thisMap = resource.mapRegistry[mapID] ?: map
-            thisMap.generate(this, Consumer { world ->
+            val thisMap = if (mapID == null) {
+                resource.getRandomMap()
+            } else {
+                resource.mapRegistry[mapID]
+            }
+            assert(thisMap != null)
+            thisMap?.generate(this, Consumer { world ->
                 for (uid in players) {
-                    val player = Bukkit.getPlayer(uid)!!
+                    val player = Bukkit.getPlayer(uid)
 
                     scheduler.runTaskAsynchronously(plugin, Runnable {
-                        val future
-                                = player.teleportAsync(thisMap.world!!.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                        val succeed
-                                = future.get(10L, TimeUnit.SECONDS)
+                        val future = player?.teleportAsync(thisMap.world!!.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                        val succeed = future?.get(10L, TimeUnit.SECONDS)
 
                         scheduler.runTask(plugin, Runnable {
-                            if (succeed) {
+                            if (succeed == true) {
                                 player.sendMessage("Moved to ${thisMap.alias}")
                             } else {
-                                player.sendMessage("Failed to teleport in async!")
+                                player?.sendMessage("Failed to teleport in async!")
                             }
                         })
                     })
                 }
+                updatePhase(Phase.PLAYING)
                 mapConsumer?.accept(world)
             })
         } catch (e: RuntimeException) {
@@ -175,9 +190,9 @@ class Game(
     }
 
     fun finish() {
-        if (!editMode) {
-            state = State.FINISH
-            /* --- Ceremony period --- */
+        if (!editMode && phase == Phase.PLAYING) {
+            updatePhase(Phase.FINISH)
+            /* --- TODO Ceremony period --- */
         }
 
         stop()
@@ -185,7 +200,8 @@ class Game(
 
     fun stop(async: Boolean = true) {
         players.mapNotNull { id -> Bukkit.getPlayer(id) }.forEach { leave(it) }
-        resource.saveToDisk()
+        resource.saveToDisk(saveTag = editMode)
+        updatePhase(Phase.SUSPEND)
 
         if (map.world != null) {
             map.destruct(async)
@@ -197,7 +213,7 @@ class Game(
         val uid = player.uniqueId
         val playerData = GamePlayer.register(player, this)
 
-        // TODO Config fails to parse location if World is not present.
+        // TODO Restore Module: Config parse exception must be handled if World is not present.
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
         module.spawn.spawnPlayer(map.world!!, playerData)
         players.add(uid)
@@ -234,5 +250,15 @@ class Game(
         players.remove(uid)
         PlayerData.get(player)?.unregister() ?: Main.logger.fine("PlayerData is lost unexpectedly.")
         player.sendMessage("You left $name.")
+    }
+
+    /**
+     * Update the GamePhase and Modules.
+     *
+     * @param phase The new game phase
+     */
+    internal fun updatePhase(phase: Phase) {
+        this.phase = phase
+        module.update(phase)
     }
 }

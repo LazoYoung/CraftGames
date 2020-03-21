@@ -28,18 +28,33 @@ class GameAccessCommand : CommandBase {
                 }
 
                 if (args.isEmpty()) {
-                    TODO("Auto matching is not implemented.")
+                    val game = Game.find(null, false).firstOrNull { it.canJoin }
+
+                    if (game != null) {
+                        game.join(sender)
+                    } else {
+                        val gameReg = Game.getGameList()
+
+                        if (gameReg.isEmpty()) {
+                            sender.sendMessage("There's no game available.")
+                        } else {
+                            Game.openNew(gameReg.random(), editMode = false, genLobby = true, consumer = Consumer {
+                                it.join(sender)
+                            })
+                        }
+                    }
+                    return true
                 }
 
                 val warn = TextComponent()
                 warn.color = ChatColor.RED
 
                 try {
-                    var game = Game.find(args[0], false).firstOrNull { it.canJoin }
+                    val game = Game.find(args[0], false).firstOrNull { it.canJoin }
 
                     if (game == null) {
-                        game = Game.openNew(args[0], editMode = false, genLobby = true, consumer = Consumer{
-                            game!!.join(sender)
+                        Game.openNew(args[0], editMode = false, genLobby = true, consumer = Consumer{
+                            it.join(sender)
                         })
                     } else {
                         game.join(sender)
@@ -47,16 +62,16 @@ class GameAccessCommand : CommandBase {
                 } catch (e: GameNotFound) {
                     warn.color = ChatColor.YELLOW
                     warn.text = e.message
-                    sender.sendMessage(e.message!!)
+                    sender.sendMessage(warn)
                     return true
                 } catch (e: FaultyConfiguration) {
                     warn.text = e.message
-                    sender.sendMessage(e.message!!)
+                    sender.sendMessage(warn)
                     return true
                 } catch (e: RuntimeException) {
                     warn.text = e.message
                     e.printStackTrace()
-                    sender.sendMessage(e.message!!)
+                    sender.sendMessage(warn)
                     return true
                 }
             }
