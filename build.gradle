@@ -31,7 +31,7 @@ dependencies {
     implementation 'org.codehaus.groovy:groovy-jsr223:3.0.2'
     implementation 'org.kohsuke:groovy-sandbox:1.25'
     compileOnly 'com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT'
-    compileOnly files('libs/MythicMobs-4.9.0.jar')
+    compileOnly fileTree('libs')
     // compile 'org.graalvm.js:js:20.0.0' for JavaScript engine (GraalVM required)
 }
 

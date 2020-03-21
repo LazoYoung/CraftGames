@@ -162,15 +162,20 @@ class GameCommand : CommandBase {
             return getCompletions(args[0], "start", "stop", "edit", "save", "script")
 
         when (args[0].toLowerCase()) {
-            "start", "edit" -> {
+            "start" -> {
                 return if (args.size == 2) {
-                    try {
-                        PlayerData.get(sender as Player)?.let {
-                            getCompletions(args[2], *Game.getMapList(it.game.name).toTypedArray())
-                        } ?: mutableListOf()
-                    } catch (e: Exception) { return mutableListOf() }
+                    PlayerData.get(sender as Player)?.let {
+                        getCompletions(args[1], *Game.getMapList(it.game.name).toTypedArray())
+                    } ?: mutableListOf()
                 } else {
                     mutableListOf()
+                }
+            }
+            "edit" -> {
+                return when (args.size) {
+                    2 -> getCompletions(args[1], *Game.getGameList())
+                    3 -> getCompletions(args[2], *Game.getMapList(args[1]).toTypedArray())
+                    else -> mutableListOf()
                 }
             }
             "stop" -> {

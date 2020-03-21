@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
+import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
@@ -326,10 +327,20 @@ class CoordtagCommand : CommandBase {
                 val y = capture.y
                 val z = capture.z
                 val mapID = capture.mapID
+                val thisMapID = playerData.game.map.mapID
                 val text = TextComponent("Capture $i at ($x, $y, $z) inside $mapID")
-                text.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        arrayOf(TextComponent("Click here to teleport.")))
-                text.clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag tp $name $i")
+
+                if (mapID == thisMapID) {
+                    val hov = TextComponent("Click here to teleport.")
+                    hov.color = ChatColor.GOLD
+                    text.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, arrayOf(hov))
+                    text.clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag tp $name $i")
+                } else {
+                    val hov = TextComponent("This is outside the current map.")
+                    hov.color = ChatColor.YELLOW
+                    text.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, arrayOf(hov))
+                    text.color = ChatColor.GRAY
+                }
 
                 if (capture is BlockCapture)
                     player.sendMessage(text)
