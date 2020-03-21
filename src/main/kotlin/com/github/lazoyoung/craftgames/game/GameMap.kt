@@ -132,7 +132,9 @@ class GameMap internal constructor(
      */
     internal fun destruct() {
         if (Bukkit.unloadWorld(world!!, false)) {
-            FileUtil.deleteFileTree(worldPath!!)
+            Bukkit.getScheduler().runTaskAsynchronously(Main.instance, Runnable{
+                FileUtil.deleteFileTree(worldPath!!)
+            })
             isGenerated = false
         } else {
             Main.logger.warning("Failed to unload world \'$worldName\' at $worldPath")
