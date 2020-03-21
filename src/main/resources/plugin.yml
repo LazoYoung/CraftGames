@@ -2,6 +2,7 @@ name: CraftGames
 main: com.github.lazoyoung.craftgames.Main
 api-version: '1.15'
 version: $version
+softdepend: [ MythicMobs ]
 commands:
   join:
     description: Join a game.

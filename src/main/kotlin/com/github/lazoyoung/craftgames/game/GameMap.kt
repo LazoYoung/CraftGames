@@ -68,7 +68,7 @@ class GameMap internal constructor(
             throw RuntimeException("Failed to convert World container to path.", e)
         }
 
-        // Copy map files to world container
+        // Copy map files to world container (Async)
         scheduler.runTaskAsynchronously(plugin, Runnable{
             try {
                 val targetRoot = container.resolve(repository.fileName)
@@ -95,7 +95,7 @@ class GameMap internal constructor(
                 throw RuntimeException(e)
             }
 
-            // Load world
+            // Load world (Synchronous)
             scheduler.runTask(plugin, Runnable{
                 // Assign worldName so that WorldInitEvent detects the new world.
                 this.worldName = worldName
@@ -107,24 +107,49 @@ class GameMap internal constructor(
                 Main.logger.info("World $worldName generated.")
 
                 try {
-                    if (world != null) {
-                        if (regen) {
-                            game.map.world!!.players
-                                    .mapNotNull { pid -> PlayerData.get(pid) }
-                                    .forEach { game.module.spawn.spawnPlayer(world, it) }
-                            game.map.destruct()
-                        }
+                    if (world == null)
+                        throw RuntimeException("Unable to load world $worldName for ${game.name}")
 
-                        // Feed new instance into the Game
+                    if (regen) {
+                        val players = game.players.mapNotNull { PlayerData.get(it) }
+
+                        // Move players to the new world.
+                        players.firstOrNull()?.let { first ->
+                            game.module.spawn.spawnPlayer(world, first, Consumer { succeed ->
+                                if (!succeed) {
+                                    Main.logger.warning("Failed to teleport in async!")
+                                    players.forEach { it.player.sendMessage("The game has been terminated with an error.") }
+                                    game.stop()
+                                    return@Consumer
+                                }
+
+                                scheduler.runTask(plugin, Runnable {
+                                    players.drop(1)
+                                            .forEach { game.module.spawn.spawnPlayer(world, it) }
+
+                                    // We're now confident to unload the old world.
+                                    game.map.destruct()
+
+                                    // Feed new instance into the Game
+                                    world.isAutoSave = false
+                                    this.isGenerated = true
+                                    this.world = world
+                                    this.worldPath = container.resolve(worldName)
+                                    game.map = this
+
+                                    // Don't forget to callback.
+                                    callback?.accept(world)
+                                })
+                            })
+                        }
+                    } else {
                         world.isAutoSave = false
                         this.isGenerated = true
                         this.world = world
                         this.worldPath = container.resolve(worldName)
                         game.map = this
-                    } else {
-                        throw RuntimeException("Unable to load world $worldName for ${game.name}")
+                        callback?.accept(world)
                     }
-                    callback?.accept(world)
                 } catch (e: InvalidPathException) {
                     throw RuntimeException(e)
                 }

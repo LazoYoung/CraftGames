@@ -15,6 +15,10 @@ open class PlayerData(
         fun get(player: Player?): PlayerData? {
             return registry[player?.uniqueId]
         }
+
+        fun get(uid: UUID): PlayerData? {
+            return registry[uid]
+        }
     }
 
     fun unregister() {

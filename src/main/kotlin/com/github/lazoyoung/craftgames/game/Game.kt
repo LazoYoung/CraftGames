@@ -13,7 +13,6 @@ import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
-import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
 class Game(
@@ -42,7 +41,7 @@ class Game(
     var map = resource.lobbyMap
 
     /** List of players in any PlayerState **/
-    private val players = ArrayList<UUID>()
+    internal val players = ArrayList<UUID>()
 
     companion object {
 
@@ -164,23 +163,22 @@ class Game(
             }
             assert(thisMap != null)
             thisMap?.generate(this, Consumer { world ->
-                for (uid in players) {
-                    val player = Bukkit.getPlayer(uid)
+                val players = this.players.mapNotNull { PlayerData.get(it) }
 
-                    scheduler.runTaskAsynchronously(plugin, Runnable {
-                        val future = player?.teleportAsync(thisMap.world!!.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                        val succeed = future?.get(10L, TimeUnit.SECONDS)
-
-                        scheduler.runTask(plugin, Runnable {
-                            if (succeed == true) {
-                                player.sendMessage("Moved to ${thisMap.alias}")
-                            } else {
-                                player?.sendMessage("Failed to teleport in async!")
-                            }
-                        })
+                module.spawn.spawnPlayer(players.first(), Consumer { succeed ->
+                    scheduler.runTask(plugin, Runnable {
+                        if (succeed) {
+                            players.forEach { module.spawn.spawnPlayer(it) }
+                        } else {
+                            Main.logger.warning("Failed to teleport in async!")
+                            players.forEach { it.player.sendMessage("The game has been terminated with an error.") }
+                            stop()
+                        }
                     })
-                }
-                updatePhase(Phase.PLAYING)
+                })
+                scheduler.runTaskLater(plugin, Runnable {
+                    updatePhase(Phase.PLAYING)
+                }, 100L)
                 mapConsumer?.accept(world)
             })
         } catch (e: RuntimeException) {
@@ -215,7 +213,7 @@ class Game(
 
         // TODO Restore Module: Config parse exception must be handled if World is not present.
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(map.world!!, playerData)
+        module.spawn.spawnPlayer(playerData)
         players.add(uid)
         player.sendMessage("You joined $name.")
     }
@@ -225,7 +223,7 @@ class Game(
         val playerData = Spectator.register(player, this)
 
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(map.world!!, playerData)
+        module.spawn.spawnPlayer(playerData)
         players.add(uid)
         Spectator.register(player, this)
         player.sendMessage("You are spectating $name.")
@@ -236,7 +234,7 @@ class Game(
         val uid = player.uniqueId
 
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(map.world!!, playerData)
+        module.spawn.spawnPlayer(playerData)
         players.add(uid)
         player.sendMessage("You are in editor mode on $name-${map.mapID}.")
     }

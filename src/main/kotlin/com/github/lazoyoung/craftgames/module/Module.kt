@@ -12,11 +12,10 @@ class Module(game: Game) {
     init {
         bind = script.getBindings()
         bind["SpawnModule"] = spawn as SpawnModule
+        script.parse()
     }
 
     fun update(newPhase: Game.Phase) {
-        script.parse()
-
         when (newPhase) {
             Game.Phase.LOBBY -> script.invokeFunction("initLobby")
             Game.Phase.PLAYING -> script.invokeFunction("initGame")

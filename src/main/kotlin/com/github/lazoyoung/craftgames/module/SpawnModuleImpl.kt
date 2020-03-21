@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.module
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.TagMode
@@ -16,6 +17,10 @@ import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.World
+import org.bukkit.event.player.PlayerTeleportEvent
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.function.Consumer
 
 class SpawnModuleImpl(val game: Game) : SpawnModule {
 
@@ -28,7 +33,13 @@ class SpawnModuleImpl(val game: Game) : SpawnModule {
         notFound.color = ChatColor.YELLOW
     }
 
-    fun spawnPlayer(world: World, playerData: PlayerData) {
+    fun spawnPlayer(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+        spawnPlayer(game.map.world!!, playerData, asyncCallback)
+    }
+
+    fun spawnPlayer(world: World, playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+        val scheduler = Bukkit.getScheduler()
+        val plugin = Main.instance
         val player = playerData.player
         val tag = when (playerData) {
             is GameEditor -> editor
@@ -41,8 +52,23 @@ class SpawnModuleImpl(val game: Game) : SpawnModule {
             world.spawnLocation.let { player.teleport(it) }
             player.sendMessage(notFound)
         } else {
-            tag.getLocalCaptures().random().let {
-                player.teleport(Location(world, it.x, it.y, it.z))
+            val c = tag.getLocalCaptures().random() as SpawnCapture
+            val location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
+
+            if (asyncCallback == null) {
+                player.teleport(location)
+            } else {
+                scheduler.runTaskAsynchronously(plugin, Runnable {
+                    val future = player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
+
+                    try {
+                        val succeed = future.get(5L, TimeUnit.SECONDS)
+                        asyncCallback.accept(succeed)
+                    } catch (e: TimeoutException) {
+                        player.sendMessage("Failed to teleport in async!")
+                        asyncCallback.accept(false)
+                    }
+                })
             }
         }
     }
@@ -78,6 +104,6 @@ class SpawnModuleImpl(val game: Game) : SpawnModule {
         val c = tag.getLocalCaptures().random() as SpawnCapture
         val loc = Location(game.map.world!!, c.x, c.y, c.z, c.yaw, c.pitch)
         val mmAPI = MythicMobs.inst().apiHelper
-        mmAPI.spawnMythicMob(MythicMobs.inst().mobManager.getMythicMob(name), loc, level)
+        mmAPI.spawnMythicMob(name, loc, level)
     }
 }
