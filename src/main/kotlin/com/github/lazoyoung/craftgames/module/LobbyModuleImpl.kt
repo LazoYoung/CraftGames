@@ -14,7 +14,6 @@ import org.bukkit.scheduler.BukkitRunnable
 
 class LobbyModuleImpl(val game: Game) : LobbyModule {
 
-    internal var task: BukkitRunnable? = null
     private var tag: CoordTag? = null
     private var timer = Module.getTimer(TimerUnit.SECOND, 30)
     private val notFound = ComponentBuilder("Unable to locate lobby position!")
@@ -44,7 +43,7 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
         val plugin = Main.instance
         this.timer /= 20
 
-        task = object : BukkitRunnable() {
+        val task = object : BukkitRunnable() {
             override fun run() {
                 if (--timer <= 0) {
                     // TODO Start game with the map that is top voted.
@@ -80,7 +79,12 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
             }
         }
 
-        task!!.runTaskTimer(plugin, 0L, 20L)
+        task.runTaskTimer(plugin, 0L, 20L)
+        game.module.tasks["lobby"] = task
+    }
+
+    internal fun stopTimer() {
+        game.module.tasks["lobby"]?.cancel()
     }
 
 }

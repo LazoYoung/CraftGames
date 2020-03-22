@@ -8,6 +8,7 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.PlayerData
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
+import org.bukkit.scheduler.BukkitRunnable
 import javax.script.Bindings
 import javax.script.ScriptException
 
@@ -15,6 +16,7 @@ class Module(val game: Game) {
 
     val spawn = SpawnModuleImpl(game)
     val lobby = LobbyModuleImpl(game)
+    internal val tasks = HashMap<String, BukkitRunnable>()
     private val script = game.resource.script
     private val bind: Bindings
 
@@ -60,6 +62,7 @@ class Module(val game: Game) {
                 Game.Phase.PLAYING -> {
                     func = "initGame"
                     script.invokeFunction(func)
+                    lobby.stopTimer()
 
                     // TODO Populate to GameModule
                     game.players.mapNotNull { PlayerData.get(it) }.forEach {
@@ -69,7 +72,7 @@ class Module(val game: Game) {
                 Game.Phase.FINISH -> { /* Reward logic */
                 }
                 Game.Phase.SUSPEND -> {
-                    lobby.task?.cancel()
+                    tasks.values.forEach(BukkitRunnable::cancel)
                     bind.clear()
                     script.closeIO()
                     // TODO Scheduler Module: Suspend schedulers
