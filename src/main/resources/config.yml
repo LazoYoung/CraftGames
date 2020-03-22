@@ -2,7 +2,7 @@
 # https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
 file-encoding: UTF-8
 
-# Install the sample of game configuration?
+# Shall we install the game sample?
 install-sample: false
 
 # Naming convention of world directories.

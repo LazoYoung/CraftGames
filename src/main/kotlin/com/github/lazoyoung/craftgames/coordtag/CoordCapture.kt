@@ -18,9 +18,9 @@ abstract class CoordCapture(
      */
     fun add(tag: CoordTag) {
         try {
-            val config = tag.game.tagConfig
             val key = CoordTag.getKeyToCaptureStream(tag.name, mapID!!)
-            val stream = tag.game.tagConfig.getStringList(key)
+            val config = tag.game.resource.tagConfig
+            val stream = config.getStringList(key)
             stream.add(serialize())
             config.set(key, stream)
             CoordTag.reload(tag.game)
@@ -30,5 +30,7 @@ abstract class CoordCapture(
     }
 
     abstract fun serialize() : String
+
+    @Deprecated("World is vauge.")
     abstract fun teleport(player: Player)
 }
