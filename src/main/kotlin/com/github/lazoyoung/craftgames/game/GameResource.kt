@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.script.ScriptFactory
@@ -15,7 +16,10 @@ import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
-class GameResource(gameName: String) {
+/**
+ * @throws GameNotFound
+ */
+class GameResource(private val gameName: String) {
 
     lateinit var script: ScriptBase
 
@@ -171,7 +175,20 @@ class GameResource(gameName: String) {
         }
     }
 
+    /**
+     * Look for playable maps and get a random element among them.
+     * Lobby map is never obtained by using this method.
+     *
+     * @return A randomly chosen map.
+     * @throws MapNotFound if this game doesn't have a map.
+     */
     internal fun getRandomMap(): GameMap {
-        return mapRegistry.filterValues { !it.isLobby }.values.random()
+        val map: GameMap
+        try {
+            map = mapRegistry.filterValues { !it.isLobby }.values.random()
+        } catch (e: NoSuchElementException) {
+            throw MapNotFound("$gameName doesn't have a map.")
+        }
+        return map
     }
 }

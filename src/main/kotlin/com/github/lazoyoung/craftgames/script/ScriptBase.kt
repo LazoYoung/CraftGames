@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.script
 
 import java.io.File
+import java.nio.file.Path
 import javax.script.Bindings
 
 abstract class ScriptBase(file: File) {
@@ -26,8 +27,12 @@ abstract class ScriptBase(file: File) {
      * @param name of the function to be invoked.
      * @param args Array of argument objects to be passed.
      * @return The invocation result.
+     * @throws javax.script.ScriptException
+     * @throws NoSuchMethodException
      */
     abstract fun invokeFunction(name: String, args: Array<Any>? = null): Any?
 
-    abstract fun closeIO()
+    internal abstract fun writeStackTrace(e: Exception): Path
+
+    internal abstract fun closeIO()
 }

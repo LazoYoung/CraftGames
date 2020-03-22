@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.command
 
+import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
@@ -7,6 +8,7 @@ import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import groovy.lang.GroovyRuntimeException
+import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
@@ -61,15 +63,33 @@ class GameCommand : CommandBase {
                         sender.sendMessage("You must leave editor mode.")
                     }
                     else -> {
-                        player.game.start(null, Consumer {
-                            sender.sendMessage("You have forced to start the game.")
-                        })
+                        val mapID = if (args.size > 1) {
+                            args[1]
+                        } else {
+                            null
+                        }
+
+                        try {
+                            player.game.start(mapID, Consumer {
+                                sender.sendMessage("You have forced to start the game.")
+                            })
+                        } catch (e: MapNotFound) {
+                            e.printStackTrace()
+                            sender.sendMessage(
+                                    ComponentBuilder("Error occurred. See console for details.")
+                                    .color(ChatColor.RED).create().first()
+                            )
+                        }
                     }
                 }
             }
             "stop" -> {
                 try {
-                    val playerData = PlayerData.get(sender as Player)
+                    val playerData = if (sender is Player) {
+                        PlayerData.get(sender)
+                    } else {
+                        null
+                    }
                     val game = when {
                         args.size > 1 -> {
                             Game.findByID(args[1].toInt())
@@ -77,15 +97,18 @@ class GameCommand : CommandBase {
                         playerData != null -> {
                             playerData.game
                         }
-                        else -> {
+                        else -> return if (sender is Player) {
                             sender.sendMessage("You're not in a game.")
-                            return false
+                            true
+                        } else {
+                            sender.sendMessage("This cannot be done from console.")
+                            true
                         }
                     }
 
                     if (game != null) {
-                        game.stop()
-                        sender.sendMessage("Game \'${game.name}\' has been stopped.")
+                        game.stop(error = false)
+                        sender.sendMessage("Successfully terminated.")
                     } else {
                         sender.sendMessage("That game does not exist.")
                     }

@@ -38,7 +38,7 @@ class GameAccessCommand : CommandBase {
                         if (gameReg.isEmpty()) {
                             sender.sendMessage("There's no game available.")
                         } else {
-                            Game.openNew(gameReg.random(), editMode = false, genLobby = true, consumer = Consumer {
+                            Game.openNew(gameReg.random(), editMode = false, mapID = null, consumer = Consumer {
                                 it.join(sender)
                             })
                         }
@@ -53,7 +53,7 @@ class GameAccessCommand : CommandBase {
                     val game = Game.find(args[0], false).firstOrNull { it.canJoin }
 
                     if (game == null) {
-                        Game.openNew(args[0], editMode = false, genLobby = true, consumer = Consumer{
+                        Game.openNew(args[0], editMode = false, mapID = null, consumer = Consumer{
                             it.join(sender)
                         })
                     } else {

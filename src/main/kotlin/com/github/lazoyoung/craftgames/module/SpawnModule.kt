@@ -10,6 +10,7 @@ interface SpawnModule {
         get() = 2
 
     fun setSpawn(type: Int, spawnTag: String)
+    fun spawnMob(type: String, spawnTag: String)
     fun spawnMythicMob(name: String, level: Int, spawnTag: String)
 
 }

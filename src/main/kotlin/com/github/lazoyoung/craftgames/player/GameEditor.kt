@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
 import net.md_5.bungee.api.ChatColor
@@ -54,34 +55,24 @@ class GameEditor private constructor(
             }
 
             if (mapID == GameResource(gameName).lobbyMap.mapID) {
-                Game.openNew(gameName, editMode = true, genLobby = true)
+                Game.openNew(gameName, editMode = true, mapID = null)
             } else try {
-                Game.openNew(gameName, editMode = true, genLobby = false, consumer = Consumer
+                Game.openNew(gameName, editMode = true, mapID = mapID, consumer = Consumer
                 { game ->
-                    val map = game.resource.mapRegistry[mapID]
-
-                    if (map == null) {
-                        report.text = "Map not found: $mapID"
-                        player.sendMessage(report)
-                        game.stop()
-                    } else {
-                        map.generate(game, Consumer {
-                            val instance = GameEditor(player, game)
-                            registry[pid] = instance
-                            game.edit(instance)
-                            game.updatePhase(Game.Phase.PLAYING)
-                        })
-                    }
+                        val instance = GameEditor(player, game)
+                        registry[pid] = instance
+                        game.edit(instance)
                 })
             } catch (e: GameNotFound) {
                 report.text = e.localizedMessage
                 player.sendMessage(report)
-                return
+            } catch (e: MapNotFound) {
+                report.text = "Map not found: $mapID"
+                player.sendMessage(report)
             } catch (e: Exception) {
                 report.text = e.localizedMessage
                 player.sendMessage(report)
                 Main.logger.warning(report.toPlainText())
-                return
             }
         }
     }
@@ -174,7 +165,7 @@ class GameEditor private constructor(
                     }
 
                     // Close the game
-                    game.stop()
+                    game.close()
                 })
             } catch (e: Exception) {
                 throw RuntimeException("Unable to clone world files.", e)

@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.script
 import com.github.lazoyoung.craftgames.Main
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
 import java.io.*
+import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -58,26 +59,19 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
     }
 
     override fun invokeFunction(name: String, args: Array<Any>?): Any? {
-        val result: Any?
-
-        try {
-            if (script != null) {
-                script!!.eval()
-            } else {
-                engine.eval(reader)
-            }
-
-            result = if (args == null) {
-                (script!!.engine as Invocable).invokeFunction(name)
-            } else {
-                (script!!.engine as Invocable).invokeFunction(name, args)
-            }
-            logger.println("Function \'$name\' inside ${this.file.name} has been invoked.")
-        } catch (e: Exception) {
-            writeStackTrace(e)
-            Main.logger.warning("Failed to invoke function: $name")
-            return null
+        if (script != null) {
+            script!!.eval()
+        } else {
+            engine.eval(reader)
         }
+
+        val result = if (args == null) {
+            (script!!.engine as Invocable).invokeFunction(name)
+        } else {
+            (script!!.engine as Invocable).invokeFunction(name, args)
+        }
+
+        logger.println("Function \'$name\' inside ${this.file.name} has been invoked.")
         return result
     }
 
@@ -86,7 +80,7 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         reader.close()
     }
 
-    private fun writeStackTrace(e: Exception) {
+    override fun writeStackTrace(e: Exception): Path {
         val format = getFilenameFormat()
         val errorFile = dir.resolve("Error_$format.txt")
         val error = PrintWriter(FileWriter(errorFile, charset, true), true)
@@ -109,9 +103,10 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         error.println("Stacktrace of plugin source:")
         e.printStackTrace(error)
         error.close()
+        return errorFile.toPath()
     }
 
     private fun getFilenameFormat(): String {
-        return SimpleDateFormat("yyyy-MM-dd_HH-mm").format(Date.from(Instant.now()))
+        return SimpleDateFormat("yyyy-MM-dd_HHmmss").format(Date.from(Instant.now()))
     }
 }

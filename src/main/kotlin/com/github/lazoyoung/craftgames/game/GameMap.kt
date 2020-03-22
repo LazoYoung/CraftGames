@@ -3,11 +3,11 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
 import org.bukkit.WorldType
+import org.bukkit.event.player.PlayerTeleportEvent
 import java.io.IOException
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -95,8 +95,8 @@ class GameMap internal constructor(
                 throw RuntimeException(e)
             }
 
-            // Load world (Synchronous)
-            scheduler.runTask(plugin, Runnable{
+            // Load world (Sync)
+            scheduler.runTask(plugin, Runnable sync@{
                 // Assign worldName so that WorldInitEvent detects the new world.
                 this.worldName = worldName
                 val gen = WorldCreator(worldName)
@@ -106,50 +106,47 @@ class GameMap internal constructor(
                 world = gen.createWorld()
                 Main.logger.info("World $worldName generated.")
 
+                if (world == null)
+                    throw RuntimeException("Unable to load world $worldName for ${game.name}")
+
+                val init = {
+                    // Feed new instance into the Game
+                    world.isAutoSave = false
+                    this.isGenerated = true
+                    this.world = world
+                    this.worldPath = container.resolve(worldName)
+                    game.map = this
+
+                    // Don't forget to callback.
+                    callback?.accept(world)
+                }
+
                 try {
-                    if (world == null)
-                        throw RuntimeException("Unable to load world $worldName for ${game.name}")
-
                     if (regen) {
-                        val players = game.players.mapNotNull { PlayerData.get(it) }
+                        val players = game.players.mapNotNull { Bukkit.getPlayer(it) }
 
-                        // Move players to the new world.
-                        players.firstOrNull()?.let { first ->
-                            game.module.spawn.spawnPlayer(world, first, Consumer { succeed ->
-                                if (!succeed) {
-                                    Main.logger.warning("Failed to teleport in async!")
-                                    players.forEach { it.player.sendMessage("The game has been terminated with an error.") }
-                                    game.stop()
-                                    return@Consumer
+                        if (players.isNotEmpty()) {
+                            // Move players to the new world. (Async)
+                            scheduler.runTaskAsynchronously(plugin, Runnable {
+                                players.first().teleportAsync(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                                        .exceptionally { it.printStackTrace(); return@exceptionally null }
+                                        .get()
+
+                                players.drop(1).forEach {
+                                    it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
                                 }
 
                                 scheduler.runTask(plugin, Runnable {
-                                    players.drop(1)
-                                            .forEach { game.module.spawn.spawnPlayer(world, it) }
-
-                                    // We're now confident to unload the old world.
+                                    // We're now safe to unload the old world.
                                     game.map.destruct()
-
-                                    // Feed new instance into the Game
-                                    world.isAutoSave = false
-                                    this.isGenerated = true
-                                    this.world = world
-                                    this.worldPath = container.resolve(worldName)
-                                    game.map = this
-
-                                    // Don't forget to callback.
-                                    callback?.accept(world)
+                                    init()
                                 })
                             })
+                            return@sync
                         }
-                    } else {
-                        world.isAutoSave = false
-                        this.isGenerated = true
-                        this.world = world
-                        this.worldPath = container.resolve(worldName)
-                        game.map = this
-                        callback?.accept(world)
                     }
+
+                    init()
                 } catch (e: InvalidPathException) {
                     throw RuntimeException(e)
                 }
