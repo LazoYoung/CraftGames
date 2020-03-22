@@ -7,6 +7,9 @@ import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import groovy.lang.GroovyRuntimeException
+import net.md_5.bungee.api.chat.ClickEvent
+import net.md_5.bungee.api.chat.ComponentBuilder
+import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -15,14 +18,31 @@ import java.util.function.Consumer
 class GameCommand : CommandBase {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (args.isEmpty()) {
-            sender.sendMessage(arrayOf(
-                    "/game start [map]",
-                    "/game stop [id]",
-                    "/game edit <title> <map> : Enter the edit mode.",
-                    "/game save : Save the changes and leave edit mode.",
-                    "/game script execute"
-            ))
+        if (args.isEmpty() || args[0].equals("help", true)) {
+            sender.sendMessage(
+                    *ComponentBuilder(BORDER_STRING)
+                    .append("\nGame Command Manual (Page 1/1)\n\n", RESET_FORMAT)
+                    .append("◎ /game start [map]\n", RESET_FORMAT)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Start the current game.\nYou may choose a map to play.").create()))
+                        .event(ClickEvent(SUGGEST_CMD, "/game start"))
+                    .append("◎ /game stop [id]\n", RESET_FORMAT)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Stop the running game.").create()))
+                        .event(ClickEvent(SUGGEST_CMD, "/game stop"))
+                    .append("◎ /game edit <title> <map>\n", RESET_FORMAT)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Start editor mode.").create()))
+                        .event(ClickEvent(SUGGEST_CMD, "/game edit"))
+                    .append("◎ /game save\n", RESET_FORMAT)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Leave editor mode.\nChanges are saved to disk.").create()))
+                        .event(ClickEvent(SUGGEST_CMD, "/game save"))
+                    .append("◎ /game script execute\n", RESET_FORMAT)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Execute script in the current game.").create()))
+                        .event(ClickEvent(SUGGEST_CMD, "/game script execute"))
+                    .append(PREV_NAV_END, RESET_FORMAT)
+                    .append("- PAGE NAVIGATION -", RESET_FORMAT)
+                    .append(NEXT_NAV_END)
+                    .append(BORDER_STRING, RESET_FORMAT)
+                    .create()
+            )
             return true
         }
 
@@ -118,7 +138,7 @@ class GameCommand : CommandBase {
                 }
             }
             "script" -> {
-                if (args.size < 3)
+                if (args.size < 2)
                     return false
 
                 if (sender !is Player) {
@@ -133,7 +153,7 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                if (args[2] == "execute") {
+                if (args[1] == "execute") {
                     try {
                         val script = playerData.game.resource.script
 
@@ -159,7 +179,7 @@ class GameCommand : CommandBase {
             return command.aliases
 
         if (args.size == 1)
-            return getCompletions(args[0], "start", "stop", "edit", "save", "script")
+            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "script")
 
         when (args[0].toLowerCase()) {
             "start" -> {
@@ -185,10 +205,8 @@ class GameCommand : CommandBase {
                 }
             }
             "script" -> {
-                return when (args.size) {
-                    2 -> getGameTitles(args[1])
-                    3 -> getCompletions(args[2], "execute")
-                    else -> mutableListOf()
+                if (args.size == 2) {
+                    return getCompletions(args[1], "execute")
                 }
             }
         }
