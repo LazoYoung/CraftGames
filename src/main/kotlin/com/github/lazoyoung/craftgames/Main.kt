@@ -1,7 +1,9 @@
 package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.CoordtagCommand
+import com.github.lazoyoung.craftgames.command.GameAccessCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
+import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -11,6 +13,8 @@ import java.nio.charset.Charset
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.util.logging.Level
+import java.util.logging.Logger
 
 class Main : JavaPlugin(), CommandExecutor {
 
@@ -21,22 +25,38 @@ class Main : JavaPlugin(), CommandExecutor {
             private set
         lateinit var charset: Charset
             private set
+        lateinit var logger: Logger
+            private set
     }
 
     override fun onEnable() {
         val gameCmd = getCommand("game")!!
         val ctCmd = getCommand("coord")!!
+        val joinCmd = getCommand("join")!!
+        val leaveCmd = getCommand("leave")!!
         val gameExecutor = GameCommand()
         val ctExecutor = CoordtagCommand()
+        val accessExecutor = GameAccessCommand()
         instance = this
+        Main.logger = logger
+
 
         loadConfig()
         loadAsset()
         gameCmd.setExecutor(gameExecutor)
         ctCmd.setExecutor(ctExecutor)
+        joinCmd.setExecutor(accessExecutor)
+        leaveCmd.setExecutor(accessExecutor)
         gameCmd.tabCompleter = gameExecutor
         ctCmd.tabCompleter = ctExecutor
+        joinCmd.tabCompleter = accessExecutor
+        leaveCmd.tabCompleter = accessExecutor
         Bukkit.getPluginManager().registerEvents(EventListener(), this)
+    }
+
+    override fun onDisable() {
+        // Close games
+        Game.find().forEach { it.stop(false) }
     }
 
     private fun loadConfig() {
@@ -44,6 +64,12 @@ class Main : JavaPlugin(), CommandExecutor {
         config.options().copyDefaults(true)
         Main.config = config
         charset = Charset.forName(config.getString("file-encoding"))
+
+        if (config.getBoolean("verbose")) {
+            Main.logger.level = Level.FINE
+        } else {
+            Main.logger.level = Level.CONFIG
+        }
     }
 
     private fun loadAsset() {
@@ -66,7 +92,7 @@ class Main : JavaPlugin(), CommandExecutor {
             }
 
             try {
-                FileUtil(logger).cloneFileTree(source, target)
+                FileUtil.cloneFileTree(source, target)
             } catch (e: SecurityException) {
                 e.printStackTrace()
                 logger.severe("Access denied! Unable to install sample files.")

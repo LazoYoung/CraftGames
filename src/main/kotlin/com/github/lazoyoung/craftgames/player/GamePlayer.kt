@@ -8,11 +8,11 @@ class GamePlayer private constructor(
         player: Player,
         game: Game
 ): PlayerData(player, game) {
-    private val team: Any = TODO()
-    private val point: Int = TODO()
+    private val team = null
+    private val point = null // TODO
 
     companion object {
-        fun register(player: Player, game: Game): GamePlayer {
+        internal fun register(player: Player, game: Game): GamePlayer {
             if (get(player) != null)
                 throw ConcurrentPlayerState(null)
 

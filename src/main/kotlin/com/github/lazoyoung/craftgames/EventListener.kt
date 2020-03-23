@@ -1,21 +1,21 @@
 package com.github.lazoyoung.craftgames
 
-import com.github.lazoyoung.craftgames.game.GameFactory
+import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldInitEvent
 
 class EventListener : Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun onWorldLoad(event: WorldInitEvent) {
-        val name = event.world.name
-
-        for (game in GameFactory.find()) {
-            if (name == game.map.worldName) {
+        for (game in Game.find()) {
+            if (event.world.name == game.map.worldName) {
                 event.world.keepSpawnInMemory = false
                 break
             }
@@ -32,6 +32,13 @@ class EventListener : Listener {
                     event.isCancelled = true
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        val player = event.player
+
+        PlayerData.get(player)?.game?.leave(player)
     }
 
 }
