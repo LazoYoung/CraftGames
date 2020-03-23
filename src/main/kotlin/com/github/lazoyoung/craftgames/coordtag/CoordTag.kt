@@ -121,7 +121,7 @@ class CoordTag private constructor(
     fun scanIncompleteMaps(): List<String> {
         val list = ArrayList<String>()
 
-        for (mapID in Game.getMapList(game.name)) {
+        for (mapID in Game.getMapNames(game.name)) {
             if (captures.none { mapID == it.mapID }) {
                 list.add(mapID)
             }

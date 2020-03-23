@@ -76,14 +76,26 @@ class Game(
             return gameRegistry[id]
         }
 
-        fun getGameList(): Array<String> {
+        fun getGameNames(): Array<String> {
             return Main.config.getConfigurationSection("games")
                     ?.getKeys(false)?.toTypedArray()
                     ?: emptyArray()
         }
 
-        fun getMapList(gameName: String): Set<String> {
+        @Deprecated("Replaced by getMapList(String)",
+                ReplaceWith("GameResource(gameName).mapRegistry.keys", "com.github.lazoyoung.craftgames.game.GameResource"))
+        fun getMapNames(gameName: String): Set<String> {
             return GameResource(gameName).mapRegistry.keys
+        }
+
+        /**
+         * Get a list of maps exist in the given game.
+         *
+         * @param gameName represents the game where you seek for the maps.
+         * @return The instances of GameMaps inside the game.
+         */
+        fun getMapList(gameName: String): List<GameMap> {
+            return GameResource(gameName).mapRegistry.values.toList()
         }
 
         /**
@@ -114,7 +126,7 @@ class Game(
                     consumer?.accept(game)
                 })
             } else try {
-                game.start(mapID, Consumer {
+                game.start(mapID, result = Consumer {
                     consumer?.accept(game)
                 })
             } catch (e: MapNotFound) {
@@ -154,11 +166,13 @@ class Game(
     /**
      * Leave the lobby (if present) and start the game.
      *
+     * TODO Exclude players who ain't ready.
+     *
      * @param mapID Select which map to play.
      * @param result Consume the generated world.
      * @throws MapNotFound is thrown if map is not found.
      */
-    fun start(mapID: String?, result: Consumer<Game>? = null) {
+    fun start(mapID: String?, votes: Int? = null, result: Consumer<Game>? = null) {
         val plugin = Main.instance
         canJoin = false
 
@@ -171,7 +185,11 @@ class Game(
 
             thisMap.generate(this, Consumer {
                 getPlayers().forEach { player ->
-                    player.sendMessage("${map.alias} is chosen for this game.")
+                    if (votes == null) {
+                        player.sendMessage("${map.alias} is randomly chosen for this game!")
+                    } else {
+                        player.sendMessage("${map.alias} has received $votes votes and chosen for this game!")
+                    }
                 }
                 result?.accept(this)
                 updatePhase(Phase.PLAYING)

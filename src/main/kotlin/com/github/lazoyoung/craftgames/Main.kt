@@ -13,7 +13,6 @@ import java.nio.charset.Charset
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
-import java.util.logging.Level
 import java.util.logging.Logger
 
 class Main : JavaPlugin(), CommandExecutor {
@@ -64,12 +63,6 @@ class Main : JavaPlugin(), CommandExecutor {
         config.options().copyDefaults(true)
         Main.config = config
         charset = Charset.forName(config.getString("file-encoding"))
-
-        if (config.getBoolean("verbose")) {
-            Main.logger.level = Level.FINE
-        } else {
-            Main.logger.level = Level.CONFIG
-        }
     }
 
     private fun loadAsset() {

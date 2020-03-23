@@ -64,8 +64,7 @@ class GameResource(private val gameName: String) {
             throw RuntimeException("Failed to resolve resource path.", e)
         }
 
-        val mapSection = layoutConfig.getMapList("maps")
-        val mapItr = mapSection.listIterator()
+        val mapItr = layoutConfig.getMapList("maps").listIterator()
         var lobbyMap: GameMap? = null
 
         /*
@@ -74,33 +73,42 @@ class GameResource(private val gameName: String) {
         while (mapItr.hasNext()) {
             val mutmap = mapItr.next().toMutableMap()
             val mapID = mutmap["id"] as String?
+            var alias = mutmap["alias"] as String?  // Subname
             val rawPath = mutmap["path"] as String?
             val repository: Path?  // Path to original map folder
             val lobby = mutmap["lobby"] as Boolean? ?: false
-            var alias = mutmap["alias"] as String?  // Subname
+
+            @Suppress("UNCHECKED_CAST")
+            val description: List<String> = when (val descRaw = mutmap["description"]) {
+                is String -> {
+                    listOf(descRaw)
+                }
+                is List<*> -> {
+                    descRaw as List<String>
+                }
+                else -> {
+                    listOf()
+                }
+            }
 
             if (mapID == null) {
-                Main.logger.config("Entry \'id\' of map is missing in ${layoutFile.toPath()}")
+                Main.logger.warning("Entry \'id\' of map is missing in ${layoutFile.toPath()}")
                 continue
             }
+
+            if (alias == null)
+                alias = mapID
 
             if (rawPath == null) {
-                Main.logger.config("Entry 'path' of $mapID is missing in ${layoutFile.toPath()}")
+                Main.logger.warning("Entry 'path' of $mapID is missing in ${layoutFile.toPath()}")
                 continue
-            }
-
-            if (alias == null) {
-                mutmap["alias"] = mapID
-                alias = mapID
-                mapItr.set(mutmap)
-                layoutConfig.set("maps", mapSection)
             }
 
             try {
                 repository = root.resolve(rawPath)
 
                 if (!Files.isDirectory(repository!!)) {
-                    Main.logger.config("The map directory of \'$mapID\' is empty.")
+                    Main.logger.warning("The map directory of \'$mapID\' is empty.")
                 }
             } catch (e: InvalidPathException) {
                 throw FaultyConfiguration("Unable to locate path to map '$mapID' for $gameName", e)
@@ -108,14 +116,13 @@ class GameResource(private val gameName: String) {
                 throw FaultyConfiguration("Unable to access file to map '$mapID' for $gameName", e)
             }
 
-            val map = GameMap(mapID, alias, repository, lobby)
+            val map = GameMap(mapID, alias, description, lobby, repository)
             mapRegistry[mapID] = map
 
             if (lobby) {
                 lobbyMap = map
             }
         }
-        layoutConfig.save(layoutFile)
 
         if (lobbyMap != null) {
             this.lobbyMap = lobbyMap

@@ -15,15 +15,19 @@ import java.util.function.Consumer
 
 class GameMap internal constructor(
         /** ID of selected map **/
-        internal var mapID: String,
+        internal val mapID: String,
 
         /** Alias name to be displayed **/
-        internal var alias: String,
+        val alias: String,
+
+        /** Description of this map **/
+        val description: List<String>,
+
+        /** Whether or not it's the map for lobby **/
+        val isLobby: Boolean = false,
 
         /** Path to the original map folder. **/
-        internal val repository: Path,
-
-        internal val isLobby: Boolean = false
+        internal val repository: Path
 ) {
 
     /** World instance **/

@@ -70,7 +70,7 @@ class GameCommand : CommandBase {
                         }
 
                         try {
-                            player.game.start(mapID, Consumer {
+                            player.game.start(mapID, result = Consumer {
                                 sender.sendMessage("You have forced to start the game.")
                             })
                         } catch (e: MapNotFound) {
@@ -208,7 +208,7 @@ class GameCommand : CommandBase {
             "start" -> {
                 return if (args.size == 2) {
                     PlayerData.get(sender as Player)?.let {
-                        getCompletions(args[1], *Game.getMapList(it.game.name).toTypedArray())
+                        getCompletions(args[1], *Game.getMapNames(it.game.name).toTypedArray())
                     } ?: mutableListOf()
                 } else {
                     mutableListOf()
@@ -216,8 +216,8 @@ class GameCommand : CommandBase {
             }
             "edit" -> {
                 return when (args.size) {
-                    2 -> getCompletions(args[1], *Game.getGameList())
-                    3 -> getCompletions(args[2], *Game.getMapList(args[1]).toTypedArray())
+                    2 -> getCompletions(args[1], *Game.getGameNames())
+                    3 -> getCompletions(args[2], *Game.getMapNames(args[1]).toTypedArray())
                     else -> mutableListOf()
                 }
             }

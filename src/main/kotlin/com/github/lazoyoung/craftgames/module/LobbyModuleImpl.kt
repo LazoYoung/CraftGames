@@ -11,9 +11,14 @@ import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
+import java.util.*
+import kotlin.collections.HashMap
+
 
 class LobbyModuleImpl(val game: Game) : LobbyModule {
 
+    private val voted = ArrayList<UUID>()
+    private val votes = HashMap<String, Int>()
     private var tag: CoordTag? = null
     private var timer = Module.getTimer(TimerUnit.SECOND, 30)
     private val notFound = ComponentBuilder("Unable to locate lobby position!")
@@ -25,6 +30,21 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
 
     override fun setTimer(unit: TimerUnit, value: Int) {
         timer = Module.getTimer(unit, value)
+    }
+
+    /**
+     * Vote a map.
+     *
+     * @param player is who decided to vote.
+     * @param vote How many points are counted for this vote? (1 by default)
+     * @param mapName The map name. You can obtain map instances via Game.getMapList()
+     */
+    fun voteMap(player: Player, vote: Int = 1, mapName: String): Boolean {
+        if (voted.contains(player.uniqueId))
+            return false
+
+        votes[mapName] = votes[mapName]?.plus(vote) ?: 1
+        return true
     }
 
     internal fun spawn(player: Player) {
@@ -47,10 +67,28 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
             override fun run() {
                 if (--timer <= 0) {
                     // TODO Start game with the map that is top voted.
+                    val list = LinkedList(votes.entries)
 
-                    // If vote has never been counted.
+                    Collections.sort(list, Comparator { o1, o2 ->
+                        val comp = (o1.value - o2.value) * -1
+
+                        return@Comparator if (comp != 0) {
+                            comp
+                        } else {
+                            o1.key.compareTo(o2.key)
+                        }
+                    })
+
                     try {
-                        game.start(null)
+                        val entry = list.firstOrNull()
+
+                        if (entry != null) {
+                            // This entry has received top votes.
+                            game.start(entry.key, entry.value)
+                        } else {
+                            // No one has voted.
+                            game.start(null)
+                        }
                     } catch (e: MapNotFound) {
                         game.stop(async = false, error = true)
                         e.printStackTrace()

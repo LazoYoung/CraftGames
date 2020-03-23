@@ -33,7 +33,7 @@ class GameAccessCommand : CommandBase {
                     if (game != null) {
                         game.join(sender)
                     } else {
-                        val gameReg = Game.getGameList()
+                        val gameReg = Game.getGameNames()
 
                         if (gameReg.isEmpty()) {
                             sender.sendMessage("There's no game available.")
