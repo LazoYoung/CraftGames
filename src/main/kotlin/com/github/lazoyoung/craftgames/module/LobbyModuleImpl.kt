@@ -20,7 +20,7 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
     private val voted = ArrayList<UUID>()
     private val votes = HashMap<String, Int>()
     private var tag: CoordTag? = null
-    private var timer = Module.getTimer(TimerUnit.SECOND, 30)
+    private var timer = Timer(Timer.Unit.SECOND, 30)
     private val notFound = ComponentBuilder("Unable to locate lobby position!")
             .color(ChatColor.RED).create().first() as TextComponent
 
@@ -28,26 +28,23 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
         tag = Module.getSpawnTag(game, spawnTag)
     }
 
-    override fun setTimer(unit: TimerUnit, value: Int) {
-        timer = Module.getTimer(unit, value)
+    override fun setTimer(timer: Timer) {
+        this.timer = timer
     }
 
-    /**
-     * Vote a map.
-     *
-     * @param player is who decided to vote.
-     * @param vote How many points are counted for this vote? (1 by default)
-     * @param mapName The map name. You can obtain map instances via Game.getMapList()
-     */
-    fun voteMap(player: Player, vote: Int = 1, mapName: String): Boolean {
+    override fun voteMap(player: Player, vote: Int, mapName: String): Boolean {
         if (voted.contains(player.uniqueId))
             return false
 
+        if (!Game.getMapNames(game.name, false).contains(mapName))
+            throw MapNotFound("Map $mapName does not exist.")
+
         votes[mapName] = votes[mapName]?.plus(vote) ?: 1
+        voted.add(player.uniqueId)
         return true
     }
 
-    internal fun spawn(player: Player) {
+    internal fun teleport(player: Player) {
         val world = this.game.map.world!!
         val c = this.tag?.getLocalCaptures()?.random() as SpawnCapture?
 
@@ -61,12 +58,11 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
 
     internal fun startTimer() {
         val plugin = Main.instance
-        this.timer /= 20
+        var sec = this.timer.toTick().toInt() / 20
 
         val task = object : BukkitRunnable() {
             override fun run() {
-                if (--timer <= 0) {
-                    // TODO Start game with the map that is top voted.
+                if (--sec <= 0) {
                     val list = LinkedList(votes.entries)
 
                     Collections.sort(list, Comparator { o1, o2 ->
@@ -97,22 +93,22 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
                     return
                 }
 
-                val time = if (timer > 60) {
-                    if (timer % 60 == 0) {
-                        "$timer minutes."
+                val format = if (sec > 60) {
+                    if (sec % 60 == 0) {
+                        "${sec / 60} minutes."
                     } else {
                         return
                     }
-                } else when (timer) {
-                    60 -> "$timer minute."
-                    30, 20, 10 -> "$timer seconds."
-                    5, 4, 3, 2 -> "$timer seconds!"
-                    1 -> "$timer second!"
+                } else when (sec) {
+                    60 -> "1 minute."
+                    30, 20, 10 -> "$sec seconds."
+                    5, 4, 3, 2 -> "$sec seconds!"
+                    1 -> "$sec second!"
                     else -> return
                 }
 
                 game.getPlayers().forEach {
-                    it.sendMessage("The game starts in $time")
+                    it.sendMessage("The game starts in $format")
                 }
             }
         }
@@ -121,8 +117,10 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
         game.module.tasks["lobby"] = task
     }
 
-    internal fun stopTimer() {
+    internal fun reset() {
         game.module.tasks["lobby"]?.cancel()
+        voted.clear()
+        votes.clear()
     }
 
 }

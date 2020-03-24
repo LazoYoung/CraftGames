@@ -14,20 +14,36 @@ import javax.script.ScriptException
 
 class Module(val game: Game) {
 
-    val spawn = SpawnModuleImpl(game)
-    val lobby = LobbyModuleImpl(game)
+    internal val spawnModule = SpawnModuleImpl(game)
+    internal val lobbyModule = LobbyModuleImpl(game)
+    internal val playerModule = PlayerModuleImpl(game)
     internal val tasks = HashMap<String, BukkitRunnable>()
     private val script = game.resource.script
     private val bind: Bindings
 
     init {
         bind = script.getBindings()
-        bind["SpawnModule"] = spawn as SpawnModule
-        bind["LobbyModule"] = lobby as LobbyModule
+        bind["SpawnModule"] = spawnModule as SpawnModule
+        bind["LobbyModule"] = lobbyModule as LobbyModule
+        bind["PlayerModule"] = playerModule as PlayerModule
+        script.execute("import com.github.lazoyoung.craftgames.module.Module")
+        script.execute("import com.github.lazoyoung.craftgames.module.Timer")
         script.parse()
     }
 
     companion object {
+        fun getSpawnModule(game: Game): SpawnModule {
+            return game.module.spawnModule
+        }
+
+        fun getLobbyModule(game: Game): LobbyModule {
+            return game.module.lobbyModule
+        }
+
+        fun getPlayerModule(game: Game): PlayerModule {
+            return game.module.playerModule
+        }
+
         internal fun getSpawnTag(game: Game, name: String): CoordTag {
             val tag = CoordTag.get(game, name) ?: throw IllegalArgumentException("Unable to identify $name tag.")
 
@@ -39,17 +55,9 @@ class Module(val game: Game) {
 
             return tag
         }
-
-        fun getTimer(unit: TimerUnit, value: Int): Int {
-            return when (unit) {
-                TimerUnit.MINUTE -> value * 1200
-                TimerUnit.SECOND -> value * 20
-                TimerUnit.TICK -> value
-            }
-        }
     }
 
-    fun update() {
+    internal fun update() {
         var func: String? = null
 
         try {
@@ -57,16 +65,17 @@ class Module(val game: Game) {
                 Game.Phase.LOBBY -> {
                     func = "initLobby"
                     script.invokeFunction(func)
-                    lobby.startTimer()
+                    lobbyModule.startTimer()
                 }
                 Game.Phase.PLAYING -> {
                     func = "initGame"
                     script.invokeFunction(func)
-                    lobby.stopTimer()
+                    lobbyModule.reset()
 
-                    // TODO Populate to GameModule
-                    game.players.mapNotNull { PlayerData.get(it) }.forEach {
-                        player -> spawn.spawnPlayer(player)
+                    // FIXME Populate to GameModule
+                    game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
+                        spawnModule.teleport(p)
+                        p.player.gameMode = playerModule.gameMode
                     }
                 }
                 Game.Phase.FINISH -> { /* Reward logic */

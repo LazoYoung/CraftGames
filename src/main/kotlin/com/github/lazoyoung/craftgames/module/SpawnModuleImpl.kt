@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.module
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.MessageTask
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.exception.DependencyNotFound
@@ -11,28 +12,63 @@ import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import io.lumine.xikage.mythicmobs.MythicMobs
 import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.Location
-import org.bukkit.World
 import org.bukkit.entity.EntityType
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.function.Consumer
 
 class SpawnModuleImpl(val game: Game) : SpawnModule {
 
+    private var timer = Timer(Timer.Unit.SECOND, 20)
     private var personal: CoordTag? = null
     private var editor: CoordTag? = null
     private var spectator: CoordTag? = null
     private val notFound = ComponentBuilder("Unable to locate spawnpoint!")
             .color(ChatColor.RED).create().first() as TextComponent
 
-    fun spawnPlayer(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
-        spawnPlayer(game.map.world!!, playerData, asyncCallback)
+    override fun setPlayerSpawn(type: Int, spawnTag: String) {
+        val tag = Module.getSpawnTag(game, spawnTag)
+
+        when (type) {
+            SpawnModule.PERSONAL -> personal = tag
+            SpawnModule.EDITOR -> editor = tag
+            SpawnModule.SPECTATOR -> spectator = tag
+        }
     }
 
-    fun spawnPlayer(world: World, playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+    override fun setPlayerSpawnTimer(timer: Timer) {
+        this.timer = timer
+    }
+
+    override fun spawnMob(type: String, spawnTag: String) {
+        val c = Module.getSpawnTag(game, spawnTag).getLocalCaptures().random() as SpawnCapture
+        val entity = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
+        val loc = Location(game.map.world!!, c.x, c.y, c.z, c.yaw, c.pitch)
+
+        game.map.world!!.spawnEntity(loc, entity)
+    }
+
+    override fun spawnMythicMob(name: String, level: Int, spawnTag: String) {
+        if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null)
+            throw DependencyNotFound("MythicMobs plugin is required to use this function.")
+
+        // TODO MythicMobs should be referred via Reflection to eliminate local dependency
+        val c = Module.getSpawnTag(game, spawnTag).getLocalCaptures().random() as SpawnCapture
+        val loc = Location(game.map.world!!, c.x, c.y, c.z, c.yaw, c.pitch)
+        val mmAPI = MythicMobs.inst().apiHelper
+        mmAPI.spawnMythicMob(name, loc, level)
+    }
+
+    /**
+     * Teleport [player][playerData] to the relevant spawnpoint matching with its [type][PlayerData]
+     */
+    fun teleport(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+        val world = game.map.world!!
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val player = playerData.player
@@ -62,31 +98,24 @@ class SpawnModuleImpl(val game: Game) : SpawnModule {
         }
     }
 
-    override fun setSpawn(type: Int, spawnTag: String) {
-        val tag = Module.getSpawnTag(game, spawnTag)
+    internal fun respawn(gamePlayer: GamePlayer) {
+        val player = gamePlayer.player
+        val actionBar = MessageTask(
+                player = player,
+                type = ChatMessageType.ACTION_BAR,
+                textCases = listOf("You will respawn in a moment."),
+                interval = Timer(Timer.Unit.SECOND, 3)
+        ).start()
 
-        when (type) {
-            PERSONAL -> personal = tag
-            EDITOR -> editor = tag
-            SPECTATOR -> spectator = tag
-        }
-    }
+        // Temporarily spectate
+        player.gameMode = GameMode.SPECTATOR
 
-    override fun spawnMob(type: String, spawnTag: String) {
-        val c = Module.getSpawnTag(game, spawnTag).getLocalCaptures().random() as SpawnCapture
-        val entity = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
-        val loc = Location(game.map.world!!, c.x, c.y, c.z, c.yaw, c.pitch)
-
-        game.map.world!!.spawnEntity(loc, entity)
-    }
-
-    override fun spawnMythicMob(name: String, level: Int, spawnTag: String) {
-        if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null)
-            throw DependencyNotFound("MythicMobs plugin is required to use this function.")
-
-        val c = Module.getSpawnTag(game, spawnTag).getLocalCaptures().random() as SpawnCapture
-        val loc = Location(game.map.world!!, c.x, c.y, c.z, c.yaw, c.pitch)
-        val mmAPI = MythicMobs.inst().apiHelper
-        mmAPI.spawnMythicMob(name, loc, level)
+        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+            // Rollback to spawnpoint with default GameMode
+            teleport(gamePlayer)
+            player.gameMode = game.module.playerModule.gameMode
+            actionBar.cancel()
+            player.sendActionBar("&aYou have respawned!")
+        }, timer.toTick())
     }
 }

@@ -10,15 +10,16 @@ class Spectator private constructor(
 ): PlayerData(player, game) {
 
     companion object {
-        fun register(player: Player, game: Game): Spectator {
+        internal fun register(player: Player, game: Game): Spectator {
             val pid = player.uniqueId
+            val legacy = get(player)
+            val new = Spectator(player, game)
 
-            if (get(player) != null)
+            if (legacy?.game != game)
                 throw ConcurrentPlayerState(null)
 
-            val instance = Spectator(player, game)
-            registry[pid] = instance
-            return instance
+            registry[pid] = new
+            return new
         }
     }
 

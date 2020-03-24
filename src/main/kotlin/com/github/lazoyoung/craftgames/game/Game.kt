@@ -162,6 +162,14 @@ class Game(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        return if (other is Game) {
+            this.id == other.id
+        } else {
+            false
+        }
+    }
+
     /**
      * Leave the lobby (if present) and start the game.
      *
@@ -199,7 +207,7 @@ class Game(
         }
     }
 
-    // TODO Migrate to GameModule
+    // TODO Migrate to GameModule (internal code)
     fun finish() {
         if (!editMode && phase == Phase.PLAYING) {
             updatePhase(Phase.FINISH)
@@ -236,11 +244,11 @@ class Game(
 
         when (phase) {
             Phase.LOBBY -> {
-                module.lobby.spawn(player)
+                module.lobbyModule.teleport(player)
                 player.sendMessage("You joined the game: $name")
             }
             Phase.PLAYING -> {
-                module.spawn.spawnPlayer(playerData)
+                module.spawnModule.teleport(playerData)
                 player.sendMessage("You joined the ongoing game: $name")
             }
             else -> {
@@ -251,17 +259,17 @@ class Game(
         players.add(uid)
     }
 
-    fun spectate(player: Player) {
+    fun startSpectate(player: Player) {
         val uid = player.uniqueId
         val playerData = Spectator.register(player, this)
 
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
         when (phase) {
             Phase.LOBBY -> {
-                module.lobby.spawn(player)
+                module.lobbyModule.teleport(player)
             }
             Phase.PLAYING -> {
-                module.spawn.spawnPlayer(playerData)
+                module.spawnModule.teleport(playerData)
             }
             else -> return
         }
@@ -269,12 +277,12 @@ class Game(
         player.sendMessage("You are spectating $name.")
     }
 
-    fun edit(playerData: PlayerData) {
+    fun startEdit(playerData: PlayerData) {
         val player = playerData.player
         val uid = player.uniqueId
 
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(playerData)
+        module.spawnModule.teleport(playerData)
         players.add(uid)
         player.sendMessage("You are editing \'${map.mapID}\' in $name.")
     }

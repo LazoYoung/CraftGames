@@ -1,14 +1,16 @@
 package com.github.lazoyoung.craftgames.player
 
-import com.github.lazoyoung.craftgames.ActionBarTask
 import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.MessageTask
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
+import com.github.lazoyoung.craftgames.module.Timer
 import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
@@ -29,10 +31,15 @@ class GameEditor private constructor(
 
     private var blockPrompt: Consumer<Block>? = null
 
-    private val actionBarTask = ActionBarTask(this, listOf(
-            "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
-            "&aType &b/game save &ato save changes and exit."
-    ), 10)
+    private val actionBarTask = MessageTask(
+            player = player,
+            type = ChatMessageType.ACTION_BAR,
+            interval = Timer(Timer.Unit.SECOND, 3),
+            textCases = listOf(
+                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
+                    "&aType &b/game save &ato save changes and exit."
+            )
+    ).start()
 
     companion object {
         /**
@@ -61,7 +68,7 @@ class GameEditor private constructor(
                 { game ->
                         val instance = GameEditor(player, game)
                         registry[pid] = instance
-                        game.edit(instance)
+                        game.startEdit(instance)
                 })
             } catch (e: GameNotFound) {
                 report.text = e.localizedMessage

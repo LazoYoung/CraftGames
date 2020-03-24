@@ -1,11 +1,14 @@
 package com.github.lazoyoung.craftgames.command
 
+import com.github.lazoyoung.craftgames.MessageTask
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
+import com.github.lazoyoung.craftgames.module.Timer
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -32,12 +35,15 @@ class VoteCommand : CommandBase {
             TODO("Vote menu is not implemented")
 
         try {
-            if (Module.getLobbyModule(pdata.game).voteMap(pdata.player, mapName = args[0])) {
-                // TODO UI Module: display duration is too short.
-                sender.sendActionBar('&', "&aYou voted for ${args[0]}!")
+            val lobby = Module.getLobbyModule(pdata.game)
+            val interval = Timer(Timer.Unit.SECOND, 3)
+            val text = if (lobby.voteMap(pdata.player, mapName = args[0])) {
+                listOf("&aYou voted for ${args[0]}!")
             } else {
-                sender.sendActionBar('&', "&eYou have already voted.")
+                listOf("&eYou have already voted.")
             }
+
+            MessageTask(pdata.player, ChatMessageType.ACTION_BAR, text, 2, interval).start()
         } catch (e: MapNotFound) {
             sender.sendActionBar('&', e.localizedMessage)
         }
