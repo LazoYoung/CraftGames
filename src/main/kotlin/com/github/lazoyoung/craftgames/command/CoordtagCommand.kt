@@ -224,7 +224,7 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 val tag = CoordTag.getAll(player.game).firstOrNull { it.name == args[1] }
-                val captures = tag?.getCaptures(player.mapID)
+                val captures = tag?.getLocalCaptures()
 
                 when {
                     tag == null -> {

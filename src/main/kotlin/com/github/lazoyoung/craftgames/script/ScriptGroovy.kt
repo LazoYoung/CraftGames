@@ -41,8 +41,16 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         script = (engine as Compilable).compile(reader)
     }
 
-    override fun execute() {
+    override fun execute(script: String) {
+        try {
+            engine.eval(script)
+        } catch (e: ScriptException) {
+            e.printStackTrace()
+            Main.logger.warning("Failed to evaluate internal script.")
+        }
+    }
 
+    override fun execute() {
         try {
             if (script != null) {
                 script!!.eval()
@@ -54,7 +62,6 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         } catch (e: Exception) {
             writeStackTrace(e)
             Main.logger.warning("Failed to evaluate script: ${file.name}")
-            return
         }
     }
 

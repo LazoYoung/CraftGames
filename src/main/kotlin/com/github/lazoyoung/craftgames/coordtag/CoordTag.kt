@@ -35,7 +35,7 @@ class CoordTag private constructor(
         /**
          * Reload all tags associated with specific game.
          */
-        fun reload(game: Game) {
+        internal fun reload(game: Game) {
             val config = game.resource.tagConfig
             val list = ArrayList<CoordTag>()
 
@@ -55,7 +55,7 @@ class CoordTag private constructor(
             tags[game.name] = list
         }
 
-        fun create(game: Game, mode: TagMode, name: String) {
+        internal fun create(game: Game, mode: TagMode, name: String) {
             val config = game.resource.tagConfig
 
             config.set(name.plus(".mode"), mode.label)

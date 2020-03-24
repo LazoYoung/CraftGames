@@ -82,20 +82,19 @@ class Game(
                     ?: emptyArray()
         }
 
-        @Deprecated("Replaced by getMapList(String)",
-                ReplaceWith("GameResource(gameName).mapRegistry.keys", "com.github.lazoyoung.craftgames.game.GameResource"))
-        fun getMapNames(gameName: String): Set<String> {
-            return GameResource(gameName).mapRegistry.keys
+        fun getMapNames(gameName: String, lobby: Boolean = true): List<String> {
+            return getMapList(gameName, lobby).map { it.mapID }
         }
 
         /**
          * Get a list of maps exist in the given game.
          *
          * @param gameName represents the game where you seek for the maps.
+         * @param lobby whether or not the lobby map is included as well.
          * @return The instances of GameMaps inside the game.
          */
-        fun getMapList(gameName: String): List<GameMap> {
-            return GameResource(gameName).mapRegistry.values.toList()
+        fun getMapList(gameName: String, lobby: Boolean = true): List<GameMap> {
+            return GameResource(gameName).mapRegistry.values.filter { lobby || !it.isLobby }.toList()
         }
 
         /**
@@ -186,9 +185,9 @@ class Game(
             thisMap.generate(this, Consumer {
                 getPlayers().forEach { player ->
                     if (votes == null) {
-                        player.sendMessage("${map.alias} is randomly chosen for this game!")
+                        player.sendMessage("${map.alias} is randomly chosen!")
                     } else {
-                        player.sendMessage("${map.alias} has received $votes votes and chosen for this game!")
+                        player.sendMessage("${map.alias} is chosen! It has received $votes vote(s).")
                     }
                 }
                 result?.accept(this)
@@ -200,6 +199,7 @@ class Game(
         }
     }
 
+    // TODO Migrate to GameModule
     fun finish() {
         if (!editMode && phase == Phase.PLAYING) {
             updatePhase(Phase.FINISH)

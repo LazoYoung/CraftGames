@@ -17,7 +17,13 @@ abstract class ScriptBase(file: File) {
     abstract fun parse()
 
     /**
-     * Executes the script.
+     * Execute the script passed to the argument.
+     * @param script The source of the script
+     */
+    abstract fun execute(script: String)
+
+    /**
+     * Executes the script by the file passed to constructor.
      */
     abstract fun execute()
 

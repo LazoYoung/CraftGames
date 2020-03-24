@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames
 import com.github.lazoyoung.craftgames.command.CoordtagCommand
 import com.github.lazoyoung.craftgames.command.GameAccessCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
+import com.github.lazoyoung.craftgames.command.VoteCommand
 import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
@@ -33,9 +34,11 @@ class Main : JavaPlugin(), CommandExecutor {
         val ctCmd = getCommand("coord")!!
         val joinCmd = getCommand("join")!!
         val leaveCmd = getCommand("leave")!!
+        val voteCmd = getCommand("mapvote")!!
         val gameExecutor = GameCommand()
         val ctExecutor = CoordtagCommand()
         val accessExecutor = GameAccessCommand()
+        val voteExecutor = VoteCommand()
         instance = this
         Main.logger = logger
 
@@ -46,10 +49,12 @@ class Main : JavaPlugin(), CommandExecutor {
         ctCmd.setExecutor(ctExecutor)
         joinCmd.setExecutor(accessExecutor)
         leaveCmd.setExecutor(accessExecutor)
+        voteCmd.setExecutor(voteExecutor)
         gameCmd.tabCompleter = gameExecutor
         ctCmd.tabCompleter = ctExecutor
         joinCmd.tabCompleter = accessExecutor
         leaveCmd.tabCompleter = accessExecutor
+        voteCmd.tabCompleter = voteExecutor
         Bukkit.getPluginManager().registerEvents(EventListener(), this)
     }
 

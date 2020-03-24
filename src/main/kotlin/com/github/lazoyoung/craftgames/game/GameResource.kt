@@ -12,7 +12,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
-import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -106,14 +105,8 @@ class GameResource(private val gameName: String) {
 
             try {
                 repository = root.resolve(rawPath)
-
-                if (!Files.isDirectory(repository!!)) {
-                    Main.logger.warning("The map directory of \'$mapID\' is empty.")
-                }
             } catch (e: InvalidPathException) {
                 throw FaultyConfiguration("Unable to locate path to map '$mapID' for $gameName", e)
-            } catch (e: SecurityException) {
-                throw FaultyConfiguration("Unable to access file to map '$mapID' for $gameName", e)
             }
 
             val map = GameMap(mapID, alias, description, lobby, repository)
