@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.module.api
 
-import com.github.lazoyoung.craftgames.module.Timer
+import com.github.lazoyoung.craftgames.util.Timer
 import org.bukkit.GameMode
 
 interface GameModule {
@@ -20,5 +20,7 @@ interface GameModule {
     fun setPlayerSpawn(type: Int, spawnTag: String)
 
     fun setDefaultGameMode(mode: GameMode)
+
+    fun broadcast(message: String)
 
 }

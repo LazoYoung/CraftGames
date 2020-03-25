@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.script
 
-import com.github.lazoyoung.craftgames.FileUtil
+import com.github.lazoyoung.craftgames.util.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
 import java.io.BufferedReader

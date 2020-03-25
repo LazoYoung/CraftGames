@@ -1,20 +1,8 @@
 package com.github.lazoyoung.craftgames.module.api
 
-import com.github.lazoyoung.craftgames.exception.MapNotFound
-import com.github.lazoyoung.craftgames.module.Timer
-import org.bukkit.entity.Player
+import com.github.lazoyoung.craftgames.util.Timer
 
 interface LobbyModule {
-
-    /**
-     * Vote a map.
-     *
-     * @param player is who decided to vote.
-     * @param vote How many points are counted for this vote? (1 by default)
-     * @param mapName The map name. You can obtain map instances via Game.getMapList()
-     * @throws MapNotFound is thrown if mapName doesn't indicate any existing map
-     */
-    fun voteMap(player: Player, vote: Int = 1, mapName: String): Boolean
 
     /**
      * Set spawnpoint for this lobby.

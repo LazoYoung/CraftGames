@@ -1,14 +1,14 @@
 package com.github.lazoyoung.craftgames.player
 
-import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.MessageTask
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
-import com.github.lazoyoung.craftgames.module.Timer
+import com.github.lazoyoung.craftgames.util.FileUtil
+import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ClickEvent
@@ -114,7 +114,7 @@ class GameEditor private constructor(
         val source = game.map.worldPath
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
 
-        game.leave(player)
+        game.leave(this)
         actionBar.clear()
 
         // Save world

@@ -9,8 +9,9 @@ import io.lumine.xikage.mythicmobs.MythicMobs
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.EntityType
+import org.bukkit.entity.LivingEntity
 
-class MobModuleImpl(val game: Game) : MobModule {
+class MobModuleService(val game: Game) : MobModule {
 
     override fun spawnMob(type: String, spawnTag: String) {
         val c = Module.getSpawnTag(game, spawnTag).getLocalCaptures().random() as SpawnCapture
@@ -29,6 +30,10 @@ class MobModuleImpl(val game: Game) : MobModule {
         val loc = Location(game.map.world!!, c.x, c.y, c.z, c.yaw, c.pitch)
         val mmAPI = MythicMobs.inst().apiHelper
         mmAPI.spawnMythicMob(name, loc, level)
+    }
+
+    override fun getType(livingEntity: LivingEntity): String {
+        return livingEntity.type.key.toString()
     }
 
 }

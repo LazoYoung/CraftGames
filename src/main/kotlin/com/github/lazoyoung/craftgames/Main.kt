@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.command.GameAccessCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
 import com.github.lazoyoung.craftgames.command.VoteCommand
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration

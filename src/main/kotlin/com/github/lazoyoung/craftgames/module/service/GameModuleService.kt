@@ -1,17 +1,17 @@
 package com.github.lazoyoung.craftgames.module.service
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.MessageTask
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.Timer
 import com.github.lazoyoung.craftgames.module.api.GameModule
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -26,7 +26,7 @@ import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.function.Consumer
 
-class GameModuleImpl(val game: Game) : GameModule {
+class GameModuleService(val game: Game) : GameModule {
 
     /** Default GameMode **/
     internal var defGameMode = GameMode.ADVENTURE
@@ -36,11 +36,13 @@ class GameModuleImpl(val game: Game) : GameModule {
     private var editor: CoordTag? = null
     private var spectator: CoordTag? = null
 
-    /* BossBar, Game timer, TODO Script scheduler service */
+    /* Service handling bossbar and timer */
     private var serviceTask: BukkitRunnable? = null
 
+    // Bossbar facility
     private val bossBarKey = NamespacedKey(Main.instance, "timer-${game.id}")
-    private val bossBar = Bukkit.createBossBar(bossBarKey, "TIME - 00:00:00", BarColor.WHITE, BarStyle.SOLID)
+    internal val bossBar = Bukkit.createBossBar(bossBarKey, "TIME - 00:00:00", BarColor.WHITE, BarStyle.SOLID)
+
     private val notFound = ComponentBuilder("Unable to locate spawnpoint!")
             .color(ChatColor.RED).create().first() as TextComponent
 
@@ -52,7 +54,7 @@ class GameModuleImpl(val game: Game) : GameModule {
         this.timer = timer.toSecond()
 
         if (game.phase == Game.Phase.PLAYING) {
-            // TODO Player Module: inform players about this change.
+            // TODO Player UI Module: inform players about this change.
         }
     }
 
@@ -72,6 +74,12 @@ class GameModuleImpl(val game: Game) : GameModule {
 
     override fun setDefaultGameMode(mode: GameMode) {
         this.defGameMode = mode
+    }
+
+    override fun broadcast(message: String) {
+        game.getPlayers().forEach {
+            it.sendMessage(*TextComponent.fromLegacyText(message.replace('&', '\u00A7')))
+        }
     }
 
     /**
@@ -149,7 +157,6 @@ class GameModuleImpl(val game: Game) : GameModule {
     }
 
     internal fun endService() {
-        // TODO Suspend all schedulers from script.
         bossBar.removeAll()
         Bukkit.removeBossBar(bossBarKey)
         serviceTask?.cancel()
@@ -172,6 +179,9 @@ class GameModuleImpl(val game: Game) : GameModule {
         actionBar.start()
 
         Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+            if (!Module.getPlayerModule(game).isOnline(player))
+                return@Runnable
+
             // Rollback to spawnpoint with default GameMode
             teleport(gamePlayer)
             game.module.playerModule.restore(gamePlayer.player)
@@ -179,4 +189,5 @@ class GameModuleImpl(val game: Game) : GameModule {
             player.sendActionBar('&', "&aRESPAWN")
         }, respawnTimer)
     }
+
 }

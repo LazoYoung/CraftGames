@@ -2,8 +2,8 @@ package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.service.GameModuleImpl
-import com.github.lazoyoung.craftgames.module.service.PlayerModuleImpl
+import com.github.lazoyoung.craftgames.module.service.GameModuleService
+import com.github.lazoyoung.craftgames.module.service.PlayerModuleService
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -46,7 +46,7 @@ class EventListener : Listener {
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
 
-        PlayerData.get(player)?.game?.leave(player)
+        PlayerData.get(player)?.leaveGame()
     }
 
     @EventHandler
@@ -67,7 +67,7 @@ class EventListener : Listener {
         val player = event.entity
         val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
         val playerModule = getPlayerModuleImpl(event.entity) ?: return
-        val gameModule = Module.getGameModule(playerModule.game) as GameModuleImpl
+        val gameModule = Module.getGameModule(playerModule.game) as GameModuleService
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.test(player)
 
         event.isCancelled = true
@@ -82,12 +82,12 @@ class EventListener : Listener {
         })
     }
 
-    private fun getPlayerModuleImpl(player: Player): PlayerModuleImpl? {
+    private fun getPlayerModuleImpl(player: Player): PlayerModuleService? {
         val game = Game.find().firstOrNull {
             it.phase == Game.Phase.PLAYING && it.map.world == player.world
         } ?: return null
 
-        return Module.getPlayerModule(game) as PlayerModuleImpl
+        return Module.getPlayerModule(game) as PlayerModuleService
     }
 
 }

@@ -83,7 +83,7 @@ class GameAccessCommand : CommandBase {
                         player.saveAndLeave()
                     }
                     player != null -> {
-                        player.game.leave(sender)
+                        player.leaveGame()
                     }
                     else -> {
                         sender.sendMessage("You're not in game.")

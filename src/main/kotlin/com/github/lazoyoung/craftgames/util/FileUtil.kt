@@ -1,5 +1,6 @@
-package com.github.lazoyoung.craftgames
+package com.github.lazoyoung.craftgames.util
 
+import com.github.lazoyoung.craftgames.Main
 import java.io.*
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes

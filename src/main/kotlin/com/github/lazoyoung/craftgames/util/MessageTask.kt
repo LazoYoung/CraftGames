@@ -1,7 +1,8 @@
-package com.github.lazoyoung.craftgames
+package com.github.lazoyoung.craftgames.util
 
-import com.github.lazoyoung.craftgames.module.Timer
+import com.github.lazoyoung.craftgames.Main
 import net.md_5.bungee.api.ChatMessageType
+import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.*
@@ -12,23 +13,24 @@ class MessageTask(
         private val type: ChatMessageType,
         private val textCases: List<String>,
         private var repeat: Int = Int.MAX_VALUE,
-        private val interval: Timer
+        private val interval: Timer? = null
 ) {
 
     companion object {
         private val actionTask = HashMap<UUID, MessageTask>()
-        private val chatTask = HashMap<UUID, MessageTask>()
+        private val chatTask = HashMap<UUID, MutableList<MessageTask>>()
 
         fun clear(player: Player, type: ChatMessageType) {
             when (type) {
                 ChatMessageType.ACTION_BAR -> actionTask[player.uniqueId]?.clear()
-                ChatMessageType.CHAT -> chatTask[player.uniqueId]?.clear()
+                ChatMessageType.CHAT -> chatTask[player.uniqueId]?.forEach(MessageTask::clear)
                 else -> {}
             }
         }
     }
 
     private var i = 0
+    private var index = 0
     private val task = object : BukkitRunnable() {
         override fun run() {
             if (!player.isOnline) {
@@ -41,7 +43,9 @@ class MessageTask(
 
             when (type) {
                 ChatMessageType.ACTION_BAR -> player.sendActionBar('&', textCases[i])
-                ChatMessageType.CHAT -> player.sendMessage(textCases[i])
+                ChatMessageType.CHAT -> player.sendMessage(
+                        *TextComponent.fromLegacyText(textCases[i].replace('&', '\u00A7'))
+                )
                 else -> {}
             }
 
@@ -56,15 +60,35 @@ class MessageTask(
      * @return whether it succeed or not (confined to ActionBar).
      */
     fun start(): Boolean {
+        val plugin = Main.instance
         val id = player.uniqueId
 
         when (type) {
-            ChatMessageType.ACTION_BAR
-                    -> if (actionTask.containsKey(id)) return false
-            else    -> {}
+            ChatMessageType.ACTION_BAR ->
+                if (actionTask.containsKey(id)) {
+                    return false
+                } else {
+                    actionTask[id] = this
+                }
+            ChatMessageType.CHAT -> {
+                var list = chatTask[id]
+
+                if (list?.isNotEmpty() == true) {
+                    index = list.lastIndex + 1
+                    list.add(this)
+                } else {
+                    list = mutableListOf(this)
+                }
+                chatTask[id] = list
+            }
+            else -> return false
         }
 
-        task.runTaskTimer(Main.instance, 0L, interval.toTick())
+        if (interval != null) {
+            task.runTaskTimer(plugin, 0L, interval.toTick())
+        } else {
+            task.runTask(plugin)
+        }
         return true
     }
 
@@ -73,7 +97,9 @@ class MessageTask(
 
         when (type) {
             ChatMessageType.ACTION_BAR -> actionTask.remove(player.uniqueId)
-            ChatMessageType.CHAT -> chatTask.remove(player.uniqueId)
+            ChatMessageType.CHAT -> {
+                chatTask[player.uniqueId]?.removeAt(index)
+            }
             else -> {}
         }
     }

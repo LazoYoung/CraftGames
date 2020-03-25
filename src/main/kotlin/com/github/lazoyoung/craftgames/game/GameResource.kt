@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.game
 
-import com.github.lazoyoung.craftgames.FileUtil
+import com.github.lazoyoung.craftgames.util.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound

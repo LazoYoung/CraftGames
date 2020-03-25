@@ -9,7 +9,9 @@ import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.util.MessageTask
 import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -230,32 +232,34 @@ class Game(
     }
 
     fun join(player: Player) {
-        val uid = player.uniqueId
-        val playerData = GamePlayer.register(player, this)
+        if (!canJoin) {
+            player.sendMessage(
+                    *ComponentBuilder("You cannot join this game.")
+                            .color(ChatColor.YELLOW).create()
+            )
+        } else if (phase == Phase.SUSPEND) {
+            player.sendMessage(
+                    *ComponentBuilder("This game is terminating.")
+                            .color(ChatColor.YELLOW).create()
+            )
+        } else {
+            val playerData = GamePlayer.register(player, this)
+            val uid = player.uniqueId
 
-        // TODO Restore Module: Config parse exception must be handled if World is not present.
-        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+            // TODO Restore Module: Config parse exception must be handled if World is not present.
+            resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+            players.add(uid)
 
-        when (phase) {
-            Phase.LOBBY -> {
+            if (phase == Phase.LOBBY) {
                 module.playerModule.restore(player)
                 module.lobbyModule.teleport(player)
                 player.sendMessage("You joined the game: $name")
-            }
-            Phase.PLAYING -> {
+            } else if (phase == Phase.PLAYING) {
                 module.playerModule.restore(player)
                 module.gameModule.teleport(playerData)
                 player.sendMessage("You joined the ongoing game: $name")
             }
-            else -> {
-                player.sendMessage(
-                        ComponentBuilder("This game is terminating.")
-                        .color(ChatColor.YELLOW).create().first()
-                )
-                return
-            }
         }
-        players.add(uid)
     }
 
     fun startSpectate(player: Player) {
@@ -286,14 +290,17 @@ class Game(
         player.sendMessage("You are editing \'${map.mapID}\' in $name.")
     }
 
-    fun leave(player: Player) {
+    fun leave(playerData: PlayerData) {
+        val player = playerData.player
         val uid = player.uniqueId
 
+        MessageTask.clear(player, ChatMessageType.ACTION_BAR)
+        module.ejectPlayer(playerData)
         resource.restoreConfig.getLocation(uid.toString().plus(".location"))?.let {
             player.teleport(it, PlayerTeleportEvent.TeleportCause.PLUGIN)
         }
         players.remove(uid)
-        PlayerData.get(player)?.unregister() ?: Main.logger.fine("PlayerData is lost unexpectedly.")
+        playerData.unregister()
         player.sendMessage("You left the game.")
     }
 
@@ -307,7 +314,7 @@ class Game(
      * @param async Asynchronously destruct the map if true.
      */
     internal fun close(async: Boolean = true) {
-        getPlayers().forEach { leave(it) }
+        players.mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
         resource.saveToDisk(saveTag = editMode)
         updatePhase(Phase.SUSPEND)
 

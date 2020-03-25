@@ -9,21 +9,22 @@ import com.github.lazoyoung.craftgames.module.api.GameModule
 import com.github.lazoyoung.craftgames.module.api.LobbyModule
 import com.github.lazoyoung.craftgames.module.api.MobModule
 import com.github.lazoyoung.craftgames.module.api.PlayerModule
-import com.github.lazoyoung.craftgames.module.service.GameModuleImpl
-import com.github.lazoyoung.craftgames.module.service.LobbyModuleImpl
-import com.github.lazoyoung.craftgames.module.service.MobModuleImpl
-import com.github.lazoyoung.craftgames.module.service.PlayerModuleImpl
+import com.github.lazoyoung.craftgames.module.service.GameModuleService
+import com.github.lazoyoung.craftgames.module.service.LobbyModuleService
+import com.github.lazoyoung.craftgames.module.service.MobModuleService
+import com.github.lazoyoung.craftgames.module.service.PlayerModuleService
+import com.github.lazoyoung.craftgames.player.PlayerData
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import javax.script.Bindings
 import javax.script.ScriptException
 
-class Module(val game: Game) {
+class Module internal constructor(val game: Game) {
 
-    internal val gameModule = GameModuleImpl(game)
-    internal val lobbyModule = LobbyModuleImpl(game)
-    internal val playerModule = PlayerModuleImpl(game)
-    internal val mobModule = MobModuleImpl(game)
+    internal val gameModule = GameModuleService(game)
+    internal val lobbyModule = LobbyModuleService(game)
+    internal val playerModule = PlayerModuleService(game)
+    internal val mobModule = MobModuleService(game)
     private val script = game.resource.script
     private val bind: Bindings
 
@@ -34,7 +35,8 @@ class Module(val game: Game) {
         bind["PlayerModule"] = playerModule as PlayerModule
         bind["MobModule"] = mobModule as MobModule
         script.execute("import com.github.lazoyoung.craftgames.module.Module")
-        script.execute("import com.github.lazoyoung.craftgames.module.Timer")
+        script.execute("import com.github.lazoyoung.craftgames.util.Timer")
+        script.execute("import com.github.lazoyoung.craftgames.util.MessageTask")
         script.parse()
     }
 
@@ -85,7 +87,6 @@ class Module(val game: Game) {
                     gameModule.endService()
                     bind.clear()
                     script.closeIO()
-                    // TODO Scheduler Module: Suspend schedulers
                 }
             }
         } catch (e: Exception) {
@@ -105,6 +106,13 @@ class Module(val game: Game) {
                 e.printStackTrace()
             }
         }
+    }
+
+    internal fun ejectPlayer(playerData: PlayerData) {
+        if (playerData.game != this.game)
+            return
+
+        gameModule.bossBar.removePlayer(playerData.player)
     }
 
 }

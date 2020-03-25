@@ -6,8 +6,8 @@ import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.Timer
 import com.github.lazoyoung.craftgames.module.api.LobbyModule
+import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
@@ -18,7 +18,7 @@ import java.util.*
 import kotlin.collections.HashMap
 
 
-class LobbyModuleImpl(val game: Game) : LobbyModule {
+class LobbyModuleService(val game: Game) : LobbyModule {
 
     private var tag: CoordTag? = null
     private var timer = Timer(Timer.Unit.SECOND, 30)
@@ -36,7 +36,19 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
         this.timer = timer
     }
 
-    override fun voteMap(player: Player, vote: Int, mapName: String): Boolean {
+    /**
+     * Declare that [player] inside lobby has voted for a map.
+     *
+     * @param player is who decided to vote.
+     * @param vote How many points are counted for this vote? (1 by default)
+     * @param mapName The map name. You can obtain map instances via Game.getMapList()
+     * @return whether or not the player can vote now.
+     * @throws MapNotFound is thrown if mapName doesn't indicate any existing map
+     */
+    fun voteMap(player: Player, vote: Int = 1, mapName: String): Boolean {
+        if (game.phase != Game.Phase.LOBBY)
+            return false
+
         if (voted.contains(player.uniqueId))
             return false
 

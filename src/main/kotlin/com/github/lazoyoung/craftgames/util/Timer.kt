@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.module
+package com.github.lazoyoung.craftgames.util
 
 import java.text.DecimalFormat
 

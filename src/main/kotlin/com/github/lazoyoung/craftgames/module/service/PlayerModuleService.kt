@@ -9,6 +9,7 @@ import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
+import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
@@ -19,13 +20,14 @@ import java.util.function.BiConsumer
 import java.util.function.Predicate
 import kotlin.collections.HashMap
 
-class PlayerModuleImpl(val game: Game) : PlayerModule {
+class PlayerModuleService(val game: Game) : PlayerModule {
 
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
 
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
 
     override fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>) {
+        // FIXME Trigger exception must be caught.
         killTriggers[killer.uniqueId] = trigger
     }
 
@@ -53,6 +55,10 @@ class PlayerModuleImpl(val game: Game) : PlayerModule {
         return game.getPlayers().filter { PlayerData.get(it) is Spectator }
     }
 
+    override fun isOnline(player: Player): Boolean {
+        return game.getPlayers().contains(player)
+    }
+
     override fun eliminate(player: Player) {
         val gamePlayer = PlayerData.get(player.uniqueId) as? GamePlayer
                 ?: return // TODO Write warning to script logger.
@@ -64,6 +70,10 @@ class PlayerModuleImpl(val game: Game) : PlayerModule {
         player.gameMode = GameMode.SPECTATOR
         player.sendTitle(Title(title, subTitle, 20, 80, 20))
         gamePlayer.toSpectator()
+    }
+
+    override fun sendMessage(player: Player, message: String) {
+        player.sendMessage(*TextComponent.fromLegacyText(message.replace('&', '\u00A7')))
     }
 
     fun restore(player: Player) {

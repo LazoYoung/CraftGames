@@ -14,7 +14,6 @@ interface PlayerModule {
      * @param killer is the only player binded to this trigger.
      * @param trigger The trigger that you want to add.
      */
-    // TODO Allow to bind MythicMobs
     fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>)
 
     /**
@@ -51,6 +50,18 @@ interface PlayerModule {
 
     fun getDeadPlayers(): List<Player>
 
+    /**
+     * Check if [player] is playing this game.
+     */
+    fun isOnline(player: Player): Boolean
+
     fun eliminate(player: Player)
+
+    /**
+     * Send [message] to [player]. Formatting codes are supported.
+     *
+     * Consult wiki about [Formatting codes](https://minecraft.gamepedia.com/Formatting_codes).
+     */
+    fun sendMessage(player: Player, message: String)
 
 }
