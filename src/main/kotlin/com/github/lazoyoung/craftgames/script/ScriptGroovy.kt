@@ -1,8 +1,11 @@
 package com.github.lazoyoung.craftgames.script
 
+import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
-import java.io.*
+import java.io.BufferedReader
+import java.io.File
+import java.io.PrintWriter
 import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -13,9 +16,8 @@ import javax.script.ScriptContext.ENGINE_SCOPE
 class ScriptGroovy(private val file: File) : ScriptBase(file) {
     private val engine = GroovyScriptEngineFactory().scriptEngine
     private var script: CompiledScript? = null
-    private val charset = Main.charset
     private val dir = file.resolveSibling("log").resolve(file.nameWithoutExtension)
-    private val reader = BufferedReader(FileReader(file, Main.charset))
+    private val reader = BufferedReader(FileUtil.getBufferedReader(file))
     private val context = SimpleScriptContext()
     private val logger: PrintWriter
     private val bindings: Bindings
@@ -27,7 +29,7 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         dir.mkdirs()
         logFile.createNewFile()
         bindings = engine.createBindings()
-        logger = PrintWriter(FileWriter(logFile, charset, true), true)
+        logger = PrintWriter(FileUtil.getBufferedWriter(logFile, true), true)
         context.writer = logger
         engine.context = context
         engine.setBindings(bindings, ENGINE_SCOPE)
@@ -90,7 +92,7 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
     override fun writeStackTrace(e: Exception): Path {
         val format = getFilenameFormat()
         val errorFile = dir.resolve("Error_$format.txt")
-        val error = PrintWriter(FileWriter(errorFile, charset, true), true)
+        val error = PrintWriter(FileUtil.getBufferedWriter(errorFile, true), true)
         val regex = "^Script\\d+\\.groovy$".toRegex()
 
         error.println("Stacktrace of script code:")

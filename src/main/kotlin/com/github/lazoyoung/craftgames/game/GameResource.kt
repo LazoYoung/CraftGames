@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.game
 
+import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
@@ -8,9 +9,7 @@ import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.script.ScriptFactory
 import org.bukkit.configuration.file.YamlConfiguration
-import java.io.BufferedReader
 import java.io.File
-import java.io.FileReader
 import java.io.IOException
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -54,7 +53,7 @@ class GameResource(private val gameName: String) {
                 throw FaultyConfiguration("Game \'$gameName\' does not have layout.yml")
 
             root = layoutFile.parentFile.toPath()
-            layoutConfig = YamlConfiguration.loadConfiguration(BufferedReader(FileReader(layoutFile, Main.charset)))
+            layoutConfig = YamlConfiguration.loadConfiguration(FileUtil.getBufferedReader(layoutFile))
         } catch (e: IOException) {
             throw FaultyConfiguration("Unable to read ${layoutFile.toPath()} for $gameName. Is it missing?", e)
         } catch (e: IllegalArgumentException) {

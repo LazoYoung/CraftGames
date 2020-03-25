@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames
 
-import java.io.IOException
+import java.io.*
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.*
@@ -90,6 +90,22 @@ class FileUtil {
                     return FileVisitResult.CONTINUE
                 }
             })
+        }
+
+        /**
+         * Returns a buffered reader of [file]
+         * with the charset(encoder) defined in config.yml
+         */
+        fun getBufferedReader(file: File): BufferedReader {
+            return BufferedReader(InputStreamReader(FileInputStream(file), Main.charset))
+        }
+
+        /**
+         * Returns a buffered writer of [file]
+         * with the charset(encoder) defined in config.yml
+         */
+        fun getBufferedWriter(file: File, append: Boolean): BufferedWriter {
+            return BufferedWriter(OutputStreamWriter(FileOutputStream(file, append), Main.charset))
         }
     }
 }
