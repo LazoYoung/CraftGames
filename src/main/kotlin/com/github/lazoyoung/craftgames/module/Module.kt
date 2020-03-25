@@ -26,6 +26,7 @@ class Module internal constructor(val game: Game) {
     internal val playerModule = PlayerModuleService(game)
     internal val mobModule = MobModuleService(game)
     private val script = game.resource.script
+    private var terminateSignal = false
     private val bind: Bindings
 
     init {
@@ -67,6 +68,9 @@ class Module internal constructor(val game: Game) {
     }
 
     internal fun update() {
+        if (terminateSignal)
+            return
+
         var func: String? = null
 
         try {
@@ -74,16 +78,15 @@ class Module internal constructor(val game: Game) {
                 Game.Phase.LOBBY -> {
                     func = "initLobby"
                     script.invokeFunction(func)
-                    lobbyModule.startService()
                 }
                 Game.Phase.PLAYING -> {
                     func = "initGame"
                     script.invokeFunction(func)
-                    lobbyModule.endService()
+                    lobbyModule.clear()
                     gameModule.startService()
                 }
                 Game.Phase.SUSPEND -> {
-                    lobbyModule.endService()
+                    lobbyModule.clear()
                     gameModule.endService()
                     bind.clear()
                     script.closeIO()
@@ -96,6 +99,7 @@ class Module internal constructor(val game: Game) {
                                 .color(ChatColor.RED).create()
                 )
             } else {
+                terminateSignal = true
                 game.forceStop(async = true, error = true)
             }
             if (func != null) {
