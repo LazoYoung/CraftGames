@@ -1,10 +1,13 @@
-package com.github.lazoyoung.craftgames.module
+package com.github.lazoyoung.craftgames.module.service
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.module.Module
+import com.github.lazoyoung.craftgames.module.Timer
+import com.github.lazoyoung.craftgames.module.api.LobbyModule
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
@@ -17,12 +20,13 @@ import kotlin.collections.HashMap
 
 class LobbyModuleImpl(val game: Game) : LobbyModule {
 
-    private val voted = ArrayList<UUID>()
-    private val votes = HashMap<String, Int>()
     private var tag: CoordTag? = null
     private var timer = Timer(Timer.Unit.SECOND, 30)
+    private val voted = ArrayList<UUID>()
+    private val votes = HashMap<String, Int>()
     private val notFound = ComponentBuilder("Unable to locate lobby position!")
             .color(ChatColor.RED).create().first() as TextComponent
+    private var serviceTask: BukkitRunnable? = null
 
     override fun setSpawn(spawnTag: String) {
         tag = Module.getSpawnTag(game, spawnTag)
@@ -45,8 +49,8 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
     }
 
     internal fun teleport(player: Player) {
-        val world = this.game.map.world!!
-        val c = this.tag?.getLocalCaptures()?.random() as SpawnCapture?
+        val world = game.map.world!!
+        val c = tag?.getLocalCaptures()?.random() as SpawnCapture?
 
         if (c != null) {
             player.teleport(Location(world, c.x, c.y, c.z, c.yaw, c.pitch))
@@ -56,11 +60,11 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
         }
     }
 
-    internal fun startTimer() {
+    internal fun startService() {
         val plugin = Main.instance
         var sec = this.timer.toTick().toInt() / 20
 
-        val task = object : BukkitRunnable() {
+        serviceTask = object : BukkitRunnable() {
             override fun run() {
                 if (--sec <= 0) {
                     val list = LinkedList(votes.entries)
@@ -86,39 +90,31 @@ class LobbyModuleImpl(val game: Game) : LobbyModule {
                             game.start(null)
                         }
                     } catch (e: MapNotFound) {
-                        game.stop(async = false, error = true)
+                        game.forceStop(async = false, error = true)
                         e.printStackTrace()
                     }
                     this.cancel()
                     return
                 }
 
-                val format = if (sec > 60) {
-                    if (sec % 60 == 0) {
-                        "${sec / 60} minutes."
-                    } else {
-                        return
-                    }
-                } else when (sec) {
-                    60 -> "1 minute."
-                    30, 20, 10 -> "$sec seconds."
-                    5, 4, 3, 2 -> "$sec seconds!"
-                    1 -> "$sec second!"
-                    else -> return
-                }
+                val valid = arrayOf(30, 20, 10, 5, 4, 3, 2, 1)
 
-                game.getPlayers().forEach {
-                    it.sendMessage("The game starts in $format")
+                if (sec % 60 == 0 || sec < 60 && valid.contains(sec)) {
+                    val format = Timer(Timer.Unit.SECOND, sec.toLong()).format(true)
+
+                    // TODO Player UI Module: Replace with dedicated function
+                    game.getPlayers().forEach {
+                        it.sendMessage("Game starts in $format.")
+                    }
                 }
             }
         }
 
-        task.runTaskTimer(plugin, 0L, 20L)
-        game.module.tasks["lobby"] = task
+        serviceTask!!.runTaskTimer(plugin, 0L, 20L)
     }
 
-    internal fun reset() {
-        game.module.tasks["lobby"]?.cancel()
+    internal fun endService() {
+        serviceTask?.cancel()
         voted.clear()
         votes.clear()
     }

@@ -1,6 +1,7 @@
-package com.github.lazoyoung.craftgames.module
+package com.github.lazoyoung.craftgames.module.api
 
 import com.github.lazoyoung.craftgames.exception.MapNotFound
+import com.github.lazoyoung.craftgames.module.Timer
 import org.bukkit.entity.Player
 
 interface LobbyModule {

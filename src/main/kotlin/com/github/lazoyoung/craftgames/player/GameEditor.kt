@@ -31,15 +31,24 @@ class GameEditor private constructor(
 
     private var blockPrompt: Consumer<Block>? = null
 
-    private val actionBarTask = MessageTask(
+    private val actionBar: MessageTask = MessageTask(
             player = player,
             type = ChatMessageType.ACTION_BAR,
-            interval = Timer(Timer.Unit.SECOND, 3),
+            interval = Timer(Timer.Unit.SECOND, 2),
             textCases = listOf(
                     "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
+                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
+                    "&aType &b/game save &ato save changes and exit.",
                     "&aType &b/game save &ato save changes and exit."
             )
-    ).start()
+    )
+
+    init {
+        if (!actionBar.start()) {
+            MessageTask.clear(player, ChatMessageType.ACTION_BAR)
+            actionBar.start()
+        }
+    }
 
     companion object {
         /**
@@ -106,7 +115,7 @@ class GameEditor private constructor(
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
 
         game.leave(player)
-        actionBarTask.cancel()
+        actionBar.clear()
 
         // Save world
         try {

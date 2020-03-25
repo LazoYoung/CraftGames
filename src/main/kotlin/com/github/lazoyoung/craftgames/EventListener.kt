@@ -2,8 +2,8 @@ package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.PlayerModuleImpl
-import com.github.lazoyoung.craftgames.module.SpawnModuleImpl
+import com.github.lazoyoung.craftgames.module.service.GameModuleImpl
+import com.github.lazoyoung.craftgames.module.service.PlayerModuleImpl
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -67,7 +67,7 @@ class EventListener : Listener {
         val player = event.entity
         val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
         val playerModule = getPlayerModuleImpl(event.entity) ?: return
-        val spawnModule = Module.getSpawnModule(playerModule.game) as SpawnModuleImpl
+        val gameModule = Module.getGameModule(playerModule.game) as GameModuleImpl
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.test(player)
 
         event.isCancelled = true
@@ -75,7 +75,7 @@ class EventListener : Listener {
         // React to the trigger result
         Bukkit.getScheduler().runTask(Main.instance, Runnable {
             if (triggerResult == true) {
-                spawnModule.respawn(gamePlayer)
+                gameModule.respawn(gamePlayer)
             } else {
                 playerModule.eliminate(player)
             }

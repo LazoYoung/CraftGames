@@ -107,7 +107,7 @@ class GameCommand : CommandBase {
                     }
 
                     if (game != null) {
-                        game.stop(error = false)
+                        game.forceStop(error = false)
                         sender.sendMessage("Successfully terminated.")
                     } else {
                         sender.sendMessage("That game does not exist.")

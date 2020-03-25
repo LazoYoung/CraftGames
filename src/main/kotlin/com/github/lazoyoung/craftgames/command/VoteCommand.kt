@@ -36,14 +36,14 @@ class VoteCommand : CommandBase {
 
         try {
             val lobby = Module.getLobbyModule(pdata.game)
-            val interval = Timer(Timer.Unit.SECOND, 3)
+            val interval = Timer(Timer.Unit.SECOND, 2)
             val text = if (lobby.voteMap(pdata.player, mapName = args[0])) {
                 listOf("&aYou voted for ${args[0]}!")
             } else {
                 listOf("&eYou have already voted.")
             }
 
-            MessageTask(pdata.player, ChatMessageType.ACTION_BAR, text, 2, interval).start()
+            MessageTask(pdata.player, ChatMessageType.ACTION_BAR, text, 3, interval).start()
         } catch (e: MapNotFound) {
             sender.sendActionBar('&', e.localizedMessage)
         }

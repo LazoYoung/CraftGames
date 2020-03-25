@@ -5,35 +5,42 @@ import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.module.api.GameModule
+import com.github.lazoyoung.craftgames.module.api.LobbyModule
+import com.github.lazoyoung.craftgames.module.api.MobModule
+import com.github.lazoyoung.craftgames.module.api.PlayerModule
+import com.github.lazoyoung.craftgames.module.service.GameModuleImpl
+import com.github.lazoyoung.craftgames.module.service.LobbyModuleImpl
+import com.github.lazoyoung.craftgames.module.service.MobModuleImpl
+import com.github.lazoyoung.craftgames.module.service.PlayerModuleImpl
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
-import org.bukkit.scheduler.BukkitRunnable
 import javax.script.Bindings
 import javax.script.ScriptException
 
 class Module(val game: Game) {
 
-    internal val spawnModule = SpawnModuleImpl(game)
+    internal val gameModule = GameModuleImpl(game)
     internal val lobbyModule = LobbyModuleImpl(game)
     internal val playerModule = PlayerModuleImpl(game)
-    internal val tasks = HashMap<String, BukkitRunnable>()
+    internal val mobModule = MobModuleImpl(game)
     private val script = game.resource.script
     private val bind: Bindings
 
     init {
         bind = script.getBindings()
-        bind["SpawnModule"] = spawnModule as SpawnModule
+        bind["GameModule"] = gameModule as GameModule
         bind["LobbyModule"] = lobbyModule as LobbyModule
         bind["PlayerModule"] = playerModule as PlayerModule
+        bind["MobModule"] = mobModule as MobModule
         script.execute("import com.github.lazoyoung.craftgames.module.Module")
         script.execute("import com.github.lazoyoung.craftgames.module.Timer")
         script.parse()
     }
 
     companion object {
-        fun getSpawnModule(game: Game): SpawnModule {
-            return game.module.spawnModule
+        fun getGameModule(game: Game): GameModule {
+            return game.module.gameModule
         }
 
         fun getLobbyModule(game: Game): LobbyModule {
@@ -65,23 +72,17 @@ class Module(val game: Game) {
                 Game.Phase.LOBBY -> {
                     func = "initLobby"
                     script.invokeFunction(func)
-                    lobbyModule.startTimer()
+                    lobbyModule.startService()
                 }
                 Game.Phase.PLAYING -> {
                     func = "initGame"
                     script.invokeFunction(func)
-                    lobbyModule.reset()
-
-                    // FIXME Populate to GameModule
-                    game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
-                        spawnModule.teleport(p)
-                        p.player.gameMode = playerModule.gameMode
-                    }
-                }
-                Game.Phase.FINISH -> { /* Reward logic */
+                    lobbyModule.endService()
+                    gameModule.startService()
                 }
                 Game.Phase.SUSPEND -> {
-                    tasks.values.forEach(BukkitRunnable::cancel)
+                    lobbyModule.endService()
+                    gameModule.endService()
                     bind.clear()
                     script.closeIO()
                     // TODO Scheduler Module: Suspend schedulers
@@ -94,7 +95,7 @@ class Module(val game: Game) {
                                 .color(ChatColor.RED).create()
                 )
             } else {
-                game.stop(async = true, error = true)
+                game.forceStop(async = true, error = true)
             }
             if (func != null) {
                 val path = script.writeStackTrace(e)

@@ -1,6 +1,5 @@
-package com.github.lazoyoung.craftgames.module
+package com.github.lazoyoung.craftgames.module.api
 
-import org.bukkit.GameMode
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.scoreboard.Team
@@ -15,6 +14,7 @@ interface PlayerModule {
      * @param killer is the only player binded to this trigger.
      * @param trigger The trigger that you want to add.
      */
+    // TODO Allow to bind MythicMobs
     fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>)
 
     /**
@@ -44,8 +44,6 @@ interface PlayerModule {
      * @param trigger The trigger that you want to add.
      */
     fun addDeathTrigger(trigger: Predicate<Player>)
-
-    fun setDefaultGameMode(mode: GameMode)
 
     fun getPlayers(): List<Player>
 

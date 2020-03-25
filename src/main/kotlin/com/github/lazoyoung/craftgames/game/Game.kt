@@ -28,7 +28,7 @@ class Game(
         /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class Phase { LOBBY, PLAYING, FINISH, SUSPEND }
+    enum class Phase { LOBBY, PLAYING, SUSPEND }
 
     /** The state of game progress **/
     lateinit var phase: Phase
@@ -129,7 +129,7 @@ class Game(
                     consumer?.accept(game)
                 })
             } catch (e: MapNotFound) {
-                game.stop(async = false, error = true)
+                game.forceStop(async = false, error = true)
                 e.printStackTrace()
             }
         }
@@ -170,6 +170,10 @@ class Game(
         }
     }
 
+    override fun hashCode(): Int {
+        return id
+    }
+
     /**
      * Leave the lobby (if present) and start the game.
      *
@@ -207,17 +211,7 @@ class Game(
         }
     }
 
-    // TODO Migrate to GameModule (internal code)
-    fun finish() {
-        if (!editMode && phase == Phase.PLAYING) {
-            updatePhase(Phase.FINISH)
-            /* TODO Ceremony period */
-        }
-
-        close()
-    }
-
-    fun stop(async: Boolean = true, error: Boolean) {
+    fun forceStop(async: Boolean = true, error: Boolean) {
         getPlayers().forEach {
             if (error) {
                 it.sendMessage(
@@ -244,15 +238,20 @@ class Game(
 
         when (phase) {
             Phase.LOBBY -> {
+                module.playerModule.restore(player)
                 module.lobbyModule.teleport(player)
                 player.sendMessage("You joined the game: $name")
             }
             Phase.PLAYING -> {
-                module.spawnModule.teleport(playerData)
+                module.playerModule.restore(player)
+                module.gameModule.teleport(playerData)
                 player.sendMessage("You joined the ongoing game: $name")
             }
             else -> {
-                player.sendMessage("This game is terminating soon.")
+                player.sendMessage(
+                        ComponentBuilder("This game is terminating.")
+                        .color(ChatColor.YELLOW).create().first()
+                )
                 return
             }
         }
@@ -269,7 +268,7 @@ class Game(
                 module.lobbyModule.teleport(player)
             }
             Phase.PLAYING -> {
-                module.spawnModule.teleport(playerData)
+                module.gameModule.teleport(playerData)
             }
             else -> return
         }
@@ -282,7 +281,7 @@ class Game(
         val uid = player.uniqueId
 
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawnModule.teleport(playerData)
+        module.gameModule.teleport(playerData)
         players.add(uid)
         player.sendMessage("You are editing \'${map.mapID}\' in $name.")
     }
@@ -303,15 +302,10 @@ class Game(
     }
 
     /**
-     * Update the GamePhase, resulting in the changes of World and Modules.
+     * Terminate the game.
      *
-     * @param phase The new game phase
+     * @param async Asynchronously destruct the map if true.
      */
-    internal fun updatePhase(phase: Phase) {
-        this.phase = phase
-        module.update()
-    }
-
     internal fun close(async: Boolean = true) {
         getPlayers().forEach { leave(it) }
         resource.saveToDisk(saveTag = editMode)
@@ -321,5 +315,15 @@ class Game(
             map.destruct(async)
         }
         purge(this)
+    }
+
+    /**
+     * Update the GamePhase, resulting in the changes of World and Modules.
+     *
+     * @param phase The new game phase
+     */
+    internal fun updatePhase(phase: Phase) {
+        this.phase = phase
+        module.update()
     }
 }

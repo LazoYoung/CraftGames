@@ -60,14 +60,14 @@ class Main : JavaPlugin(), CommandExecutor {
 
     override fun onDisable() {
         // Close games
-        Game.find().forEach { it.stop(async = false, error = false) }
+        Game.find().forEach { it.forceStop(async = false, error = false) }
     }
 
     private fun loadConfig() {
         saveDefaultConfig()
         config.options().copyDefaults(true)
         Main.config = config
-        charset = Charset.forName(config.getString("file-encoding"))
+        charset = Charset.forName(config.getString("file-encoding") ?: "UTF-8")
     }
 
     private fun loadAsset() {
