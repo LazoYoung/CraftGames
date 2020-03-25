@@ -28,8 +28,10 @@ import java.util.function.Consumer
 
 class GameModuleService(val game: Game) : GameModule {
 
-    /** Default GameMode **/
-    internal var defGameMode = GameMode.ADVENTURE
+    internal var defaultGameMode = GameMode.ADVENTURE
+    internal var canJoinAfterStart = false
+    internal var minPlayer = 1
+    internal var maxPlayer = 10
     private var timer: Long = Timer(Timer.Unit.MINUTE, 3).toSecond()
     private var respawnTimer: Long = Timer(Timer.Unit.SECOND, 20).toTick()
     private var personal: CoordTag? = null
@@ -72,8 +74,17 @@ class GameModuleService(val game: Game) : GameModule {
         }
     }
 
+    override fun setPlayerCapacity(min: Int, max: Int) {
+        this.minPlayer = min
+        this.maxPlayer = max
+    }
+
+    override fun setCanJoinAfterStart(boolean: Boolean) {
+        this.canJoinAfterStart = boolean
+    }
+
     override fun setDefaultGameMode(mode: GameMode) {
-        this.defGameMode = mode
+        this.defaultGameMode = mode
     }
 
     override fun broadcast(message: String) {

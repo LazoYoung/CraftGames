@@ -32,11 +32,10 @@ class Game(
 ) {
     enum class Phase { LOBBY, PLAYING, SUSPEND }
 
+    enum class RejectCause { FULL, IN_GAME, TERMINATING }
+
     /** The state of game progress **/
     lateinit var phase: Phase
-
-    /** Can players can join at this moment? **/
-    var canJoin = true
 
     /** All kind of modules **/
     val module = Module(this)
@@ -187,7 +186,6 @@ class Game(
      */
     fun start(mapID: String?, votes: Int? = null, result: Consumer<Game>? = null) {
         val plugin = Main.instance
-        canJoin = false
 
         try {
             val thisMap = (if (mapID == null) {
@@ -231,18 +229,30 @@ class Game(
         close(async)
     }
 
-    fun join(player: Player) {
-        if (!canJoin) {
-            player.sendMessage(
-                    *ComponentBuilder("You cannot join this game.")
-                            .color(ChatColor.YELLOW).create()
-            )
+    /**
+     * This function explains why you can't join this game.
+     * @return A [RejectCause] unless you can join (in that case null is returned).
+     */
+    fun getRejectCause(): RejectCause? {
+        val service = module.gameModule
+
+        return if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
+            RejectCause.IN_GAME
+        } else if (players.count() >= service.maxPlayer) {
+            RejectCause.FULL
         } else if (phase == Phase.SUSPEND) {
-            player.sendMessage(
-                    *ComponentBuilder("This game is terminating.")
-                            .color(ChatColor.YELLOW).create()
-            )
+            RejectCause.TERMINATING
         } else {
+            null
+        }
+    }
+
+    fun canJoin(): Boolean {
+        return getRejectCause() == null
+    }
+
+    fun join(player: Player) {
+        if (canJoin()) {
             val playerData = GamePlayer.register(player, this)
             val uid = player.uniqueId
 
@@ -252,13 +262,22 @@ class Game(
 
             if (phase == Phase.LOBBY) {
                 module.playerModule.restore(player)
-                module.lobbyModule.teleport(player)
+                module.lobbyModule.join(player)
                 player.sendMessage("You joined the game: $name")
             } else if (phase == Phase.PLAYING) {
                 module.playerModule.restore(player)
                 module.gameModule.teleport(playerData)
                 player.sendMessage("You joined the ongoing game: $name")
             }
+        } else {
+            val text = when (getRejectCause()) {
+                RejectCause.TERMINATING -> "The game is terminating."
+                RejectCause.FULL -> "The game is full."
+                RejectCause.IN_GAME -> "The game has already started."
+                else -> "You can't join this game."
+            }
+
+            player.sendMessage(*ComponentBuilder(text).color(ChatColor.YELLOW).create())
         }
     }
 
@@ -269,7 +288,7 @@ class Game(
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
         when (phase) {
             Phase.LOBBY -> {
-                module.lobbyModule.teleport(player)
+                module.lobbyModule.join(player)
             }
             Phase.PLAYING -> {
                 module.gameModule.teleport(playerData)

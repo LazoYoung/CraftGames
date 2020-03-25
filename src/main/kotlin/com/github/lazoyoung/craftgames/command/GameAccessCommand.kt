@@ -28,7 +28,7 @@ class GameAccessCommand : CommandBase {
                 }
 
                 if (args.isEmpty()) {
-                    val game = Game.find(null, false).firstOrNull { it.canJoin }
+                    val game = Game.find(null, false).firstOrNull { it.canJoin() }
 
                     if (game != null) {
                         game.join(sender)
@@ -50,7 +50,7 @@ class GameAccessCommand : CommandBase {
                 warn.color = ChatColor.RED
 
                 try {
-                    val game = Game.find(args[0], false).firstOrNull { it.canJoin }
+                    val game = Game.find(args[0], false).firstOrNull { it.canJoin() }
 
                     if (game == null) {
                         Game.openNew(args[0], editMode = false, mapID = null, consumer = Consumer{

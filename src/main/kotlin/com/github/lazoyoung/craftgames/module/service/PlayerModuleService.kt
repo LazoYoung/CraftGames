@@ -77,7 +77,7 @@ class PlayerModuleService(val game: Game) : PlayerModule {
     }
 
     fun restore(player: Player) {
-        player.gameMode = game.module.gameModule.defGameMode
+        player.gameMode = game.module.gameModule.defaultGameMode
         player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
         player.foodLevel = 20
         player.saturation = 5.0f

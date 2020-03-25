@@ -21,11 +21,13 @@ import kotlin.collections.HashMap
 class LobbyModuleService(val game: Game) : LobbyModule {
 
     private var tag: CoordTag? = null
-    private var timer = Timer(Timer.Unit.SECOND, 30)
+    private var constTimer = Timer(Timer.Unit.SECOND, 30).toSecond()
+    private var timer = constTimer
     private val voted = ArrayList<UUID>()
     private val votes = HashMap<String, Int>()
     private val notFound = ComponentBuilder("Unable to locate lobby position!")
             .color(ChatColor.RED).create().first() as TextComponent
+    private var ticking = false
     private var serviceTask: BukkitRunnable? = null
 
     override fun setSpawn(spawnTag: String) {
@@ -33,7 +35,7 @@ class LobbyModuleService(val game: Game) : LobbyModule {
     }
 
     override fun setTimer(timer: Timer) {
-        this.timer = timer
+        this.constTimer = timer.toSecond()
     }
 
     /**
@@ -60,7 +62,7 @@ class LobbyModuleService(val game: Game) : LobbyModule {
         return true
     }
 
-    internal fun teleport(player: Player) {
+    internal fun join(player: Player) {
         val world = game.map.world!!
         val c = tag?.getLocalCaptures()?.random() as SpawnCapture?
 
@@ -70,49 +72,72 @@ class LobbyModuleService(val game: Game) : LobbyModule {
             player.teleport(world.spawnLocation)
             player.sendMessage(notFound)
         }
+
+        val plugin = Main.instance
+        val min = game.module.gameModule.minPlayer
+        val count = Module.getPlayerModule(game).getPlayers().size
+
+        // Start timer if minimum player has reached.
+        if (!ticking && count >= min) {
+            ticking = true
+            startService()
+            serviceTask!!.runTaskTimer(plugin, 0L, 20L)
+        }
     }
 
-    internal fun startService() {
-        val plugin = Main.instance
-        var sec = this.timer.toTick().toInt() / 20
+    internal fun clear() {
+        serviceTask?.cancel()
+        voted.clear()
+        votes.clear()
+    }
 
+    private fun startService() {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
-                if (--sec <= 0) {
+                if (--timer <= 0) {
+                    val playerCount = Module.getPlayerModule(game).getPlayers().size
+                    val min = game.module.gameModule.minPlayer
                     val list = LinkedList(votes.entries)
 
-                    Collections.sort(list, Comparator { o1, o2 ->
-                        val comp = (o1.value - o2.value) * -1
+                    if (playerCount < min) {
+                        Module.getGameModule(game).broadcast("&eNot enough players to start! Waiting for more...")
+                    } else {
+                        Collections.sort(list, Comparator { o1, o2 ->
+                            val comp = (o1.value - o2.value) * -1
 
-                        return@Comparator if (comp != 0) {
-                            comp
-                        } else {
-                            o1.key.compareTo(o2.key)
+                            return@Comparator if (comp != 0) {
+                                comp
+                            } else {
+                                o1.key.compareTo(o2.key)
+                            }
+                        })
+
+                        try {
+                            val entry = list.firstOrNull()
+
+                            if (entry != null) {
+                                // This entry has received top votes.
+                                game.start(entry.key, entry.value)
+                            } else {
+                                // No one has voted.
+                                game.start(null)
+                            }
+                        } catch (e: MapNotFound) {
+                            game.forceStop(async = false, error = true)
+                            e.printStackTrace()
                         }
-                    })
-
-                    try {
-                        val entry = list.firstOrNull()
-
-                        if (entry != null) {
-                            // This entry has received top votes.
-                            game.start(entry.key, entry.value)
-                        } else {
-                            // No one has voted.
-                            game.start(null)
-                        }
-                    } catch (e: MapNotFound) {
-                        game.forceStop(async = false, error = true)
-                        e.printStackTrace()
                     }
+
+                    timer = constTimer
+                    ticking = false
                     this.cancel()
                     return
                 }
 
                 val valid = arrayOf(30, 20, 10, 5, 4, 3, 2, 1)
 
-                if (sec % 60 == 0 || sec < 60 && valid.contains(sec)) {
-                    val format = Timer(Timer.Unit.SECOND, sec.toLong()).format(true)
+                if (timer.toInt() % 60 == 0 || timer < 60 && valid.contains(timer.toInt())) {
+                    val format = Timer(Timer.Unit.SECOND, timer).format(true)
 
                     // TODO Player UI Module: Replace with dedicated function
                     game.getPlayers().forEach {
@@ -121,14 +146,6 @@ class LobbyModuleService(val game: Game) : LobbyModule {
                 }
             }
         }
-
-        serviceTask!!.runTaskTimer(plugin, 0L, 20L)
-    }
-
-    internal fun endService() {
-        serviceTask?.cancel()
-        voted.clear()
-        votes.clear()
     }
 
 }
