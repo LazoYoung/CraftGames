@@ -3,14 +3,8 @@ package com.github.lazoyoung.craftgames.module
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.module.api.GameModule
-import com.github.lazoyoung.craftgames.module.api.LobbyModule
-import com.github.lazoyoung.craftgames.module.api.MobModule
-import com.github.lazoyoung.craftgames.module.api.PlayerModule
-import com.github.lazoyoung.craftgames.module.service.GameModuleService
-import com.github.lazoyoung.craftgames.module.service.LobbyModuleService
-import com.github.lazoyoung.craftgames.module.service.MobModuleService
-import com.github.lazoyoung.craftgames.module.service.PlayerModuleService
+import com.github.lazoyoung.craftgames.module.api.*
+import com.github.lazoyoung.craftgames.module.service.*
 import com.github.lazoyoung.craftgames.player.PlayerData
 import javax.script.Bindings
 
@@ -20,6 +14,7 @@ class Module internal constructor(val game: Game) {
     internal val lobbyModule = LobbyModuleService(game)
     internal val playerModule = PlayerModuleService(game)
     internal val mobModule = MobModuleService(game)
+    internal val scriptModule = ScriptModuleService(game)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -31,10 +26,16 @@ class Module internal constructor(val game: Game) {
         bind["LobbyModule"] = lobbyModule as LobbyModule
         bind["PlayerModule"] = playerModule as PlayerModule
         bind["MobModule"] = mobModule as MobModule
+        bind["ScriptModule"] = scriptModule as ScriptModule
         script.startLogging()
+        /*
+            FIXME These executions ain't reflected into Main script.
+        script.execute("import com.github.lazoyoung.craftgames.module.api.GameModule.*")
+        script.execute("import com.github.lazoyoung.craftgames.module.api.ScriptModule.*")
         script.execute("import com.github.lazoyoung.craftgames.module.Module")
         script.execute("import com.github.lazoyoung.craftgames.util.Timer")
         script.execute("import com.github.lazoyoung.craftgames.util.MessageTask")
+         */
         script.parse()
         CoordTag.reload(game)
     }

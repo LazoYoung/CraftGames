@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.module.service
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
+import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.exception.UndefinedCoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
@@ -146,6 +147,9 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     internal fun startService() {
         val playerModule = game.module.playerModule
 
+        // Fire event
+        Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+
         // Setup players
         game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
             teleport(p)
@@ -156,7 +160,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
                 val format = Timer(Timer.Unit.SECOND, timer).format(false)
-                val title = StringBuilder("\u00A76TIME \u00A77- ")
+                val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
                 val progress = timer.toDouble() / timerLength
 
                 when {

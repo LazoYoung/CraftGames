@@ -14,7 +14,7 @@ interface PlayerModule {
      * @param killer is the only player binded to this trigger.
      * @param trigger The trigger that you want to add.
      */
-    fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>)
+    fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>)
 
     /**
      * The [trigger] executes right after the given [player] dies.
@@ -25,7 +25,7 @@ interface PlayerModule {
      * @param player This player is the only one binded to the trigger.
      * @param trigger The trigger that you want to add.
      */
-    fun addDeathTrigger(player: Player, trigger: Predicate<Player>)
+    fun setDeathTrigger(player: Player, trigger: Predicate<Player>)
 
     fun getLivingPlayers(): List<Player>
 

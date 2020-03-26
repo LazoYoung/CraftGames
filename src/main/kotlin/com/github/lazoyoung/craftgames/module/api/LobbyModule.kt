@@ -18,4 +18,8 @@ interface LobbyModule {
      */
     fun setTimer(timer: Timer)
 
+    fun setExitWorld(world: String, x: Double, y: Double, z: Double)
+
+    fun setExitServer(server: String)
+
 }

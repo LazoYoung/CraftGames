@@ -10,6 +10,7 @@ import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.MessengerUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -316,15 +317,32 @@ class Game(
 
     fun leave(playerData: PlayerData) {
         val player = playerData.player
+        val restoreKey = player.uniqueId.toString().plus(".location")
         val uid = player.uniqueId
+        val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
+        val lobby = module.lobbyModule
 
         MessageTask.clear(player, ChatMessageType.ACTION_BAR)
         module.ejectPlayer(playerData)
-        resource.restoreConfig.getLocation(uid.toString().plus(".location"))?.let {
-            player.teleport(it, PlayerTeleportEvent.TeleportCause.PLUGIN)
-        }
         players.remove(uid)
         playerData.unregister()
+
+        if (lobby.exitLoc != null) {
+            player.teleport(lobby.exitLoc!!, cause)
+        } else {
+            resource.restoreConfig.getLocation(restoreKey)?.let {
+                player.teleport(it, cause)
+            }
+        }
+
+        if (lobby.exitServer != null) {
+            MessengerUtil.request(player, arrayOf("GetServers"), Consumer { servers ->
+                if (servers?.split(", ")?.contains(lobby.exitServer!!) == true) {
+                    MessengerUtil.request(player, arrayOf("Connect", lobby.exitServer!!))
+                }
+            })
+        }
+
         player.sendMessage("You left the game.")
     }
 

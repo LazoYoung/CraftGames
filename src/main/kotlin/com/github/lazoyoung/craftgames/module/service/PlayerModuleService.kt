@@ -26,7 +26,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
 
-    override fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>) {
+    override fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>) {
         killTriggers[killer.uniqueId] = BiConsumer { t, u ->
             try {
                 trigger.accept(t, u)
@@ -37,7 +37,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         script.getLogger()?.println("A kill trigger has been binded to ${killer.name}.")
     }
 
-    override fun addDeathTrigger(player: Player, trigger: Predicate<Player>) {
+    override fun setDeathTrigger(player: Player, trigger: Predicate<Player>) {
         deathTriggers[player.uniqueId] = Predicate { p ->
             try {
                 return@Predicate trigger.test(p)
@@ -81,12 +81,16 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         player.sendMessage(*TextComponent.fromLegacyText(message.replace('&', '\u00A7')))
     }
 
-    fun restore(player: Player) {
+    fun restore(player: Player, leave: Boolean = false) {
         player.gameMode = game.module.gameModule.defaultGameMode
         player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
         player.foodLevel = 20
         player.saturation = 5.0f
         player.exhaustion = 0.0f
+
+        if (leave) {
+            // TODO Restore inventory
+        }
     }
 
 }

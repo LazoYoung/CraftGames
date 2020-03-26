@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.command.GameAccessCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
 import com.github.lazoyoung.craftgames.command.VoteCommand
 import com.github.lazoyoung.craftgames.event.listener.GameListener
+import com.github.lazoyoung.craftgames.util.MessengerUtil
 import com.github.lazoyoung.craftgames.event.listener.ServerListener
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.util.FileUtil
@@ -43,6 +44,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val accessExecutor = GameAccessCommand()
         val voteExecutor = VoteCommand()
         val manager = Bukkit.getPluginManager()
+        val messenger = Bukkit.getMessenger()
         instance = this
         Main.logger = logger
 
@@ -61,6 +63,8 @@ class Main : JavaPlugin(), CommandExecutor {
         voteCmd.tabCompleter = voteExecutor
         manager.registerEvents(ServerListener(), this)
         manager.registerEvents(GameListener(), this)
+        messenger.registerOutgoingPluginChannel(this, "BungeeCord")
+        messenger.registerIncomingPluginChannel(this, "BungeeCord", MessengerUtil())
     }
 
     override fun onDisable() {

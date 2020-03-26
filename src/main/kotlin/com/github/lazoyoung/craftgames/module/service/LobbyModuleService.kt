@@ -11,6 +11,7 @@ import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
@@ -20,6 +21,8 @@ import kotlin.collections.HashMap
 
 class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
 
+    internal var exitLoc: Location? = null
+    internal var exitServer: String? = null
     private var tag: CoordTag? = null
     private var constTimer = Timer(Timer.Unit.SECOND, 30).toSecond()
     private var timer = constTimer
@@ -36,6 +39,18 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
 
     override fun setTimer(timer: Timer) {
         this.constTimer = timer.toSecond()
+        this.timer = constTimer
+    }
+
+    override fun setExitWorld(world: String, x: Double, y: Double, z: Double) {
+        val bukkitWorld = Bukkit.getWorld(world)
+                ?: throw IllegalArgumentException("World $world does not exist.")
+
+        this.exitLoc = Location(bukkitWorld, x, y, z)
+    }
+
+    override fun setExitServer(server: String) {
+        this.exitServer = server
     }
 
     /**
@@ -80,7 +95,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
         // Start timer if minimum player has reached.
         if (!ticking && count >= min) {
             ticking = true
-            startService()
+            startTimer()
             serviceTask!!.runTaskTimer(plugin, 0L, 20L)
         }
     }
@@ -91,7 +106,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
         votes.clear()
     }
 
-    private fun startService() {
+    private fun startTimer() {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
                 if (--timer <= 0) {
