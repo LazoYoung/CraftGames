@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.game
 
-import com.github.lazoyoung.craftgames.util.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
@@ -8,6 +7,7 @@ import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.script.ScriptFactory
+import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.io.IOException
@@ -137,7 +137,7 @@ class GameResource(private val gameName: String) {
         }
 
         try {
-            script = ScriptFactory.getInstance(scriptFile)
+            script = ScriptFactory.get(scriptFile)
         } catch (e: ScriptEngineNotFound) {
             Main.logger.warning(e.localizedMessage)
         }

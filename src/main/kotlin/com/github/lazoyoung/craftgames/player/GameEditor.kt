@@ -57,6 +57,10 @@ class GameEditor private constructor(
          * @param player who will edit the map
          * @param gameName Identifies the game in which the editor mode takes place.
          * @param mapID Identifies the map in which the editor mode takes place.
+         * @throws GameNotFound
+         * @throws MapNotFound
+         * @throws FaultyConfiguration
+         * @throws RuntimeException
          */
         fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
@@ -72,23 +76,13 @@ class GameEditor private constructor(
 
             if (mapID == GameResource(gameName).lobbyMap.mapID) {
                 Game.openNew(gameName, editMode = true, mapID = null)
-            } else try {
+            } else {
                 Game.openNew(gameName, editMode = true, mapID = mapID, consumer = Consumer
                 { game ->
-                        val instance = GameEditor(player, game)
-                        registry[pid] = instance
-                        game.startEdit(instance)
+                    val instance = GameEditor(player, game)
+                    registry[pid] = instance
+                    game.startEdit(instance)
                 })
-            } catch (e: GameNotFound) {
-                report.text = e.localizedMessage
-                player.sendMessage(report)
-            } catch (e: MapNotFound) {
-                report.text = "Map not found: $mapID"
-                player.sendMessage(report)
-            } catch (e: Exception) {
-                report.text = e.localizedMessage
-                player.sendMessage(report)
-                Main.logger.warning(report.toPlainText())
             }
         }
     }

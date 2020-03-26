@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.script
 
-import com.github.lazoyoung.craftgames.util.FileUtil
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.util.FileUtil
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
 import java.io.BufferedReader
 import java.io.File
@@ -18,25 +18,31 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
     private var script: CompiledScript? = null
     private val dir = file.resolveSibling("log").resolve(file.nameWithoutExtension)
     private val reader = BufferedReader(FileUtil.getBufferedReader(file))
+    private var logger: PrintWriter? = null
     private val context = SimpleScriptContext()
-    private val logger: PrintWriter
     private val bindings: Bindings
 
     init {
-        val format = getFilenameFormat()
-        val logFile = dir.resolve("Log_$format.txt")
-
-        dir.mkdirs()
-        logFile.createNewFile()
         bindings = engine.createBindings()
-        logger = PrintWriter(FileUtil.getBufferedWriter(logFile, true), true)
-        context.writer = logger
         engine.context = context
         engine.setBindings(bindings, ENGINE_SCOPE)
     }
 
     override fun getBindings(): Bindings {
         return engine.getBindings(ENGINE_SCOPE)
+    }
+
+    override fun startLogging() {
+        val format = getFilenameFormat()
+        val logFile = dir.resolve("Log_$format.txt")
+        dir.mkdirs()
+        logFile.createNewFile()
+        logger = PrintWriter(FileUtil.getBufferedWriter(logFile, true), true)
+        context.writer = logger
+    }
+
+    override fun getLogger(): PrintWriter? {
+        return logger
     }
 
     override fun parse() {
@@ -48,23 +54,18 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
             engine.eval(script)
         } catch (e: ScriptException) {
             e.printStackTrace()
-            Main.logger.warning("Failed to evaluate internal script.")
+            Main.logger.severe("Failed to evaluate internal script.")
         }
     }
 
     override fun execute() {
-        try {
-            if (script != null) {
-                script!!.eval()
-            } else {
-                engine.eval(reader)
-            }
-
-            logger.println("Script \'$name\' has been executed.")
-        } catch (e: Exception) {
-            writeStackTrace(e)
-            Main.logger.warning("Failed to evaluate script: ${file.name}")
+        if (script != null) {
+            script!!.eval()
+        } else {
+            engine.eval(reader)
         }
+
+        logger?.println("Script execution complete.")
     }
 
     override fun invokeFunction(name: String, args: Array<Any>?): Any? {
@@ -80,11 +81,12 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
             (script!!.engine as Invocable).invokeFunction(name, args)
         }
 
-        logger.println("Function \'$name\' inside ${this.file.name} has been invoked.")
+        logger?.println("Function \'$name\' execution complete.")
         return result
     }
 
     override fun closeIO() {
+        logger?.close()
         context.writer.close()
         reader.close()
     }
@@ -112,6 +114,8 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         error.println("Stacktrace of plugin source:")
         e.printStackTrace(error)
         error.close()
+        Main.logger.severe("Failed to evaluate \'${file.name}\' script!")
+        Main.logger.severe("Stacktrace location: ${file.toPath()}")
         return errorFile.toPath()
     }
 

@@ -1,5 +1,6 @@
-package com.github.lazoyoung.craftgames
+package com.github.lazoyoung.craftgames.event.listener
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.service.GameModuleService
@@ -18,7 +19,7 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldInitEvent
 
-class EventListener : Listener {
+class ServerListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onWorldLoad(event: WorldInitEvent) {
@@ -50,16 +51,17 @@ class EventListener : Listener {
     }
 
     @EventHandler
-    fun onMobDeath(event: EntityDeathEvent) {
+    fun onPlayerKill(event: EntityDeathEvent) {
         val entity = event.entity
         val gamePlayer = (entity as? Player)?.killer
                 ?.let { PlayerData.get(it.uniqueId) } as? GamePlayer
                 ?: return
         val player = gamePlayer.player
-        val triggers = gamePlayer.game.module.playerModule.killTriggers
+        val service = gamePlayer.game.module.playerModule
 
-        // Fire the trigger
-        triggers[player.uniqueId]?.accept(player, entity)
+        if (gamePlayer.game.phase == Game.Phase.PLAYING) {
+            service.killTriggers[player.uniqueId]?.accept(player, entity)
+        }
     }
 
     @EventHandler
@@ -67,9 +69,13 @@ class EventListener : Listener {
         val player = event.entity
         val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
         val playerModule = getPlayerModuleImpl(event.entity) ?: return
+
+        if (playerModule.game.phase != Game.Phase.PLAYING)
+            return
+
+        // Trigger DeathEvent
         val gameModule = Module.getGameModule(playerModule.game) as GameModuleService
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.test(player)
-
         event.isCancelled = true
 
         // React to the trigger result

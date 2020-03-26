@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.module.service
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
+import com.github.lazoyoung.craftgames.exception.UndefinedCoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.GameModule
@@ -26,13 +27,14 @@ import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.function.Consumer
 
-class GameModuleService(val game: Game) : GameModule {
+class GameModuleService internal constructor(val game: Game) : GameModule {
 
     internal var defaultGameMode = GameMode.ADVENTURE
     internal var canJoinAfterStart = false
     internal var minPlayer = 1
     internal var maxPlayer = 10
     private var timer: Long = Timer(Timer.Unit.MINUTE, 3).toSecond()
+    private var timerLength = timer
     private var respawnTimer: Long = Timer(Timer.Unit.SECOND, 20).toTick()
     private var personal: CoordTag? = null
     private var editor: CoordTag? = null
@@ -53,11 +55,11 @@ class GameModuleService(val game: Game) : GameModule {
     }
 
     override fun setGameTimer(timer: Timer) {
-        this.timer = timer.toSecond()
-
-        if (game.phase == Game.Phase.PLAYING) {
-            // TODO Player UI Module: inform players about this change.
+        if (game.phase == Game.Phase.LOBBY) {
+            this.timerLength = timer.toSecond()
         }
+
+        this.timer = timer.toSecond()
     }
 
     override fun setRespawnTimer(timer: Timer) {
@@ -114,6 +116,9 @@ class GameModuleService(val game: Game) : GameModule {
             location = world.spawnLocation
             player.sendMessage(notFound)
         } else {
+            if (tag.getLocalCaptures().isEmpty())
+                throw UndefinedCoordTag("${tag.name} has no capture in map: ${game.map.mapID}")
+
             val c = tag.getLocalCaptures().random() as SpawnCapture
             location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
         }
@@ -150,12 +155,27 @@ class GameModuleService(val game: Game) : GameModule {
 
         serviceTask = object : BukkitRunnable() {
             override fun run() {
-                val timeFrame = Timer(Timer.Unit.SECOND, timer)
-                bossBar.setTitle(
-                        StringBuilder("TIME - ")
-                                .append(timeFrame.format(false))
-                                .toString()
-                )
+                val format = Timer(Timer.Unit.SECOND, timer).format(false)
+                val title = StringBuilder("\u00A76TIME \u00A77- ")
+                val progress = timer.toDouble() / timerLength
+
+                when {
+                    progress < 0.1 -> {
+                        bossBar.color = BarColor.RED
+                        title.append("\u00A7c").append(format)
+                    }
+                    progress < 0.2 -> {
+                        bossBar.color = BarColor.YELLOW
+                        title.append("\u00A7e").append(format)
+                    }
+                    else -> {
+                        bossBar.color = BarColor.WHITE
+                        title.append("\u00A7f").append(format)
+                    }
+                }
+
+                bossBar.progress = progress
+                bossBar.setTitle(title.toString())
 
                 if (timer-- < 1) {
                     finish()

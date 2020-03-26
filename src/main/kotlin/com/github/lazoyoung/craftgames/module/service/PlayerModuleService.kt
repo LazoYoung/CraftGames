@@ -20,30 +20,36 @@ import java.util.function.BiConsumer
 import java.util.function.Predicate
 import kotlin.collections.HashMap
 
-class PlayerModuleService(val game: Game) : PlayerModule {
+class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
 
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
-
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
+    private val script = game.resource.script
 
     override fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>) {
-        // FIXME Trigger exception must be caught.
-        killTriggers[killer.uniqueId] = trigger
-    }
-
-    override fun addKillTrigger(trigger: BiConsumer<Player, LivingEntity>) {
-        getPlayers().forEach { addKillTrigger(it, trigger) }
+        killTriggers[killer.uniqueId] = BiConsumer { t, u ->
+            try {
+                trigger.accept(t, u)
+            } catch (e: Exception) {
+                script.writeStackTrace(e)
+            }
+        }
+        script.getLogger()?.println("A kill trigger has been binded to ${killer.name}.")
     }
 
     override fun addDeathTrigger(player: Player, trigger: Predicate<Player>) {
-        deathTriggers[player.uniqueId] = trigger
+        deathTriggers[player.uniqueId] = Predicate { p ->
+            try {
+                return@Predicate trigger.test(p)
+            } catch (e: Exception) {
+                script.writeStackTrace(e)
+            }
+            return@Predicate false
+        }
+        script.getLogger()?.println("A death trigger has been binded to ${player.name}.")
     }
 
-    override fun addDeathTrigger(trigger: Predicate<Player>) {
-        getPlayers().forEach { addDeathTrigger(it, trigger) }
-    }
-
-    override fun getPlayers(): List<Player> {
+    override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
     }
 
@@ -61,8 +67,7 @@ class PlayerModuleService(val game: Game) : PlayerModule {
 
     override fun eliminate(player: Player) {
         val gamePlayer = PlayerData.get(player.uniqueId) as? GamePlayer
-                ?: return // TODO Write warning to script logger.
-
+                ?: throw IllegalArgumentException("Player ${player.name} is not online.")
         val title = ComponentBuilder("YOU DIED").color(ChatColor.RED).create()
         val subTitle = ComponentBuilder("Type ").color(ChatColor.GRAY)
                 .append("/leave").color(ChatColor.WHITE).bold(true).append(" to exit.", RESET_FORMAT).color(ChatColor.GRAY).create()

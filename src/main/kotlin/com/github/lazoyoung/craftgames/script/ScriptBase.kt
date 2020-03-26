@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.script
 
 import java.io.File
+import java.io.PrintWriter
 import java.nio.file.Path
 import javax.script.Bindings
 
@@ -8,6 +9,10 @@ abstract class ScriptBase(file: File) {
     protected val name: String = file.nameWithoutExtension
 
     abstract fun getBindings(): Bindings
+
+    abstract fun startLogging()
+
+    abstract fun getLogger(): PrintWriter?
 
     /**
      * Compiles the script to achieve efficient executions in the future.

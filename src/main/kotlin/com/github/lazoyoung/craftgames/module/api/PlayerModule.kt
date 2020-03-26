@@ -17,13 +17,6 @@ interface PlayerModule {
     fun addKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>)
 
     /**
-     * The [trigger] executes when any [Player] kills a [LivingEntity].
-     *
-     * @param trigger The trigger that you want to add.
-     */
-    fun addKillTrigger(trigger: BiConsumer<Player, LivingEntity>)
-
-    /**
      * The [trigger] executes right after the given [player] dies.
      *
      * Boolean value returned from the Predicate
@@ -34,17 +27,7 @@ interface PlayerModule {
      */
     fun addDeathTrigger(player: Player, trigger: Predicate<Player>)
 
-    /**
-     * The [trigger] executes if any [Player] dies.
-     *
-     * Boolean value returned from the Predicate
-     * determines whether the player respawns(true) or not(false).
-     *
-     * @param trigger The trigger that you want to add.
-     */
-    fun addDeathTrigger(trigger: Predicate<Player>)
-
-    fun getPlayers(): List<Player>
+    fun getLivingPlayers(): List<Player>
 
     fun getTeamPlayers(team: Team): List<Player>
 

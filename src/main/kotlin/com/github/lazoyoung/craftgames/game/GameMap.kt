@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.game
 
-import com.github.lazoyoung.craftgames.util.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
@@ -55,31 +55,37 @@ class GameMap internal constructor(
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
         val label = Main.config.getString("world-name")
-                    ?: throw FaultyConfiguration("world-name is missing in config.yml")
-        val worldName: String
+
+        if (label == null) {
+            game.forceStop(error = true)
+            throw FaultyConfiguration("world-name is missing in config.yml")
+        }
 
         if (game.map.isGenerated) {
             regen = true
             Main.logger.info("Regenerating world...")
             Game.reassignID(game)
         }
-        worldName = StringBuilder(label).append('_').append(game.id).toString()
 
         // Load world container
         try {
             container = Bukkit.getWorldContainer().toPath()
         } catch (e: InvalidPathException) {
+            game.forceStop(error = true)
             throw RuntimeException("Failed to convert World container to path.", e)
         }
 
         // Copy map files to world container (Async)
         scheduler.runTaskAsynchronously(plugin, Runnable{
+            val worldName = StringBuilder(label).append('_').append(game.id).toString()
+
             try {
                 val targetRoot = container.resolve(repository.fileName)
                 val newRoot = container.resolve(worldName).toFile()
                 FileUtil.cloneFileTree(repository, container)
 
                 if (!targetRoot.toFile().renameTo(newRoot)) {
+                    game.forceStop(error = true)
                     throw RuntimeException("Unable to rename folder ${repository.fileName} to $worldName.")
                 }
 
@@ -89,13 +95,17 @@ class GameMap internal constructor(
                 if (e.message?.startsWith("source", true) == true) {
                     Main.logger.config("World folder \'$repository\' is missing for ${game.name}. Generating a blank world...")
                 } else {
+                    game.forceStop(error = true)
                     throw RuntimeException("$container doesn't seem to be the world container.", e)
                 }
             } catch (e: SecurityException) {
+                game.forceStop(error = true)
                 throw RuntimeException("Unable to access map file ($mapID) for ${game.name}.", e)
             } catch (e: IOException) {
+                game.forceStop(error = true)
                 throw RuntimeException("Failed to install map file ($mapID) for ${game.name}.", e)
             } catch (e: UnsupportedOperationException) {
+                game.forceStop(error = true)
                 throw RuntimeException(e)
             }
 
@@ -110,8 +120,10 @@ class GameMap internal constructor(
                 world = gen.createWorld()
                 Main.logger.info("World $worldName generated.")
 
-                if (world == null)
+                if (world == null) {
+                    game.forceStop(error = true)
                     throw RuntimeException("Unable to load world $worldName for ${game.name}")
+                }
 
                 val init = {
                     // Feed new instance into the Game
@@ -152,6 +164,7 @@ class GameMap internal constructor(
 
                     init()
                 } catch (e: InvalidPathException) {
+                    game.forceStop(error = true)
                     throw RuntimeException(e)
                 }
             })

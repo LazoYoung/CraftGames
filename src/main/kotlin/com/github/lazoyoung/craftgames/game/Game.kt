@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
@@ -116,22 +116,26 @@ class Game(
         fun openNew(name: String, editMode: Boolean, mapID: String? = null, consumer: Consumer<Game>? = null) {
             val resource = GameResource(name)
             val game = Game(name, -1, editMode, resource)
+            val initEvent = GameInitEvent(game)
 
-            assignID(game)
-            CoordTag.reload(game)
+            Bukkit.getPluginManager().callEvent(initEvent)
 
-            if (mapID == null) {
-                game.resource.lobbyMap.generate(game, Consumer {
-                    game.updatePhase(Phase.LOBBY)
-                    consumer?.accept(game)
-                })
-            } else try {
-                game.start(mapID, result = Consumer {
-                    consumer?.accept(game)
-                })
-            } catch (e: MapNotFound) {
-                game.forceStop(async = false, error = true)
-                e.printStackTrace()
+            if (initEvent.isCancelled) {
+                game.forceStop(error = true)
+                throw RuntimeException("Game failed to init.")
+            } else {
+                assignID(game)
+
+                if (mapID == null) {
+                    game.resource.lobbyMap.generate(game, Consumer {
+                        game.updatePhase(Phase.LOBBY)
+                        consumer?.accept(game)
+                    })
+                } else {
+                    game.start(mapID, result = Consumer {
+                        consumer?.accept(game)
+                    })
+                }
             }
         }
 
@@ -183,32 +187,33 @@ class Game(
      * @param mapID Select which map to play.
      * @param result Consume the generated world.
      * @throws MapNotFound is thrown if map is not found.
+     * @throws RuntimeException is thrown if map generation was failed.
+     * @throws FaultyConfiguration is thrown if map configuration is not valid.
      */
     fun start(mapID: String?, votes: Int? = null, result: Consumer<Game>? = null) {
-        val plugin = Main.instance
+        val thisMap = if (mapID == null) {
+            resource.getRandomMap()
+        } else {
+            val map = resource.mapRegistry[mapID]
 
-        try {
-            val thisMap = (if (mapID == null) {
-                resource.getRandomMap()
-            } else {
-                resource.mapRegistry[mapID] ?: throw MapNotFound("Map isn't defined in game: $name")
-            })
-
-            thisMap.generate(this, Consumer {
-                getPlayers().forEach { player ->
-                    if (votes == null) {
-                        player.sendMessage("${map.alias} is randomly chosen!")
-                    } else {
-                        player.sendMessage("${map.alias} is chosen! It has received $votes vote(s).")
-                    }
-                }
-                result?.accept(this)
-                updatePhase(Phase.PLAYING)
-            })
-        } catch (e: RuntimeException) {
-            e.printStackTrace()
-            plugin.logger.severe("Failed to regenerate map for game: $name")
+            if (map == null) {
+                forceStop(error = true)
+                throw MapNotFound("Map $mapID is not found for game: $name")
+            }
+            map
         }
+
+        thisMap.generate(this, Consumer {
+            getPlayers().forEach { player ->
+                if (votes == null) {
+                    player.sendMessage("${map.alias} is randomly chosen!")
+                } else {
+                    player.sendMessage("${map.alias} is chosen! It has received $votes vote(s).")
+                }
+            }
+            result?.accept(this)
+            updatePhase(Phase.PLAYING)
+        })
     }
 
     fun forceStop(async: Boolean = true, error: Boolean) {

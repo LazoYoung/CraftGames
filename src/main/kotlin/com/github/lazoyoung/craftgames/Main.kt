@@ -4,6 +4,8 @@ import com.github.lazoyoung.craftgames.command.CoordtagCommand
 import com.github.lazoyoung.craftgames.command.GameAccessCommand
 import com.github.lazoyoung.craftgames.command.GameCommand
 import com.github.lazoyoung.craftgames.command.VoteCommand
+import com.github.lazoyoung.craftgames.event.listener.GameListener
+import com.github.lazoyoung.craftgames.event.listener.ServerListener
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.Bukkit
@@ -40,6 +42,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val ctExecutor = CoordtagCommand()
         val accessExecutor = GameAccessCommand()
         val voteExecutor = VoteCommand()
+        val manager = Bukkit.getPluginManager()
         instance = this
         Main.logger = logger
 
@@ -56,7 +59,8 @@ class Main : JavaPlugin(), CommandExecutor {
         joinCmd.tabCompleter = accessExecutor
         leaveCmd.tabCompleter = accessExecutor
         voteCmd.tabCompleter = voteExecutor
-        Bukkit.getPluginManager().registerEvents(EventListener(), this)
+        manager.registerEvents(ServerListener(), this)
+        manager.registerEvents(GameListener(), this)
     }
 
     override fun onDisable() {

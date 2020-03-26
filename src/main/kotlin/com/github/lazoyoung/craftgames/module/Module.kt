@@ -1,9 +1,7 @@
 package com.github.lazoyoung.craftgames.module
 
-import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.TagMode
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.api.GameModule
 import com.github.lazoyoung.craftgames.module.api.LobbyModule
@@ -14,10 +12,7 @@ import com.github.lazoyoung.craftgames.module.service.LobbyModuleService
 import com.github.lazoyoung.craftgames.module.service.MobModuleService
 import com.github.lazoyoung.craftgames.module.service.PlayerModuleService
 import com.github.lazoyoung.craftgames.player.PlayerData
-import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.ComponentBuilder
 import javax.script.Bindings
-import javax.script.ScriptException
 
 class Module internal constructor(val game: Game) {
 
@@ -25,20 +20,23 @@ class Module internal constructor(val game: Game) {
     internal val lobbyModule = LobbyModuleService(game)
     internal val playerModule = PlayerModuleService(game)
     internal val mobModule = MobModuleService(game)
-    private val script = game.resource.script
     private var terminateSignal = false
     private val bind: Bindings
 
     init {
+        val script = game.resource.script
+
         bind = script.getBindings()
         bind["GameModule"] = gameModule as GameModule
         bind["LobbyModule"] = lobbyModule as LobbyModule
         bind["PlayerModule"] = playerModule as PlayerModule
         bind["MobModule"] = mobModule as MobModule
+        script.startLogging()
         script.execute("import com.github.lazoyoung.craftgames.module.Module")
         script.execute("import com.github.lazoyoung.craftgames.util.Timer")
         script.execute("import com.github.lazoyoung.craftgames.util.MessageTask")
         script.parse()
+        CoordTag.reload(game)
     }
 
     companion object {
@@ -60,9 +58,6 @@ class Module internal constructor(val game: Game) {
             if (tag.mode != TagMode.SPAWN)
                 throw IllegalArgumentException("Parameter does not accept block tag.")
 
-            if (tag.getLocalCaptures().isEmpty())
-                throw FaultyConfiguration("Tag $name doesn't have any capture in ${game.map.mapID}")
-
             return tag
         }
     }
@@ -71,17 +66,10 @@ class Module internal constructor(val game: Game) {
         if (terminateSignal)
             return
 
-        var func: String? = null
-
         try {
             when (game.phase) {
-                Game.Phase.LOBBY -> {
-                    func = "initLobby"
-                    script.invokeFunction(func)
-                }
+                Game.Phase.LOBBY -> {}
                 Game.Phase.PLAYING -> {
-                    func = "initGame"
-                    script.invokeFunction(func)
                     lobbyModule.clear()
                     gameModule.startService()
                 }
@@ -89,26 +77,13 @@ class Module internal constructor(val game: Game) {
                     lobbyModule.clear()
                     gameModule.endService()
                     bind.clear()
-                    script.closeIO()
+                    game.resource.script.closeIO()
                 }
             }
         } catch (e: Exception) {
-            if (game.editMode && e is ScriptException) {
-                game.getPlayers().first().sendMessage(
-                        *ComponentBuilder("Script error occurred! Proceeding anyway...")
-                                .color(ChatColor.RED).create()
-                )
-            } else {
-                terminateSignal = true
-                game.forceStop(async = true, error = true)
-            }
-            if (func != null) {
-                val path = script.writeStackTrace(e)
-                Main.logger.severe("Failed to invoke a function ($func) from script!")
-                Main.logger.severe("Error log at: $path")
-            } else {
-                e.printStackTrace()
-            }
+            terminateSignal = true
+            e.printStackTrace()
+            game.forceStop(async = true, error = true)
         }
     }
 

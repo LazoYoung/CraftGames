@@ -1,12 +1,10 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.PlayerData
 import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -37,17 +35,17 @@ class GameAccessCommand : CommandBase {
 
                         if (gameReg.isEmpty()) {
                             sender.sendMessage("There's no game available.")
-                        } else {
+                        } else try {
                             Game.openNew(gameReg.random(), editMode = false, mapID = null, consumer = Consumer {
                                 it.join(sender)
                             })
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            sender.sendMessage(*ComponentBuilder(e.localizedMessage).color(ChatColor.RED).create())
                         }
                     }
                     return true
                 }
-
-                val warn = TextComponent()
-                warn.color = ChatColor.RED
 
                 try {
                     val game = Game.find(args[0], false).firstOrNull { it.canJoin() }
@@ -59,19 +57,9 @@ class GameAccessCommand : CommandBase {
                     } else {
                         game.join(sender)
                     }
-                } catch (e: GameNotFound) {
-                    warn.color = ChatColor.YELLOW
-                    warn.text = e.message
-                    sender.sendMessage(warn)
-                    return true
-                } catch (e: FaultyConfiguration) {
-                    warn.text = e.message
-                    sender.sendMessage(warn)
-                    return true
-                } catch (e: RuntimeException) {
-                    warn.text = e.message
+                } catch (e: Exception) {
                     e.printStackTrace()
-                    sender.sendMessage(warn)
+                    sender.sendMessage(*ComponentBuilder("Error occurred.").color(ChatColor.RED).create())
                     return true
                 }
             }

@@ -18,7 +18,7 @@ import java.util.*
 import kotlin.collections.HashMap
 
 
-class LobbyModuleService(val game: Game) : LobbyModule {
+class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
 
     private var tag: CoordTag? = null
     private var constTimer = Timer(Timer.Unit.SECOND, 30).toSecond()
@@ -75,7 +75,7 @@ class LobbyModuleService(val game: Game) : LobbyModule {
 
         val plugin = Main.instance
         val min = game.module.gameModule.minPlayer
-        val count = Module.getPlayerModule(game).getPlayers().size
+        val count = Module.getPlayerModule(game).getLivingPlayers().size
 
         // Start timer if minimum player has reached.
         if (!ticking && count >= min) {
@@ -95,7 +95,7 @@ class LobbyModuleService(val game: Game) : LobbyModule {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
                 if (--timer <= 0) {
-                    val playerCount = Module.getPlayerModule(game).getPlayers().size
+                    val playerCount = Module.getPlayerModule(game).getLivingPlayers().size
                     val min = game.module.gameModule.minPlayer
                     val list = LinkedList(votes.entries)
 
@@ -122,7 +122,7 @@ class LobbyModuleService(val game: Game) : LobbyModule {
                                 // No one has voted.
                                 game.start(null)
                             }
-                        } catch (e: MapNotFound) {
+                        } catch (e: Exception) {
                             game.forceStop(async = false, error = true)
                             e.printStackTrace()
                         }
@@ -139,10 +139,7 @@ class LobbyModuleService(val game: Game) : LobbyModule {
                 if (timer.toInt() % 60 == 0 || timer < 60 && valid.contains(timer.toInt())) {
                     val format = Timer(Timer.Unit.SECOND, timer).format(true)
 
-                    // TODO Player UI Module: Replace with dedicated function
-                    game.getPlayers().forEach {
-                        it.sendMessage("Game starts in $format.")
-                    }
+                    Module.getGameModule(game).broadcast("&6Game starts in $format.")
                 }
             }
         }
