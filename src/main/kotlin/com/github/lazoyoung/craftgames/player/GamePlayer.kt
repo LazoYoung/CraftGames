@@ -8,8 +8,6 @@ class GamePlayer private constructor(
         player: Player,
         game: Game
 ): PlayerData(player, game) {
-    private val team = null
-    private val point = null // TODO
 
     companion object {
         internal fun register(player: Player, game: Game): GamePlayer {
@@ -20,5 +18,9 @@ class GamePlayer private constructor(
             registry[player.uniqueId] = instance
             return instance
         }
+    }
+
+    fun toSpectator() {
+        Spectator.register(player, game)
     }
 }

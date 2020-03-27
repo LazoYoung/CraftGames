@@ -19,3 +19,7 @@ commands:
     description: Manage coordinate tags.
     usage: Type /ctag to see command list.
     aliases: [ ctag, coordtag ]
+  mapvote:
+    description: Vote for a map inside a game.
+    usage: Type /vote to open menu.
+    aliases: [ vote ]

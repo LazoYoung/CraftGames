@@ -8,7 +8,7 @@ class ScriptFactory {
         /**
          * @throws ScriptEngineNotFound thrown if file extension is not recognized.
          */
-        fun getInstance(file: File) : ScriptBase {
+        fun get(file: File) : ScriptBase {
             return when (file.extension) {
                 "groovy" -> ScriptGroovy(file)
                 else -> throw ScriptEngineNotFound("Unsupported type: .${file.extension}")

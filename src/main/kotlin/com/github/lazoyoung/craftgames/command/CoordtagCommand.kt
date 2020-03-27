@@ -224,7 +224,7 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 val tag = CoordTag.getAll(player.game).firstOrNull { it.name == args[1] }
-                val captures = tag?.getCaptures(player.mapID)
+                val captures = tag?.getLocalCaptures()
 
                 when {
                     tag == null -> {
@@ -294,7 +294,7 @@ class CoordtagCommand : CommandBase {
                                                 .map { it.name }.toTypedArray())
                             }
                             "-map" -> {
-                                Game.getMapList(editor.game.name).toMutableList()
+                                Game.getMapNames(editor.game.name).toMutableList()
                             }
                             else -> mutableListOf()
                         }
@@ -420,7 +420,7 @@ class CoordtagCommand : CommandBase {
     private fun selectMap(playerData: PlayerData, id: String) {
         val player = playerData.player
 
-        if (Game.getMapList(playerData.game.name).contains(id)) {
+        if (Game.getMapNames(playerData.game.name).contains(id)) {
             mapSel[playerData.player.uniqueId] = id
             player.sendMessage("[CoordTag] Selected the map: $id")
         } else {

@@ -1,12 +1,13 @@
 package com.github.lazoyoung.craftgames.command
 
+import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
-import groovy.lang.GroovyRuntimeException
+import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
@@ -61,15 +62,33 @@ class GameCommand : CommandBase {
                         sender.sendMessage("You must leave editor mode.")
                     }
                     else -> {
-                        player.game.start(null, Consumer {
-                            sender.sendMessage("You have forced to start the game.")
-                        })
+                        val mapID = if (args.size > 1) {
+                            args[1]
+                        } else {
+                            null
+                        }
+
+                        try {
+                            player.game.start(mapID, result = Consumer {
+                                sender.sendMessage("You have forced to start the game.")
+                            })
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            sender.sendMessage(
+                                    ComponentBuilder("Error occurred. See console for details.")
+                                    .color(ChatColor.RED).create().first()
+                            )
+                        }
                     }
                 }
             }
             "stop" -> {
                 try {
-                    val playerData = PlayerData.get(sender as Player)
+                    val playerData = if (sender is Player) {
+                        PlayerData.get(sender)
+                    } else {
+                        null
+                    }
                     val game = when {
                         args.size > 1 -> {
                             Game.findByID(args[1].toInt())
@@ -77,15 +96,18 @@ class GameCommand : CommandBase {
                         playerData != null -> {
                             playerData.game
                         }
-                        else -> {
+                        else -> return if (sender is Player) {
                             sender.sendMessage("You're not in a game.")
-                            return false
+                            true
+                        } else {
+                            sender.sendMessage("This cannot be done from console.")
+                            true
                         }
                     }
 
                     if (game != null) {
-                        game.stop()
-                        sender.sendMessage("Game \'${game.name}\' has been stopped.")
+                        game.forceStop(error = false)
+                        sender.sendMessage("Successfully terminated.")
                     } else {
                         sender.sendMessage("That game does not exist.")
                     }
@@ -118,8 +140,12 @@ class GameCommand : CommandBase {
                         sender.sendMessage("You're already in editor mode.")
                         return true
                     }
-                    null -> {
+                    null -> try {
                         GameEditor.start(sender, args[1], args[2])
+                    } catch (e: GameNotFound) {
+                        sender.sendMessage(*ComponentBuilder("Game ${args[1]} does not exist!").color(ChatColor.RED).create())
+                    } catch (e: Exception) {
+                        sender.sendMessage(*ComponentBuilder(e.localizedMessage).color(ChatColor.RED).create())
                     }
                 }
             }
@@ -154,17 +180,17 @@ class GameCommand : CommandBase {
                 }
 
                 if (args[1] == "execute") {
-                    try {
-                        val script = playerData.game.resource.script
+                    val script = playerData.game.resource.script
 
+                    try {
                         script.parse()
                         script.execute()
                         sender.sendMessage("Script has been executed.")
-                    } catch (e: GroovyRuntimeException) {
-                        sender.sendMessage("Compilation error: ${e.message}")
-                        e.printStackTrace()
                     } catch (e: ScriptEngineNotFound) {
                         sender.sendMessage(e.message)
+                    } catch (e: Exception) {
+                        sender.sendMessage("Error: ${e.message}")
+                        script.writeStackTrace(e)
                     }
                 }
             }
@@ -185,7 +211,7 @@ class GameCommand : CommandBase {
             "start" -> {
                 return if (args.size == 2) {
                     PlayerData.get(sender as Player)?.let {
-                        getCompletions(args[1], *Game.getMapList(it.game.name).toTypedArray())
+                        getCompletions(args[1], *Game.getMapNames(it.game.name).toTypedArray())
                     } ?: mutableListOf()
                 } else {
                     mutableListOf()
@@ -193,8 +219,8 @@ class GameCommand : CommandBase {
             }
             "edit" -> {
                 return when (args.size) {
-                    2 -> getCompletions(args[1], *Game.getGameList())
-                    3 -> getCompletions(args[2], *Game.getMapList(args[1]).toTypedArray())
+                    2 -> getCompletions(args[1], *Game.getGameNames())
+                    3 -> getCompletions(args[2], *Game.getMapNames(args[1]).toTypedArray())
                     else -> mutableListOf()
                 }
             }

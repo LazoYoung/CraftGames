@@ -1,8 +1,12 @@
 package com.github.lazoyoung.craftgames.script
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.util.FileUtil
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
-import java.io.*
+import java.io.BufferedReader
+import java.io.File
+import java.io.PrintWriter
+import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -12,22 +16,14 @@ import javax.script.ScriptContext.ENGINE_SCOPE
 class ScriptGroovy(private val file: File) : ScriptBase(file) {
     private val engine = GroovyScriptEngineFactory().scriptEngine
     private var script: CompiledScript? = null
-    private val charset = Main.charset
     private val dir = file.resolveSibling("log").resolve(file.nameWithoutExtension)
-    private val reader = BufferedReader(FileReader(file, Main.charset))
+    private val reader = BufferedReader(FileUtil.getBufferedReader(file))
+    private var logger: PrintWriter? = null
     private val context = SimpleScriptContext()
-    private val logger: PrintWriter
     private val bindings: Bindings
 
     init {
-        val format = getFilenameFormat()
-        val logFile = dir.resolve("Log_$format.txt")
-
-        dir.mkdirs()
-        logFile.createNewFile()
         bindings = engine.createBindings()
-        logger = PrintWriter(FileWriter(logFile, charset, true), true)
-        context.writer = logger
         engine.context = context
         engine.setBindings(bindings, ENGINE_SCOPE)
     }
@@ -36,60 +32,69 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         return engine.getBindings(ENGINE_SCOPE)
     }
 
+    override fun startLogging() {
+        val format = getFilenameFormat()
+        val logFile = dir.resolve("Log_$format.txt")
+        dir.mkdirs()
+        logFile.createNewFile()
+        logger = PrintWriter(FileUtil.getBufferedWriter(logFile, true), true)
+        context.writer = logger
+    }
+
+    override fun getLogger(): PrintWriter? {
+        return logger
+    }
+
     override fun parse() {
         script = (engine as Compilable).compile(reader)
     }
 
-    override fun execute() {
-
+    override fun execute(script: String) {
         try {
-            if (script != null) {
-                script!!.eval()
-            } else {
-                engine.eval(reader)
-            }
-
-            logger.println("Script \'$name\' has been executed.")
-        } catch (e: Exception) {
-            writeStackTrace(e)
-            Main.logger.warning("Failed to evaluate script: ${file.name}")
-            return
+            engine.eval(script)
+        } catch (e: ScriptException) {
+            e.printStackTrace()
+            Main.logger.severe("Failed to evaluate internal script.")
         }
     }
 
-    override fun invokeFunction(name: String, args: Array<Any>?): Any? {
-        val result: Any?
-
-        try {
-            if (script != null) {
-                script!!.eval()
-            } else {
-                engine.eval(reader)
-            }
-
-            result = if (args == null) {
-                (script!!.engine as Invocable).invokeFunction(name)
-            } else {
-                (script!!.engine as Invocable).invokeFunction(name, args)
-            }
-            logger.println("Function \'$name\' inside ${this.file.name} has been invoked.")
-        } catch (e: Exception) {
-            writeStackTrace(e)
-            Main.logger.warning("Failed to invoke function: $name")
-            return null
+    override fun execute() {
+        if (script != null) {
+            script!!.eval()
+        } else {
+            engine.eval(reader)
         }
+
+        logger?.println("Script execution complete.")
+    }
+
+    override fun invokeFunction(name: String, args: Array<Any>?): Any? {
+        if (script != null) {
+            script!!.eval()
+        } else {
+            engine.eval(reader)
+        }
+
+        val result = if (args == null) {
+            (script!!.engine as Invocable).invokeFunction(name)
+        } else {
+            (script!!.engine as Invocable).invokeFunction(name, args)
+        }
+
+        logger?.println("Function \'$name\' execution complete.")
         return result
     }
 
     override fun closeIO() {
+        logger?.close()
         context.writer.close()
         reader.close()
     }
 
-    private fun writeStackTrace(e: Exception) {
+    override fun writeStackTrace(e: Exception): Path {
         val format = getFilenameFormat()
         val errorFile = dir.resolve("Error_$format.txt")
-        val error = PrintWriter(FileWriter(errorFile, charset, true), true)
+        val error = PrintWriter(FileUtil.getBufferedWriter(errorFile, true), true)
         val regex = "^Script\\d+\\.groovy$".toRegex()
 
         error.println("Stacktrace of script code:")
@@ -109,9 +114,12 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         error.println("Stacktrace of plugin source:")
         e.printStackTrace(error)
         error.close()
+        Main.logger.severe("Failed to evaluate \'${file.name}\' script!")
+        Main.logger.severe("Stacktrace location: ${file.toPath()}")
+        return errorFile.toPath()
     }
 
     private fun getFilenameFormat(): String {
-        return SimpleDateFormat("yyyy-MM-dd_HH-mm").format(Date.from(Instant.now()))
+        return SimpleDateFormat("yyyy-MM-dd_HHmmss").format(Date.from(Instant.now()))
     }
 }

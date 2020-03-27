@@ -1,9 +1,9 @@
-.gradle/
-.idea/
-build/
-src/legacy/
+.gradle/**
+.idea/**
+build/**
+target/**
+src/legacy/**
 
 *.iml
 *.ipr
 *.iws
-

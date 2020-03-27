@@ -21,7 +21,11 @@ open class PlayerData(
         }
     }
 
-    fun unregister() {
+    fun leaveGame() {
+        game.leave(this)
+    }
+
+    internal fun unregister() {
         registry.remove(player.uniqueId)
     }
 }

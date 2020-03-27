@@ -3,19 +3,21 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.script.ScriptFactory
+import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
-import java.io.BufferedReader
 import java.io.File
-import java.io.FileReader
 import java.io.IOException
-import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
-class GameResource(gameName: String) {
+/**
+ * @throws GameNotFound
+ */
+class GameResource(private val gameName: String) {
 
     lateinit var script: ScriptBase
 
@@ -51,7 +53,7 @@ class GameResource(gameName: String) {
                 throw FaultyConfiguration("Game \'$gameName\' does not have layout.yml")
 
             root = layoutFile.parentFile.toPath()
-            layoutConfig = YamlConfiguration.loadConfiguration(BufferedReader(FileReader(layoutFile, Main.charset)))
+            layoutConfig = YamlConfiguration.loadConfiguration(FileUtil.getBufferedReader(layoutFile))
         } catch (e: IOException) {
             throw FaultyConfiguration("Unable to read ${layoutFile.toPath()} for $gameName. Is it missing?", e)
         } catch (e: IllegalArgumentException) {
@@ -60,8 +62,7 @@ class GameResource(gameName: String) {
             throw RuntimeException("Failed to resolve resource path.", e)
         }
 
-        val mapSection = layoutConfig.getMapList("maps")
-        val mapItr = mapSection.listIterator()
+        val mapItr = layoutConfig.getMapList("maps").listIterator()
         var lobbyMap: GameMap? = null
 
         /*
@@ -70,48 +71,50 @@ class GameResource(gameName: String) {
         while (mapItr.hasNext()) {
             val mutmap = mapItr.next().toMutableMap()
             val mapID = mutmap["id"] as String?
+            var alias = mutmap["alias"] as String?  // Subname
             val rawPath = mutmap["path"] as String?
             val repository: Path?  // Path to original map folder
             val lobby = mutmap["lobby"] as Boolean? ?: false
-            var alias = mutmap["alias"] as String?  // Subname
+
+            @Suppress("UNCHECKED_CAST")
+            val description: List<String> = when (val descRaw = mutmap["description"]) {
+                is String -> {
+                    listOf(descRaw)
+                }
+                is List<*> -> {
+                    descRaw as List<String>
+                }
+                else -> {
+                    listOf()
+                }
+            }
 
             if (mapID == null) {
-                Main.logger.config("Entry \'id\' of map is missing in ${layoutFile.toPath()}")
+                Main.logger.warning("Entry \'id\' of map is missing in ${layoutFile.toPath()}")
                 continue
             }
+
+            if (alias == null)
+                alias = mapID
 
             if (rawPath == null) {
-                Main.logger.config("Entry 'path' of $mapID is missing in ${layoutFile.toPath()}")
+                Main.logger.warning("Entry 'path' of $mapID is missing in ${layoutFile.toPath()}")
                 continue
-            }
-
-            if (alias == null) {
-                mutmap["alias"] = mapID
-                alias = mapID
-                mapItr.set(mutmap)
-                layoutConfig.set("maps", mapSection)
             }
 
             try {
                 repository = root.resolve(rawPath)
-
-                if (!Files.isDirectory(repository!!)) {
-                    Main.logger.config("The map directory of \'$mapID\' is empty.")
-                }
             } catch (e: InvalidPathException) {
                 throw FaultyConfiguration("Unable to locate path to map '$mapID' for $gameName", e)
-            } catch (e: SecurityException) {
-                throw FaultyConfiguration("Unable to access file to map '$mapID' for $gameName", e)
             }
 
-            val map = GameMap(mapID, alias, repository, lobby)
+            val map = GameMap(mapID, alias, description, lobby, repository)
             mapRegistry[mapID] = map
 
             if (lobby) {
                 lobbyMap = map
             }
         }
-        layoutConfig.save(layoutFile)
 
         if (lobbyMap != null) {
             this.lobbyMap = lobbyMap
@@ -134,7 +137,7 @@ class GameResource(gameName: String) {
         }
 
         try {
-            script = ScriptFactory.getInstance(scriptFile)
+            script = ScriptFactory.get(scriptFile)
         } catch (e: ScriptEngineNotFound) {
             Main.logger.warning(e.localizedMessage)
         }
@@ -171,7 +174,20 @@ class GameResource(gameName: String) {
         }
     }
 
+    /**
+     * Look for playable maps and get a random element among them.
+     * Lobby map is never obtained by using this method.
+     *
+     * @return A randomly chosen map.
+     * @throws MapNotFound if this game doesn't have a map.
+     */
     internal fun getRandomMap(): GameMap {
-        return mapRegistry.filterValues { !it.isLobby }.values.random()
+        val map: GameMap
+        try {
+            map = mapRegistry.filterValues { !it.isLobby }.values.random()
+        } catch (e: NoSuchElementException) {
+            throw MapNotFound("$gameName doesn't have a map.")
+        }
+        return map
     }
 }

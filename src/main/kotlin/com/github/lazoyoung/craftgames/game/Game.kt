@@ -1,15 +1,22 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.event.GameInitEvent
+import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
+import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.MessengerUtil
+import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
+import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
-import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
@@ -26,13 +33,12 @@ class Game(
         /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class Phase { LOBBY, PLAYING, FINISH, SUSPEND }
+    enum class Phase { LOBBY, PLAYING, SUSPEND }
+
+    enum class JoinRejection { FULL, IN_GAME, TERMINATING }
 
     /** The state of game progress **/
     lateinit var phase: Phase
-
-    /** Can players can join at this moment? **/
-    var canJoin = true
 
     /** All kind of modules **/
     val module = Module(this)
@@ -40,7 +46,7 @@ class Game(
     /** Map Handler **/
     var map = resource.lobbyMap
 
-    /** List of players in any PlayerState **/
+    /** List of players (regardless of PlayerState) **/
     internal val players = ArrayList<UUID>()
 
     companion object {
@@ -74,42 +80,65 @@ class Game(
             return gameRegistry[id]
         }
 
-        fun getGameList(): Array<String> {
+        fun getGameNames(): Array<String> {
             return Main.config.getConfigurationSection("games")
                     ?.getKeys(false)?.toTypedArray()
                     ?: emptyArray()
         }
 
-        fun getMapList(gameName: String): Set<String> {
-            return GameResource(gameName).mapRegistry.keys
+        fun getMapNames(gameName: String, lobby: Boolean = true): List<String> {
+            return getMapList(gameName, lobby).map { it.mapID }
+        }
+
+        /**
+         * Get a list of maps exist in the given game.
+         *
+         * @param gameName represents the game where you seek for the maps.
+         * @param lobby whether or not the lobby map is included as well.
+         * @return The instances of GameMaps inside the game.
+         */
+        fun getMapList(gameName: String, lobby: Boolean = true): List<GameMap> {
+            return GameResource(gameName).mapRegistry.values.filter { lobby || !it.isLobby }.toList()
         }
 
         /**
          * Make a new game instance.
          *
+         * If null is passed to mapID, lobby map is chosen and generated.
+         * Otherwise, lobby timer is skipped and the game starts immediately.
+         *
          * @param name Classifies the type of game
          * @param editMode The game is in editor mode, if true.
-         * @param genLobby Determines if lobby must be generated.
+         * @param mapID The map in which the game will take place.
          * @param consumer Returns the new instance once it's ready.
          * @throws GameNotFound No such game exists with given id.
+         * @throws MapNotFound No such map exists in the game.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          */
-        fun openNew(name: String, editMode: Boolean, genLobby: Boolean, consumer: Consumer<Game>? = null) {
+        fun openNew(name: String, editMode: Boolean, mapID: String? = null, consumer: Consumer<Game>? = null) {
             val resource = GameResource(name)
             val game = Game(name, -1, editMode, resource)
+            val initEvent = GameInitEvent(game)
 
-            assignID(game)
-            CoordTag.reload(game)
+            Bukkit.getPluginManager().callEvent(initEvent)
 
-            if (genLobby) {
-                val map = game.resource.lobbyMap
-                map.generate(game, Consumer{
-                    game.updatePhase(Phase.LOBBY)
-                    consumer?.accept(game)
-                })
+            if (initEvent.isCancelled) {
+                game.forceStop(error = true)
+                throw RuntimeException("Game failed to init.")
             } else {
-                consumer?.accept(game)
+                assignID(game)
+
+                if (mapID == null) {
+                    game.resource.lobbyMap.generate(game, Consumer {
+                        game.updatePhase(Phase.LOBBY)
+                        consumer?.accept(game)
+                    })
+                } else {
+                    game.start(mapID, result = Consumer {
+                        consumer?.accept(game)
+                    })
+                }
             }
         }
 
@@ -141,63 +170,202 @@ class Game(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        return if (other is Game) {
+            this.id == other.id
+        } else {
+            false
+        }
+    }
+
+    override fun hashCode(): Int {
+        return id
+    }
+
     /**
      * Leave the lobby (if present) and start the game.
      *
+     * TODO Exclude players who ain't ready.
+     *
      * @param mapID Select which map to play.
-     * @param mapConsumer Consume the generated world.
+     * @param result Consume the generated world.
+     * @throws MapNotFound is thrown if map is not found.
+     * @throws RuntimeException is thrown if map generation was failed.
+     * @throws FaultyConfiguration is thrown if map configuration is not valid.
      */
-    fun start(mapID: String?, mapConsumer: Consumer<World>? = null) {
-        if (id < 0 || editMode)
-            throw RuntimeException("Illegal state of Game.")
+    fun start(mapID: String?, votes: Int? = null, result: Consumer<Game>? = null) {
+        val thisMap = if (mapID == null) {
+            resource.getRandomMap()
+        } else {
+            val map = resource.mapRegistry[mapID]
 
-        val plugin = Main.instance
-        val scheduler = Bukkit.getScheduler()
-        canJoin = false
-
-        try {
-            val thisMap = if (mapID == null) {
-                resource.getRandomMap()
-            } else {
-                resource.mapRegistry[mapID]
+            if (map == null) {
+                forceStop(error = true)
+                throw MapNotFound("Map $mapID is not found for game: $name")
             }
-            assert(thisMap != null)
-            thisMap?.generate(this, Consumer { world ->
-                val players = this.players.mapNotNull { PlayerData.get(it) }
+            map
+        }
 
-                module.spawn.spawnPlayer(players.first(), Consumer { succeed ->
-                    scheduler.runTask(plugin, Runnable {
-                        if (succeed) {
-                            players.forEach { module.spawn.spawnPlayer(it) }
-                        } else {
-                            Main.logger.warning("Failed to teleport in async!")
-                            players.forEach { it.player.sendMessage("The game has been terminated with an error.") }
-                            stop()
-                        }
-                    })
-                })
-                scheduler.runTaskLater(plugin, Runnable {
-                    updatePhase(Phase.PLAYING)
-                }, 100L)
-                mapConsumer?.accept(world)
+        thisMap.generate(this, Consumer {
+            getPlayers().forEach { player ->
+                if (votes == null) {
+                    player.sendMessage("${map.alias} is randomly chosen!")
+                } else {
+                    player.sendMessage("${map.alias} is chosen! It has received $votes vote(s).")
+                }
+            }
+            result?.accept(this)
+            updatePhase(Phase.PLAYING)
+        })
+    }
+
+    fun forceStop(async: Boolean = true, error: Boolean) {
+        getPlayers().forEach {
+            if (error) {
+                it.sendMessage(
+                        *ComponentBuilder("The game is terminated due to error!")
+                                .color(ChatColor.RED).create()
+                )
+            } else {
+                it.sendMessage(
+                        *ComponentBuilder("The game is terminated by administrator!")
+                                .color(ChatColor.YELLOW).create()
+                )
+            }
+        }
+
+        close(async)
+    }
+
+    /**
+     * This function explains why you can't join this game.
+     * @return A [JoinRejection] unless you can join (in that case null is returned).
+     */
+    fun getRejectCause(): JoinRejection? {
+        val service = module.gameModule
+
+        return if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
+            JoinRejection.IN_GAME
+        } else if (players.count() >= service.maxPlayer) {
+            JoinRejection.FULL
+        } else if (phase == Phase.SUSPEND) {
+            JoinRejection.TERMINATING
+        } else {
+            null
+        }
+    }
+
+    fun canJoin(): Boolean {
+        return getRejectCause() == null
+    }
+
+    fun join(player: Player) {
+        if (canJoin()) {
+            val playerData = GamePlayer.register(player, this)
+            val uid = player.uniqueId
+
+            // Fire an event.
+            Bukkit.getPluginManager().callEvent(PlayerJoinGameEvent(this, player))
+
+            // TODO Restore Module: Config parse exception must be handled if World is not present.
+            resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+            players.add(uid)
+
+            if (phase == Phase.LOBBY) {
+                module.playerModule.restore(player)
+                module.lobbyModule.join(player)
+                player.sendMessage("You joined the game: $name")
+            } else if (phase == Phase.PLAYING) {
+                module.playerModule.restore(player)
+                module.gameModule.teleport(playerData)
+                player.sendMessage("You joined the ongoing game: $name")
+            }
+        } else {
+            val text = when (getRejectCause()) {
+                JoinRejection.TERMINATING -> "The game is terminating."
+                JoinRejection.FULL -> "The game is full."
+                JoinRejection.IN_GAME -> "The game has already started."
+                else -> "You can't join this game."
+            }
+
+            player.sendMessage(*ComponentBuilder(text).color(ChatColor.YELLOW).create())
+        }
+    }
+
+    fun startSpectate(player: Player) {
+        val uid = player.uniqueId
+        val playerData = Spectator.register(player, this)
+
+        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+        when (phase) {
+            Phase.LOBBY -> {
+                module.lobbyModule.join(player)
+            }
+            Phase.PLAYING -> {
+                module.gameModule.teleport(playerData)
+            }
+            else -> return
+        }
+        players.add(uid)
+        player.sendMessage("You are spectating $name.")
+    }
+
+    fun startEdit(playerData: PlayerData) {
+        val player = playerData.player
+        val uid = player.uniqueId
+
+        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+        module.gameModule.teleport(playerData)
+        players.add(uid)
+        player.sendMessage("You are editing \'${map.mapID}\' in $name.")
+    }
+
+    fun leave(playerData: PlayerData) {
+        val player = playerData.player
+        val restoreKey = player.uniqueId.toString().plus(".location")
+        val uid = player.uniqueId
+        val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
+        val lobby = module.lobbyModule
+
+        // Fire an event.
+        Bukkit.getPluginManager().callEvent(PlayerLeaveGameEvent(this, player))
+
+        // Clear data
+        MessageTask.clear(player, ChatMessageType.ACTION_BAR)
+        module.ejectPlayer(playerData)
+        players.remove(uid)
+        playerData.unregister()
+
+        if (lobby.exitLoc != null) {
+            player.teleport(lobby.exitLoc!!, cause)
+        } else {
+            resource.restoreConfig.getLocation(restoreKey)?.let {
+                player.teleport(it, cause)
+            }
+        }
+
+        if (lobby.exitServer != null) {
+            MessengerUtil.request(player, arrayOf("GetServers"), Consumer { servers ->
+                if (servers?.split(", ")?.contains(lobby.exitServer!!) == true) {
+                    MessengerUtil.request(player, arrayOf("Connect", lobby.exitServer!!))
+                }
             })
-        } catch (e: RuntimeException) {
-            e.printStackTrace()
-            plugin.logger.severe("Failed to regenerate map for game: $name")
-        }
-    }
-
-    fun finish() {
-        if (!editMode && phase == Phase.PLAYING) {
-            updatePhase(Phase.FINISH)
-            /* --- TODO Ceremony period --- */
         }
 
-        stop()
+        player.sendMessage("You left the game.")
     }
 
-    fun stop(async: Boolean = true) {
-        players.mapNotNull { id -> Bukkit.getPlayer(id) }.forEach { leave(it) }
+    fun getPlayers(): List<Player> {
+        return players.mapNotNull { Bukkit.getPlayer(it) }
+    }
+
+    /**
+     * Terminate the game.
+     *
+     * @param async Asynchronously destruct the map if true.
+     */
+    internal fun close(async: Boolean = true) {
+        players.mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
         resource.saveToDisk(saveTag = editMode)
         updatePhase(Phase.SUSPEND)
 
@@ -207,56 +375,13 @@ class Game(
         purge(this)
     }
 
-    fun join(player: Player) {
-        val uid = player.uniqueId
-        val playerData = GamePlayer.register(player, this)
-
-        // TODO Restore Module: Config parse exception must be handled if World is not present.
-        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(playerData)
-        players.add(uid)
-        player.sendMessage("You joined $name.")
-    }
-
-    fun spectate(player: Player) {
-        val uid = player.uniqueId
-        val playerData = Spectator.register(player, this)
-
-        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(playerData)
-        players.add(uid)
-        Spectator.register(player, this)
-        player.sendMessage("You are spectating $name.")
-    }
-
-    fun edit(playerData: PlayerData) {
-        val player = playerData.player
-        val uid = player.uniqueId
-
-        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.spawn.spawnPlayer(playerData)
-        players.add(uid)
-        player.sendMessage("You are in editor mode on $name-${map.mapID}.")
-    }
-
-    fun leave(player: Player) {
-        val uid = player.uniqueId
-
-        resource.restoreConfig.getLocation(uid.toString().plus(".location"))?.let {
-            player.teleport(it, PlayerTeleportEvent.TeleportCause.PLUGIN)
-        }
-        players.remove(uid)
-        PlayerData.get(player)?.unregister() ?: Main.logger.fine("PlayerData is lost unexpectedly.")
-        player.sendMessage("You left $name.")
-    }
-
     /**
-     * Update the GamePhase and Modules.
+     * Update the GamePhase, resulting in the changes of World and Modules.
      *
      * @param phase The new game phase
      */
     internal fun updatePhase(phase: Phase) {
         this.phase = phase
-        module.update(phase)
+        module.update()
     }
 }

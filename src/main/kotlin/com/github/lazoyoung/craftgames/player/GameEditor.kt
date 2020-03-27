@@ -1,13 +1,16 @@
 package com.github.lazoyoung.craftgames.player
 
-import com.github.lazoyoung.craftgames.ActionBarTask
-import com.github.lazoyoung.craftgames.FileUtil
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
+import com.github.lazoyoung.craftgames.util.FileUtil
+import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
@@ -28,10 +31,24 @@ class GameEditor private constructor(
 
     private var blockPrompt: Consumer<Block>? = null
 
-    private val actionBarTask = ActionBarTask(this, listOf(
-            "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
-            "&aType &b/game save &ato save changes and exit."
-    ), 10)
+    private val actionBar: MessageTask = MessageTask(
+            player = player,
+            type = ChatMessageType.ACTION_BAR,
+            interval = Timer(Timer.Unit.SECOND, 2),
+            textCases = listOf(
+                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
+                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
+                    "&aType &b/game save &ato save changes and exit.",
+                    "&aType &b/game save &ato save changes and exit."
+            )
+    )
+
+    init {
+        if (!actionBar.start()) {
+            MessageTask.clear(player, ChatMessageType.ACTION_BAR)
+            actionBar.start()
+        }
+    }
 
     companion object {
         /**
@@ -40,6 +57,10 @@ class GameEditor private constructor(
          * @param player who will edit the map
          * @param gameName Identifies the game in which the editor mode takes place.
          * @param mapID Identifies the map in which the editor mode takes place.
+         * @throws GameNotFound
+         * @throws MapNotFound
+         * @throws FaultyConfiguration
+         * @throws RuntimeException
          */
         fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
@@ -54,34 +75,14 @@ class GameEditor private constructor(
             }
 
             if (mapID == GameResource(gameName).lobbyMap.mapID) {
-                Game.openNew(gameName, editMode = true, genLobby = true)
-            } else try {
-                Game.openNew(gameName, editMode = true, genLobby = false, consumer = Consumer
+                Game.openNew(gameName, editMode = true, mapID = null)
+            } else {
+                Game.openNew(gameName, editMode = true, mapID = mapID, consumer = Consumer
                 { game ->
-                    val map = game.resource.mapRegistry[mapID]
-
-                    if (map == null) {
-                        report.text = "Map not found: $mapID"
-                        player.sendMessage(report)
-                        game.stop()
-                    } else {
-                        map.generate(game, Consumer {
-                            val instance = GameEditor(player, game)
-                            registry[pid] = instance
-                            game.edit(instance)
-                            game.updatePhase(Game.Phase.PLAYING)
-                        })
-                    }
+                    val instance = GameEditor(player, game)
+                    registry[pid] = instance
+                    game.startEdit(instance)
                 })
-            } catch (e: GameNotFound) {
-                report.text = e.localizedMessage
-                player.sendMessage(report)
-                return
-            } catch (e: Exception) {
-                report.text = e.localizedMessage
-                player.sendMessage(report)
-                Main.logger.warning(report.toPlainText())
-                return
             }
         }
     }
@@ -107,8 +108,8 @@ class GameEditor private constructor(
         val source = game.map.worldPath
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
 
-        game.leave(player)
-        actionBarTask.cancel()
+        game.leave(this)
+        actionBar.clear()
 
         // Save world
         try {
@@ -174,7 +175,7 @@ class GameEditor private constructor(
                     }
 
                     // Close the game
-                    game.stop()
+                    game.close()
                 })
             } catch (e: Exception) {
                 throw RuntimeException("Unable to clone world files.", e)
