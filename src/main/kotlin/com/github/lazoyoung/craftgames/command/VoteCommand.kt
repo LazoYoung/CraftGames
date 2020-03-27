@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.module.service.LobbyModuleService
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
@@ -37,7 +38,7 @@ class VoteCommand : CommandBase {
 
         try {
             val lobby = Module.getLobbyModule(pdata.game) as LobbyModuleService
-            val interval = Timer(Timer.Unit.SECOND, 2)
+            val interval = Timer(TimeUnit.SECOND, 2)
             val text = if (lobby.voteMap(pdata.player, mapName = args[0])) {
                 listOf("&aYou voted for ${args[0]}!")
             } else {

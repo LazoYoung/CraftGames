@@ -16,7 +16,7 @@ class GameListener : Listener {
 
         try {
             script.execute()
-            event.game.module.eventModule
+            event.game.module.scriptModule
                     .events[EventType.GAME_INIT_EVENT]?.accept(event)
         } catch (e: Exception) {
             script.writeStackTrace(e)
@@ -29,7 +29,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            game.module.eventModule
+            game.module.scriptModule
                     .events[EventType.GAME_START_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
@@ -42,7 +42,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            game.module.eventModule
+            game.module.scriptModule
                     .events[EventType.PLAYER_JOIN_GAME_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
@@ -55,7 +55,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            game.module.eventModule
+            game.module.scriptModule
                     .events[EventType.PLAYER_LEAVE_GAME_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)

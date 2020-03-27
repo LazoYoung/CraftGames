@@ -10,6 +10,7 @@ import com.github.lazoyoung.craftgames.module.api.PlayerType
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -29,7 +30,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     internal var personal: CoordTag? = null
     internal var editor: CoordTag? = null
     internal var spectator: CoordTag? = null
-    internal var respawnTimer: Long = Timer(Timer.Unit.SECOND, 20).toTick()
+    internal var respawnTimer: Long = Timer(TimeUnit.SECOND, 20).toTick()
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
@@ -113,6 +114,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         player.foodLevel = 20
         player.saturation = 5.0f
         player.exhaustion = 0.0f
+        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
 
         if (leave) {
             // TODO Restore inventory

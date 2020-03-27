@@ -12,6 +12,7 @@ import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
@@ -33,7 +34,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     internal var canJoinAfterStart = false
     internal var minPlayer = 1
     internal var maxPlayer = 10
-    private var timer: Long = Timer(Timer.Unit.MINUTE, 3).toSecond()
+    private var timer: Long = Timer(TimeUnit.MINUTE, 3).toSecond()
     private var timerLength = timer
 
     /* Service handling bossbar and timer */
@@ -47,7 +48,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             .color(ChatColor.RED).create().first() as TextComponent
 
     override fun getGameTimer(): Timer {
-        return Timer(Timer.Unit.TICK, timer)
+        return Timer(TimeUnit.TICK, timer)
     }
 
     override fun setGameTimer(timer: Timer) {
@@ -141,7 +142,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
 
         serviceTask = object : BukkitRunnable() {
             override fun run() {
-                val format = Timer(Timer.Unit.SECOND, timer).format(false)
+                val format = Timer(TimeUnit.SECOND, timer).format(false)
                 val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
                 val progress = timer.toDouble() / timerLength
 
@@ -189,7 +190,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                         "You will respawn in a moment.",
                         "&eYou will respawn in a moment."
                 ),
-                interval = Timer(Timer.Unit.TICK, 30)
+                interval = Timer(TimeUnit.TICK, 30)
         )
 
         // Temporarily spectate

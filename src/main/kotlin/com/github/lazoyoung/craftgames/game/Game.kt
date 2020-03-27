@@ -17,6 +17,7 @@ import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
@@ -105,7 +106,6 @@ class Game(
          * Make a new game instance.
          *
          * If null is passed to mapID, lobby map is chosen and generated.
-         * Otherwise, lobby timer is skipped and the game starts immediately.
          *
          * @param name Classifies the type of game
          * @param editMode The game is in editor mode, if true.
@@ -135,9 +135,10 @@ class Game(
                         consumer?.accept(game)
                     })
                 } else {
-                    game.start(mapID, result = Consumer {
-                        consumer?.accept(game)
-                    })
+                    val map = game.resource.mapRegistry[mapID]
+                            ?: throw MapNotFound("Map $mapID does not exist for game: $name.")
+
+                    map.generate(game, Consumer { consumer?.accept(game) })
                 }
             }
         }
@@ -317,6 +318,7 @@ class Game(
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
         module.gameModule.teleport(playerData)
         players.add(uid)
+        player.gameMode = GameMode.CREATIVE
         player.sendMessage("You are editing \'${map.mapID}\' in $name.")
     }
 

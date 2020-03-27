@@ -10,25 +10,22 @@ import javax.script.Bindings
 
 class Module internal constructor(val game: Game) {
 
+    private val script = game.resource.script
     internal val gameModule = GameModuleService(game)
     internal val lobbyModule = LobbyModuleService(game)
     internal val playerModule = PlayerModuleService(game)
     internal val mobModule = MobModuleService(game)
-    internal val scriptModule = ScriptModuleService()
-    internal val eventModule = EventModuleService(game)
+    internal val scriptModule = ScriptModuleService(script)
     private var terminateSignal = false
     private val bind: Bindings
 
     init {
-        val script = game.resource.script
-
         bind = script.getBindings()
         bind["gameModule"] = gameModule as GameModule
         bind["lobbyModule"] = lobbyModule as LobbyModule
         bind["playerModule"] = playerModule as PlayerModule
         bind["mobModule"] = mobModule as MobModule
         bind["scriptModule"] = scriptModule as ScriptModule
-        bind["eventModule"] = eventModule as EventModule
         script.startLogging()
         script.parse()
         CoordTag.reload(game)
@@ -71,8 +68,9 @@ class Module internal constructor(val game: Game) {
                 Game.Phase.SUSPEND -> {
                     lobbyModule.clear()
                     gameModule.endService()
-                    bind.clear()
+                    scriptModule.clear()
                     game.resource.script.closeIO()
+                    bind.clear()
                 }
             }
         } catch (e: Exception) {

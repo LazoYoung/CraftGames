@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.LobbyModule
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -24,7 +25,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
     internal var exitLoc: Location? = null
     internal var exitServer: String? = null
     private var tag: CoordTag? = null
-    private var constTimer = Timer(Timer.Unit.SECOND, 30).toSecond()
+    private var constTimer = Timer(TimeUnit.SECOND, 30).toSecond()
     private var timer = constTimer
     private val voted = ArrayList<UUID>()
     private val votes = HashMap<String, Int>()
@@ -63,10 +64,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
      * @throws MapNotFound is thrown if mapName doesn't indicate any existing map
      */
     fun voteMap(player: Player, vote: Int = 1, mapName: String): Boolean {
-        if (game.phase != Game.Phase.LOBBY)
-            return false
-
-        if (voted.contains(player.uniqueId))
+        if (game.editMode || game.phase != Game.Phase.LOBBY || voted.contains(player.uniqueId))
             return false
 
         if (!Game.getMapNames(game.name, false).contains(mapName))
@@ -152,7 +150,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
                 val valid = arrayOf(30, 20, 10, 5, 4, 3, 2, 1)
 
                 if (timer.toInt() % 60 == 0 || timer < 60 && valid.contains(timer.toInt())) {
-                    val format = Timer(Timer.Unit.SECOND, timer).format(true)
+                    val format = Timer(TimeUnit.SECOND, timer).format(true)
 
                     Module.getGameModule(game).broadcast("&6Game starts in $format.")
                 }

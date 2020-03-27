@@ -2,12 +2,14 @@ package com.github.lazoyoung.craftgames.player
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.util.FileUtil
 import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
@@ -34,7 +36,7 @@ class GameEditor private constructor(
     private val actionBar: MessageTask = MessageTask(
             player = player,
             type = ChatMessageType.ACTION_BAR,
-            interval = Timer(Timer.Unit.SECOND, 2),
+            interval = Timer(TimeUnit.SECOND, 2),
             textCases = listOf(
                     "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
                     "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
@@ -65,6 +67,7 @@ class GameEditor private constructor(
         fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
             val report = TextComponent()
+            var mapSel: String? = mapID
             report.color = ChatColor.RED
 
             if (registry.containsKey(pid)) {
@@ -74,15 +77,17 @@ class GameEditor private constructor(
                 return
             }
 
-            if (mapID == GameResource(gameName).lobbyMap.mapID) {
-                Game.openNew(gameName, editMode = true, mapID = null)
-            } else {
-                Game.openNew(gameName, editMode = true, mapID = mapID, consumer = Consumer
-                { game ->
+            if (mapID == GameResource(gameName).lobbyMap.mapID)
+                mapSel = null
+
+            try {
+                Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
                     val instance = GameEditor(player, game)
                     registry[pid] = instance
                     game.startEdit(instance)
                 })
+            } catch (e: FaultyConfiguration) {
+                throw FaultyConfiguration(e.localizedMessage, e)
             }
         }
     }
