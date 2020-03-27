@@ -65,7 +65,7 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
             engine.eval(reader)
         }
 
-        logger?.println("Script execution complete.")
+        logger?.println("Script evaluation complete.")
     }
 
     override fun invokeFunction(name: String, args: Array<Any>?): Any? {

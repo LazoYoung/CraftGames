@@ -243,7 +243,7 @@ class Game(
      * @return A [JoinRejection] unless you can join (in that case null is returned).
      */
     fun getRejectCause(): JoinRejection? {
-        val service = module.gameModule
+        val service = Module.getGameModule(this)
 
         return if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
             JoinRejection.IN_GAME
@@ -273,12 +273,12 @@ class Game(
             players.add(uid)
 
             if (phase == Phase.LOBBY) {
-                module.playerModule.restore(player)
-                module.lobbyModule.join(player)
+                Module.getPlayerModule(this).restore(player)
+                Module.getLobbyModule(this).join(player)
                 player.sendMessage("You joined the game: $name")
             } else if (phase == Phase.PLAYING) {
-                module.playerModule.restore(player)
-                module.gameModule.teleport(playerData)
+                Module.getPlayerModule(this).restore(player)
+                Module.getGameModule(this).teleportSpawn(playerData)
                 player.sendMessage("You joined the ongoing game: $name")
             }
         } else {
@@ -300,10 +300,10 @@ class Game(
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
         when (phase) {
             Phase.LOBBY -> {
-                module.lobbyModule.join(player)
+                Module.getLobbyModule(this).join(player)
             }
             Phase.PLAYING -> {
-                module.gameModule.teleport(playerData)
+                Module.getGameModule(this).teleportSpawn(playerData)
             }
             else -> return
         }
@@ -316,7 +316,7 @@ class Game(
         val uid = player.uniqueId
 
         resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
-        module.gameModule.teleport(playerData)
+        Module.getGameModule(this).teleportSpawn(playerData)
         players.add(uid)
         player.gameMode = GameMode.CREATIVE
         player.sendMessage("You are editing \'${map.mapID}\' in $name.")
@@ -327,7 +327,7 @@ class Game(
         val restoreKey = player.uniqueId.toString().plus(".location")
         val uid = player.uniqueId
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
-        val lobby = module.lobbyModule
+        val lobby = Module.getLobbyModule(this)
 
         // Fire an event.
         Bukkit.getPluginManager().callEvent(PlayerLeaveGameEvent(this, player))

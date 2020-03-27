@@ -5,9 +5,9 @@ import org.bukkit.GameMode
 
 interface GameModule {
 
-    fun getGameTimer(): Timer
+    fun getTimer(): Timer
 
-    fun setGameTimer(timer: Timer)
+    fun setTimer(timer: Timer)
 
     fun setPlayerCapacity(min: Int, max: Int)
 

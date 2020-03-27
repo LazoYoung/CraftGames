@@ -38,8 +38,8 @@ class GameEditor private constructor(
             type = ChatMessageType.ACTION_BAR,
             interval = Timer(TimeUnit.SECOND, 2),
             textCases = listOf(
-                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
-                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.id}",
+                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.name}",
+                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.name}",
                     "&aType &b/game save &ato save changes and exit.",
                     "&aType &b/game save &ato save changes and exit."
             )

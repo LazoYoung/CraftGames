@@ -12,6 +12,7 @@ class Module internal constructor(val game: Game) {
 
     private val script = game.resource.script
     internal val gameModule = GameModuleService(game)
+    internal val teamModule = TeamModuleService(game)
     internal val lobbyModule = LobbyModuleService(game)
     internal val playerModule = PlayerModuleService(game)
     internal val mobModule = MobModuleService(game)
@@ -22,6 +23,7 @@ class Module internal constructor(val game: Game) {
     init {
         bind = script.getBindings()
         bind["gameModule"] = gameModule as GameModule
+        bind["teamModule"] = teamModule as TeamModule
         bind["lobbyModule"] = lobbyModule as LobbyModule
         bind["playerModule"] = playerModule as PlayerModule
         bind["mobModule"] = mobModule as MobModule
@@ -32,23 +34,36 @@ class Module internal constructor(val game: Game) {
     }
 
     companion object {
-        fun getGameModule(game: Game): GameModule {
+        fun getGameModule(game: Game): GameModuleService {
             return game.module.gameModule
         }
 
-        fun getLobbyModule(game: Game): LobbyModule {
+        fun getTeamModule(game: Game): TeamModuleService {
+            return game.module.teamModule
+        }
+
+        fun getLobbyModule(game: Game): LobbyModuleService {
             return game.module.lobbyModule
         }
 
-        fun getPlayerModule(game: Game): PlayerModule {
+        fun getPlayerModule(game: Game): PlayerModuleService {
             return game.module.playerModule
         }
 
+        fun getMobModule(game: Game): MobModuleService {
+            return game.module.mobModule
+        }
+
+        fun getScriptModule(game: Game): ScriptModuleService {
+            return game.module.scriptModule
+        }
+
         internal fun getSpawnTag(game: Game, name: String): CoordTag {
-            val tag = CoordTag.get(game, name) ?: throw IllegalArgumentException("Unable to identify $name tag.")
+            val tag = CoordTag.get(game, name)
+                    ?: throw IllegalArgumentException("Unable to identify $name tag.")
 
             if (tag.mode != TagMode.SPAWN)
-                throw IllegalArgumentException("Parameter does not accept block tag.")
+                throw IllegalArgumentException("You passed a BlockTag to parameter which is invalid.")
 
             return tag
         }
@@ -62,13 +77,14 @@ class Module internal constructor(val game: Game) {
             when (game.phase) {
                 Game.Phase.LOBBY -> {}
                 Game.Phase.PLAYING -> {
-                    lobbyModule.clear()
-                    gameModule.startService()
+                    lobbyModule.terminate()
+                    gameModule.start()
                 }
                 Game.Phase.SUSPEND -> {
-                    lobbyModule.clear()
-                    gameModule.endService()
-                    scriptModule.clear()
+                    lobbyModule.terminate()
+                    teamModule.terminate()
+                    gameModule.terminate()
+                    scriptModule.terminate()
                     game.resource.script.closeIO()
                     bind.clear()
                 }

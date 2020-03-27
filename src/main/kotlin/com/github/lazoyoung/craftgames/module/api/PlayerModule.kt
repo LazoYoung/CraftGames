@@ -30,8 +30,6 @@ interface PlayerModule {
 
     fun getLivingPlayers(): List<Player>
 
-    fun getTeamPlayers(team: Team): List<Player>
-
     fun getDeadPlayers(): List<Player>
 
     /**

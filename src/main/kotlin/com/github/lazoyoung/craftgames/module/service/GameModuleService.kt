@@ -47,15 +47,12 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     private val notFound = ComponentBuilder("Unable to locate spawnpoint!")
             .color(ChatColor.RED).create().first() as TextComponent
 
-    override fun getGameTimer(): Timer {
+    override fun getTimer(): Timer {
         return Timer(TimeUnit.TICK, timer)
     }
 
-    override fun setGameTimer(timer: Timer) {
-        if (game.phase == Game.Phase.LOBBY) {
-            this.timerLength = timer.toSecond()
-        }
-
+    override fun setTimer(timer: Timer) {
+        this.timerLength = timer.toSecond()
         this.timer = timer.toSecond()
     }
 
@@ -82,16 +79,18 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
      * Teleport [player][playerData] to the relevant spawnpoint
      * matching with its [type][PlayerData].
      */
-    fun teleport(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+    fun teleportSpawn(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
         val world = game.map.world!!
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val player = playerData.player
-        val playerModule = game.module.playerModule
+        val playerModule = Module.getPlayerModule(game)
         val tag = when (playerData) {
             is GameEditor -> playerModule.editor
-            is GamePlayer -> playerModule.personal
             is Spectator -> playerModule.spectator
+            is GamePlayer -> {
+                Module.getTeamModule(game).getSpawn(player) ?: playerModule.personal
+            }
             else -> null
         }
         val location: Location
@@ -118,7 +117,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         }
     }
 
-    internal fun finish() {
+    internal fun finishGame() {
         fun doCeremony() {
             /* TODO Ceremony & Reward */
         }
@@ -127,15 +126,15 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         game.close()
     }
 
-    internal fun startService() {
-        val playerModule = game.module.playerModule
+    internal fun start() {
+        val playerModule = Module.getPlayerModule(game)
 
         // Fire event
         Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
-            teleport(p)
+            teleportSpawn(p)
             playerModule.restore(p.player)
             bossBar.addPlayer(p.player)
         }
@@ -165,7 +164,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                 bossBar.setTitle(title.toString())
 
                 if (timer-- < 1) {
-                    finish()
+                    finishGame()
                     this.cancel()
                     return
                 }
@@ -174,14 +173,14 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
-    internal fun endService() {
+    internal fun terminate() {
         bossBar.removeAll()
         Bukkit.removeBossBar(bossBarKey)
         serviceTask?.cancel()
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
-        val playerModule = game.module.playerModule
+        val playerModule = Module.getPlayerModule(game)
         val player = gamePlayer.player
         val actionBar = MessageTask(
                 player = player,
@@ -202,10 +201,10 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                 return@Runnable
 
             // Rollback to spawnpoint with default GameMode
-            teleport(gamePlayer)
+            teleportSpawn(gamePlayer)
             playerModule.restore(gamePlayer.player)
             actionBar.clear()
-            player.sendActionBar('&', "&aRESPAWN")
+            player.sendActionBar('&', "&l&aRESPAWN")
         }, playerModule.respawnTimer)
     }
 

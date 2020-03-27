@@ -3,8 +3,6 @@ package com.github.lazoyoung.craftgames.event.listener
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.service.GameModuleService
-import com.github.lazoyoung.craftgames.module.service.PlayerModuleService
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -57,7 +55,7 @@ class ServerListener : Listener {
                 ?.let { PlayerData.get(it.uniqueId) } as? GamePlayer
                 ?: return
         val player = gamePlayer.player
-        val service = gamePlayer.game.module.playerModule
+        val service = Module.getPlayerModule(gamePlayer.game)
 
         if (gamePlayer.game.phase == Game.Phase.PLAYING) {
             service.killTriggers[player.uniqueId]?.accept(player, entity)
@@ -68,13 +66,14 @@ class ServerListener : Listener {
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
         val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
-        val playerModule = getPlayerModuleImpl(event.entity) ?: return
+        val game = gamePlayer.game
 
-        if (playerModule.game.phase != Game.Phase.PLAYING)
+        if (game.phase != Game.Phase.PLAYING)
             return
 
         // Trigger DeathEvent
-        val gameModule = Module.getGameModule(playerModule.game) as GameModuleService
+        val playerModule = Module.getPlayerModule(game)
+        val gameModule = Module.getGameModule(game)
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.test(player)
         event.isCancelled = true
 
@@ -86,14 +85,6 @@ class ServerListener : Listener {
                 playerModule.eliminate(player)
             }
         })
-    }
-
-    private fun getPlayerModuleImpl(player: Player): PlayerModuleService? {
-        val game = Game.find().firstOrNull {
-            it.phase == Game.Phase.PLAYING && it.map.world == player.world
-        } ?: return null
-
-        return Module.getPlayerModule(game) as PlayerModuleService
     }
 
 }

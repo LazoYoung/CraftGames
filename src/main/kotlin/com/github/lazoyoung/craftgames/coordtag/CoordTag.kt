@@ -26,7 +26,7 @@ class CoordTag private constructor(
         }
 
         /**
-         * @return CoordTag matching the name inside the game, if found.
+         * @return CoordTag matching with [name] inside the [game]. Null if not found.
          */
         fun get(game: Game, name: String): CoordTag? {
             return getAll(game).firstOrNull { it.name == name }
@@ -141,13 +141,15 @@ class CoordTag private constructor(
     /**
      * Remove the one capture at given index and map inside this tag.
      * You will have to manually save the config to disk.
+     *
+     * @throws IllegalArgumentException if [capture] is not registerd to a tag.
      */
-    fun removeCapture(index: Int, mapID: String) {
+    fun removeCapture(capture: CoordCapture) {
         try {
-            val key = getKeyToCaptureStream(name, mapID)
+            val key = getKeyToCaptureStream(name, capture.mapID!!)
             val config = game.resource.tagConfig
             val stream = config.getStringList(key)
-            stream.removeAt(index)
+            stream.removeAt(capture.index!!)
             config.set(key, stream)
             reload(game)
         } catch (e: NullPointerException) {

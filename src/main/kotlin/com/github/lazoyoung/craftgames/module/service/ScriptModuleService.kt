@@ -68,7 +68,7 @@ class ScriptModuleService internal constructor(val script: ScriptBase) : ScriptM
         return bukkitTask
     }
 
-    internal fun clear() {
+    internal fun terminate() {
         events.clear()
         tasks.forEach(BukkitTask::cancel)
     }

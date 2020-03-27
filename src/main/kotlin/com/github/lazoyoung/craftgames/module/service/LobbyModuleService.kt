@@ -87,7 +87,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
         }
 
         val plugin = Main.instance
-        val min = game.module.gameModule.minPlayer
+        val min = Module.getGameModule(game).minPlayer
         val count = Module.getPlayerModule(game).getLivingPlayers().size
 
         // Start timer if minimum player has reached.
@@ -98,7 +98,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
         }
     }
 
-    internal fun clear() {
+    internal fun terminate() {
         serviceTask?.cancel()
         voted.clear()
         votes.clear()
@@ -109,7 +109,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
             override fun run() {
                 if (--timer <= 0) {
                     val playerCount = Module.getPlayerModule(game).getLivingPlayers().size
-                    val min = game.module.gameModule.minPlayer
+                    val min = Module.getGameModule(game).minPlayer
                     val list = LinkedList(votes.entries)
 
                     if (playerCount < min) {

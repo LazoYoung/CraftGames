@@ -19,7 +19,6 @@ import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
-import org.bukkit.scoreboard.Team
 import java.util.*
 import java.util.function.BiConsumer
 import java.util.function.Predicate
@@ -60,10 +59,6 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
 
     override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
-    }
-
-    override fun getTeamPlayers(team: Team): List<Player> {
-        return game.getPlayers().filter { team.hasEntry(it.name) }
     }
 
     override fun getDeadPlayers(): List<Player> {
@@ -109,7 +104,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     }
 
     fun restore(player: Player, leave: Boolean = false) {
-        player.gameMode = game.module.gameModule.defaultGameMode
+        player.gameMode = Module.getGameModule(game).defaultGameMode
         player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
         player.foodLevel = 20
         player.saturation = 5.0f
