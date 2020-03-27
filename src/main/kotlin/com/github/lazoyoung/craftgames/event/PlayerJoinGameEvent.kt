@@ -1,9 +1,10 @@
 package com.github.lazoyoung.craftgames.event
 
 import com.github.lazoyoung.craftgames.game.Game
+import org.bukkit.entity.Player
 import org.bukkit.event.HandlerList
 
-class GameStartEvent(game: Game) : GameEvent(game) {
+class PlayerJoinGameEvent(game: Game, private val player: Player) : GameEvent(game) {
 
     companion object {
         private val handlerList = HandlerList()
@@ -18,4 +19,7 @@ class GameStartEvent(game: Game) : GameEvent(game) {
         return getHandlerList()
     }
 
+    fun getPlayer(): Player {
+        return this.player
+    }
 }

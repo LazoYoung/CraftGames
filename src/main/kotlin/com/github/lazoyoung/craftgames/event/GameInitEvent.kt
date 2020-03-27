@@ -22,7 +22,7 @@ class GameInitEvent(game: Game) : GameEvent(game), Cancellable {
     }
 
     override fun getHandlers(): HandlerList {
-        return handlerList
+        return getHandlerList()
     }
 
     override fun setCancelled(cancel: Boolean) {

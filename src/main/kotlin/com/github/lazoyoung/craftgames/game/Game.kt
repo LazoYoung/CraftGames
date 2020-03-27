@@ -2,6 +2,8 @@ package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.event.GameInitEvent
+import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
+import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
@@ -33,7 +35,7 @@ class Game(
 ) {
     enum class Phase { LOBBY, PLAYING, SUSPEND }
 
-    enum class RejectCause { FULL, IN_GAME, TERMINATING }
+    enum class JoinRejection { FULL, IN_GAME, TERMINATING }
 
     /** The state of game progress **/
     lateinit var phase: Phase
@@ -237,17 +239,17 @@ class Game(
 
     /**
      * This function explains why you can't join this game.
-     * @return A [RejectCause] unless you can join (in that case null is returned).
+     * @return A [JoinRejection] unless you can join (in that case null is returned).
      */
-    fun getRejectCause(): RejectCause? {
+    fun getRejectCause(): JoinRejection? {
         val service = module.gameModule
 
         return if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
-            RejectCause.IN_GAME
+            JoinRejection.IN_GAME
         } else if (players.count() >= service.maxPlayer) {
-            RejectCause.FULL
+            JoinRejection.FULL
         } else if (phase == Phase.SUSPEND) {
-            RejectCause.TERMINATING
+            JoinRejection.TERMINATING
         } else {
             null
         }
@@ -261,6 +263,9 @@ class Game(
         if (canJoin()) {
             val playerData = GamePlayer.register(player, this)
             val uid = player.uniqueId
+
+            // Fire an event.
+            Bukkit.getPluginManager().callEvent(PlayerJoinGameEvent(this, player))
 
             // TODO Restore Module: Config parse exception must be handled if World is not present.
             resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
@@ -277,9 +282,9 @@ class Game(
             }
         } else {
             val text = when (getRejectCause()) {
-                RejectCause.TERMINATING -> "The game is terminating."
-                RejectCause.FULL -> "The game is full."
-                RejectCause.IN_GAME -> "The game has already started."
+                JoinRejection.TERMINATING -> "The game is terminating."
+                JoinRejection.FULL -> "The game is full."
+                JoinRejection.IN_GAME -> "The game has already started."
                 else -> "You can't join this game."
             }
 
@@ -322,6 +327,10 @@ class Game(
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
         val lobby = module.lobbyModule
 
+        // Fire an event.
+        Bukkit.getPluginManager().callEvent(PlayerLeaveGameEvent(this, player))
+
+        // Clear data
         MessageTask.clear(player, ChatMessageType.ACTION_BAR)
         module.ejectPlayer(playerData)
         players.remove(uid)

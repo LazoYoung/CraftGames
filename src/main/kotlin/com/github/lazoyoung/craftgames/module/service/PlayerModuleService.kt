@@ -2,11 +2,15 @@ package com.github.lazoyoung.craftgames.module.service
 
 import com.destroystokyo.paper.Title
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
+import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.PlayerModule
+import com.github.lazoyoung.craftgames.module.api.PlayerType
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
@@ -22,6 +26,10 @@ import kotlin.collections.HashMap
 
 class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
 
+    internal var personal: CoordTag? = null
+    internal var editor: CoordTag? = null
+    internal var spectator: CoordTag? = null
+    internal var respawnTimer: Long = Timer(Timer.Unit.SECOND, 20).toTick()
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
@@ -75,6 +83,24 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         player.gameMode = GameMode.SPECTATOR
         player.sendTitle(Title(title, subTitle, 20, 80, 20))
         gamePlayer.toSpectator()
+    }
+
+    override fun setRespawnTimer(timer: Timer) {
+        this.respawnTimer = timer.toTick()
+    }
+
+    override fun setSpawn(type: PlayerType, spawnTag: String) {
+        val tag = Module.getSpawnTag(game, spawnTag)
+
+        when (type) {
+            PlayerType.PERSONAL -> personal = tag
+            PlayerType.EDITOR -> editor = tag
+            PlayerType.SPECTATOR -> spectator = tag
+        }
+    }
+
+    override fun setSpawn(type: String, spawnTag: String) {
+        setSpawn(PlayerType.valueOf(type), spawnTag)
     }
 
     override fun sendMessage(player: Player, message: String) {

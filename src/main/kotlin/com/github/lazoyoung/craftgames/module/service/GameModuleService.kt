@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.module.service
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.exception.UndefinedCoordTag
@@ -36,10 +35,6 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     internal var maxPlayer = 10
     private var timer: Long = Timer(Timer.Unit.MINUTE, 3).toSecond()
     private var timerLength = timer
-    private var respawnTimer: Long = Timer(Timer.Unit.SECOND, 20).toTick()
-    private var personal: CoordTag? = null
-    private var editor: CoordTag? = null
-    private var spectator: CoordTag? = null
 
     /* Service handling bossbar and timer */
     private var serviceTask: BukkitRunnable? = null
@@ -61,20 +56,6 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         }
 
         this.timer = timer.toSecond()
-    }
-
-    override fun setRespawnTimer(timer: Timer) {
-        this.respawnTimer = timer.toTick()
-    }
-
-    override fun setPlayerSpawn(type: Int, spawnTag: String) {
-        val tag = Module.getSpawnTag(game, spawnTag)
-
-        when (type) {
-            GameModule.PERSONAL -> personal = tag
-            GameModule.EDITOR -> editor = tag
-            GameModule.SPECTATOR -> spectator = tag
-        }
     }
 
     override fun setPlayerCapacity(min: Int, max: Int) {
@@ -105,10 +86,11 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val player = playerData.player
+        val playerModule = game.module.playerModule
         val tag = when (playerData) {
-            is GameEditor -> editor
-            is GamePlayer -> personal
-            is Spectator -> spectator
+            is GameEditor -> playerModule.editor
+            is GamePlayer -> playerModule.personal
+            is Spectator -> playerModule.spectator
             else -> null
         }
         val location: Location
@@ -198,6 +180,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
+        val playerModule = game.module.playerModule
         val player = gamePlayer.player
         val actionBar = MessageTask(
                 player = player,
@@ -219,10 +202,10 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
 
             // Rollback to spawnpoint with default GameMode
             teleport(gamePlayer)
-            game.module.playerModule.restore(gamePlayer.player)
+            playerModule.restore(gamePlayer.player)
             actionBar.clear()
             player.sendActionBar('&', "&aRESPAWN")
-        }, respawnTimer)
+        }, playerModule.respawnTimer)
     }
 
 }

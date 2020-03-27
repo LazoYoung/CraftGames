@@ -14,7 +14,8 @@ class Module internal constructor(val game: Game) {
     internal val lobbyModule = LobbyModuleService(game)
     internal val playerModule = PlayerModuleService(game)
     internal val mobModule = MobModuleService(game)
-    internal val scriptModule = ScriptModuleService(game)
+    internal val scriptModule = ScriptModuleService()
+    internal val eventModule = EventModuleService(game)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -22,20 +23,13 @@ class Module internal constructor(val game: Game) {
         val script = game.resource.script
 
         bind = script.getBindings()
-        bind["GameModule"] = gameModule as GameModule
-        bind["LobbyModule"] = lobbyModule as LobbyModule
-        bind["PlayerModule"] = playerModule as PlayerModule
-        bind["MobModule"] = mobModule as MobModule
-        bind["ScriptModule"] = scriptModule as ScriptModule
+        bind["gameModule"] = gameModule as GameModule
+        bind["lobbyModule"] = lobbyModule as LobbyModule
+        bind["playerModule"] = playerModule as PlayerModule
+        bind["mobModule"] = mobModule as MobModule
+        bind["scriptModule"] = scriptModule as ScriptModule
+        bind["eventModule"] = eventModule as EventModule
         script.startLogging()
-        /*
-            FIXME These executions ain't reflected into Main script.
-        script.execute("import com.github.lazoyoung.craftgames.module.api.GameModule.*")
-        script.execute("import com.github.lazoyoung.craftgames.module.api.ScriptModule.*")
-        script.execute("import com.github.lazoyoung.craftgames.module.Module")
-        script.execute("import com.github.lazoyoung.craftgames.util.Timer")
-        script.execute("import com.github.lazoyoung.craftgames.util.MessageTask")
-         */
         script.parse()
         CoordTag.reload(game)
     }
@@ -92,6 +86,7 @@ class Module internal constructor(val game: Game) {
         if (playerData.game != this.game)
             return
 
+        playerModule.restore(playerData.player, leave = true)
         gameModule.bossBar.removePlayer(playerData.player)
     }
 

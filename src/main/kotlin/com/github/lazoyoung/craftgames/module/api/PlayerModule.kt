@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.module.api
 
+import com.github.lazoyoung.craftgames.util.Timer
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.scoreboard.Team
@@ -39,6 +40,12 @@ interface PlayerModule {
     fun isOnline(player: Player): Boolean
 
     fun eliminate(player: Player)
+
+    fun setRespawnTimer(timer: Timer)
+
+    fun setSpawn(type: PlayerType, spawnTag: String)
+
+    fun setSpawn(type: String, spawnTag: String)
 
     /**
      * Send [message] to [player]. Formatting codes are supported.
