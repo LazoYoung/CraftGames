@@ -210,13 +210,22 @@ class CoordtagCommand : CommandBase {
                 if (args.size < 2)
                     return false
 
-                val tag = CoordTag.getAll(player.game).firstOrNull { it.name == args[1] }
+                val tag = CoordTag.get(player.game, args[1])
 
                 if (tag == null) {
-                    sender.sendMessage("[CoordTag] That tag doesn't exist.")
-                } else {
+                    sender.sendMessage("[CoordTag] ${args[1]} does not exist.")
+                } else if (args.size == 2) {
                     tag.remove()
-                    sender.sendMessage("[CoordTag] Removed tag: ${args[1]}")
+                    sender.sendMessage("[CoordTag] Tag \'${args[1]}\' removed.")
+                } else {
+                    val capture = tag.getLocalCaptures().firstOrNull { it.index == args[2].toIntOrNull() }
+
+                    if (capture != null) {
+                        tag.removeCapture(capture)
+                        sender.sendMessage("[CoordTag] Capture ${args[1]} removed.")
+                    } else {
+                        sender.sendMessage("[CoordTag] Unknown capture index: ${args[2]}")
+                    }
                 }
             }
             "tp" -> {
@@ -234,25 +243,27 @@ class CoordtagCommand : CommandBase {
                         sender.sendMessage("[CoordTag] Tag ${args[1]} has no captures in this map.")
                     }
                     args.size == 2 -> {
-                        when (val it = captures.random()) {
+                        val it = captures.random()
+
+                        when (it) {
                             is BlockCapture
                                 -> sender.teleport(Location(sender.world, it.x, it.y, it.z))
                             is SpawnCapture
                                 -> sender.teleport(Location(sender.world, it.x, it.y, it.z, it.yaw, it.pitch))
                         }
-                        sender.sendMessage("[CoordTag] Teleported to a random capture within tag: ${args[1]}.")
+                        sender.sendMessage("[CoordTag] Teleported to ${args[1]}/${it.index}.")
                     }
                     else -> {
-                        val capture = captures.firstOrNull { it.index == args[2].toIntOrNull() }
+                        val it = captures.firstOrNull { it.index == args[2].toIntOrNull() }
 
-                        if (capture != null) {
-                            when (val it = captures.random()) {
+                        if (it != null) {
+                            when (it) {
                                 is BlockCapture
                                     -> sender.teleport(Location(sender.world, it.x, it.y, it.z))
                                 is SpawnCapture
                                     -> sender.teleport(Location(sender.world, it.x, it.y, it.z, it.yaw, it.pitch))
                             }
-                            sender.sendMessage("[CoordTag] Teleported to capture ${args[2]} within tag: ${args[1]}.")
+                            sender.sendMessage("[CoordTag] Teleported to ${args[1]}/${args[2]}.")
                         } else {
                             sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
                         }
@@ -310,26 +321,31 @@ class CoordtagCommand : CommandBase {
                 "create" -> if (args.size == 3) {
                     return getCompletions(args[2], "block", "spawn")
                 }
-                "tp" -> {
-                    return if (args.size < 3) {
-                        getCompletions(
-                                query = args[1],
-                                args = *CoordTag.getAll(editor.game).filter { it.getLocalCaptures().isNotEmpty() }
-                                        .map { it.name }.toTypedArray())
-                    } else {
-                        getCompletions(
-                                query = args[2],
-                                args = *CoordTag.get(editor.game, args[1])
-                                        ?.getLocalCaptures()
-                                        ?.map { it.index.toString() }
-                                        ?.toTypedArray() ?: emptyArray()
-                        )
-                    }
+                "tp" -> return when (args.size) {
+                    2 -> getCompletions(
+                            query = args[1],
+                            args = *CoordTag.getAll(editor.game).filter { it.getLocalCaptures().isNotEmpty() }
+                                    .map { it.name }.toTypedArray())
+                    3 -> getCompletions(
+                            query = args[2],
+                            args = *CoordTag.get(editor.game, args[1])
+                                    ?.getLocalCaptures()
+                                    ?.map { it.index.toString() }
+                                    ?.toTypedArray() ?: emptyArray()
+                    )
+                    else -> mutableListOf()
                 }
-                "capture", "remove" -> {
-                    if (args.size == 2) {
-                        return getCompletions(args[1], *CoordTag.getAll(editor.game).map { it.name }.toTypedArray())
+                "capture", "remove" -> return when (args.size) {
+                    2 -> getCompletions(args[1], *CoordTag.getAll(editor.game).map { it.name }.toTypedArray())
+                    3 -> {
+                        val arr = CoordTag.get(editor.game, args[1])
+                                ?.getLocalCaptures()
+                                ?.mapNotNull { it.index?.toString() }
+                                ?.toTypedArray()
+
+                        getCompletions(args[2], *arr ?: emptyArray())
                     }
+                    else -> mutableListOf()
                 }
             }
         }
