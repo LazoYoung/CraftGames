@@ -19,9 +19,11 @@ import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
+import org.bukkit.event.block.Action
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 class GameEditor private constructor(
@@ -29,19 +31,23 @@ class GameEditor private constructor(
         game: Game
 ): PlayerData(player, game) {
 
-    val mapID = game.map.mapID
+    val mapID = game.map.id
 
     private var blockPrompt: Consumer<Block>? = null
-
+    private var areaPrompt: BiConsumer<Block, Action>? = null
+    private var block1: Block? = null
+    private var block2: Block? = null
     private val actionBar: MessageTask = MessageTask(
             player = player,
             type = ChatMessageType.ACTION_BAR,
             interval = Timer(TimeUnit.SECOND, 2),
             textCases = listOf(
-                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.name}",
-                    "&bEDIT MODE - &e${game.map.mapID} &bin &e${game.name}",
-                    "&aType &b/game save &ato save changes and exit.",
-                    "&aType &b/game save &ato save changes and exit."
+                    "&b&lEDIT MODE &r&b(&e${game.map.id} &bin &e${game.name}&b)",
+                    "&b&lEDIT MODE &r&b(&e${game.map.id} &bin &e${game.name}&b)",
+                    "&b&lEDIT MODE &r&b(&e${game.map.id} &bin &e${game.name}&b)",
+                    "&aType &b/game save &r&ato save changes and exit.",
+                    "&aType &b/game save &r&ato save changes and exit.",
+                    "&aType &b/game save &r&ato save changes and exit."
             )
     )
 
@@ -77,7 +83,7 @@ class GameEditor private constructor(
                 return
             }
 
-            if (mapID == GameResource(gameName).lobbyMap.mapID)
+            if (mapID == GameResource(gameName).lobbyMap.id)
                 mapSel = null
 
             try {
@@ -93,15 +99,47 @@ class GameEditor private constructor(
     }
 
     internal fun requestBlockPrompt(consumer: Consumer<Block>) {
-        blockPrompt = Consumer{
+        areaPrompt = null
+        blockPrompt = Consumer {
             consumer.accept(it)
             blockPrompt = null
+        }
+    }
+
+    internal fun requestAreaPrompt(consumer: BiConsumer<Block, Block>) {
+        blockPrompt = null
+        areaPrompt = BiConsumer { block, action ->
+            when (action) {
+                Action.LEFT_CLICK_BLOCK -> block1 = block
+                Action.RIGHT_CLICK_BLOCK -> block2 = block
+                else -> return@BiConsumer
+            }
+
+            when {
+                block1 == null -> {
+                    // TODO Show actionbar message with high weight.
+                    player.sendMessage("[CoordTag] Select another block with Left-click!")
+                }
+                block2 == null -> {
+                    player.sendMessage("[CoordTag] Select another block with Right-click!")
+                }
+                else -> {
+                    consumer.accept(block1!!, block2!!)
+                    areaPrompt = null
+                    block1 = null
+                    block2 = null
+                }
+            }
         }
     }
 
     internal fun callBlockPrompt(block: Block): Boolean {
         blockPrompt?.accept(block) ?: return false
         return true
+    }
+
+    internal fun callAreaPrompt(block: Block, action: Action): Boolean {
+        return areaPrompt?.accept(block, action) != null
     }
 
     /**
@@ -124,7 +162,7 @@ class GameEditor private constructor(
         }
 
         // Clone map files to disk
-        scheduler.runTaskAsynchronously(plugin, Runnable{
+        scheduler.runTaskAsynchronously(plugin, Runnable {
             val target = targetOrigin.parent ?: targetOrigin.root!!
             val renameTo: Path
 
@@ -145,7 +183,7 @@ class GameEditor private constructor(
                     // Inform to editor if incomplete tag were found.
                     CoordTag.getAll(game).forEach { tag ->
                         val maps = tag.scanIncompleteMaps().toMutableList()
-                        maps.remove(game.resource.lobbyMap.mapID)
+                        maps.remove(game.resource.lobbyMap.id)
 
                         if (maps.isNotEmpty()) {
                             val hov1 = arrayOf(TextComponent("Click here to capture the tag."))

@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
-import java.math.BigDecimal
 
 class CoordTag private constructor(
         val game: Game,
@@ -40,18 +39,21 @@ class CoordTag private constructor(
             val list = ArrayList<CoordTag>()
 
             for (name in config.getKeys(false)) {
-                val modeStr = config.getString(name.plus('.').plus("mode"))
-                        ?.toUpperCase() ?: continue
+                val modeStr = config.getString(name.plus('.')
+                        .plus("mode"))?.toUpperCase()
+                        ?: continue
                 val mode = TagMode.valueOf(modeStr)
                 val captList = ArrayList<CoordCapture>()
-                val mapIterate = config.getConfigurationSection(name.plus('.').plus("captures"))
-                        ?.getKeys(false) ?: emptyList<String>()
+                val mapIterate = config.getConfigurationSection(name.plus('.')
+                        .plus("captures"))?.getKeys(false)
+                        ?: emptyList<String>()
 
                 for (map in mapIterate) {
                     captList.addAll(deserialize(game, map, mode, name))
                 }
                 list.add(CoordTag(game, mode, name, captList))
             }
+
             tags[game.name] = list
         }
 
@@ -59,7 +61,7 @@ class CoordTag private constructor(
             val config = game.resource.tagConfig
 
             config.set(name.plus(".mode"), mode.label)
-            config.createSection(name.plus(".captures.").plus(game.map.mapID))
+            config.createSection(name.plus(".captures.").plus(game.map.id))
             reload(game)
         }
 
@@ -73,20 +75,32 @@ class CoordTag private constructor(
             var index = 0
 
             for (line in stream) {
-                val arr = line.split(',', ignoreCase = false, limit = 5)
-                val x = arr[0].toBigDecimal()
-                val y = arr[1].toBigDecimal()
-                val z = arr[2].toBigDecimal()
-                val yaw: BigDecimal
-                val pitch: BigDecimal
+                val arr = line.split(',', ignoreCase = false, limit = 6)
 
-                if (mode == TagMode.SPAWN) {
-                    yaw = arr[3].toBigDecimal()
-                    pitch = arr[4].toBigDecimal()
-                    list.add(SpawnCapture(x.toDouble(), y.toDouble(), z.toDouble(),
-                            yaw.toFloat(), pitch.toFloat(), mapID, index++))
-                } else {
-                    list.add(BlockCapture(x.toInt(), y.toInt(), z.toInt(), mapID, index++))
+                when (mode) {
+                    TagMode.SPAWN -> {
+                        val x = arr[0].toBigDecimal().toDouble()
+                        val y = arr[1].toBigDecimal().toDouble()
+                        val z = arr[2].toBigDecimal().toDouble()
+                        val yaw = arr[3].toBigDecimal().toFloat()
+                        val pitch = arr[4].toBigDecimal().toFloat()
+                        list.add(SpawnCapture(x, y, z, yaw, pitch, mapID, index++))
+                    }
+                    TagMode.BLOCK -> {
+                        val x = arr[0].toBigDecimal().toInt()
+                        val y = arr[1].toBigDecimal().toInt()
+                        val z = arr[2].toBigDecimal().toInt()
+                        list.add(BlockCapture(x, y, z, mapID, index++))
+                    }
+                    TagMode.AREA -> {
+                        val x1 = arr[0].toBigDecimal().toInt()
+                        val x2 = arr[1].toBigDecimal().toInt()
+                        val y1 = arr[2].toBigDecimal().toInt()
+                        val y2 = arr[3].toBigDecimal().toInt()
+                        val z1 = arr[4].toBigDecimal().toInt()
+                        val z2 = arr[5].toBigDecimal().toInt()
+                        list.add(AreaCapture(x1, x2, y1, y2, z1, z2, mapID, index++))
+                    }
                 }
             }
             return list
@@ -109,7 +123,7 @@ class CoordTag private constructor(
      * @return List of CoordCapture matching the conditions.
      */
     fun getLocalCaptures(): List<CoordCapture> {
-        return captures.filter { it.mapID == game.map.mapID }
+        return captures.filter { it.mapID == game.map.id }
     }
 
     /**

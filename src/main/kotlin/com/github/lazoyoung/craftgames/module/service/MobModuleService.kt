@@ -18,7 +18,7 @@ class MobModuleService internal constructor(val game: Game) : MobModule {
         val capture = Module.getSpawnTag(game, spawnTag).getLocalCaptures()
 
         if (capture.isEmpty())
-            throw FaultyConfiguration("Tag $spawnTag has no capture in map: ${game.map.mapID}")
+            throw FaultyConfiguration("Tag $spawnTag has no capture in map: ${game.map.id}")
 
         capture.forEach {
             it as SpawnCapture
@@ -37,7 +37,7 @@ class MobModuleService internal constructor(val game: Game) : MobModule {
         val capture = Module.getSpawnTag(game, spawnTag).getLocalCaptures()
 
         if (capture.isEmpty())
-            throw FaultyConfiguration("Tag $spawnTag has no capture in map: ${game.map.mapID}")
+            throw FaultyConfiguration("Tag $spawnTag has no capture in map: ${game.map.id}")
 
         capture.forEach {
             it as SpawnCapture

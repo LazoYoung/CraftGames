@@ -100,7 +100,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             player.sendMessage(notFound)
         } else {
             if (tag.getLocalCaptures().isEmpty())
-                throw UndefinedCoordTag("${tag.name} has no capture in map: ${game.map.mapID}")
+                throw UndefinedCoordTag("${tag.name} has no capture in map: ${game.map.id}")
 
             val c = tag.getLocalCaptures().random() as SpawnCapture
             location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
@@ -186,8 +186,8 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                 player = player,
                 type = ChatMessageType.ACTION_BAR,
                 textCases = listOf(
-                        "You will respawn in a moment.",
-                        "&eYou will respawn in a moment."
+                        "&eYou will respawn in a moment.",
+                        "&e&lYou will respawn in a moment."
                 ),
                 interval = Timer(TimeUnit.TICK, 30)
         )
@@ -204,7 +204,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             teleportSpawn(gamePlayer)
             playerModule.restore(gamePlayer.player)
             actionBar.clear()
-            player.sendActionBar('&', "&l&aRESPAWN")
+            player.sendActionBar('&', "&a&lRESPAWN")
         }, playerModule.respawnTimer)
     }
 

@@ -1,11 +1,10 @@
 package com.github.lazoyoung.craftgames.coordtag
 
+import org.bukkit.Location
+import org.bukkit.World
 import org.bukkit.entity.Player
 
 abstract class CoordCapture(
-        val x: Double,
-        val y: Double,
-        val z: Double,
         val mapID: String?,
         val index: Int?
 ) {
@@ -29,7 +28,9 @@ abstract class CoordCapture(
         }
     }
 
-    abstract fun serialize() : String
+    abstract fun serialize(): String
+
+    abstract fun toLocation(world: World): Location
 
     @Deprecated("World is vauge.")
     abstract fun teleport(player: Player)

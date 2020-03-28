@@ -126,7 +126,7 @@ class GameCommand : CommandBase {
 
                 val present = Game.find(args[1], true).firstOrNull()
 
-                if (present != null && present.map.mapID == args[2]) {
+                if (present != null && present.map.id == args[2]) {
                     sender.sendMessage("That map is being edited by someone else.")
                     return true
                 }

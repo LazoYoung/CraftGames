@@ -64,6 +64,7 @@ class MessageTask(
         val id = player.uniqueId
 
         when (type) {
+            // TODO Introduce prioritize system. Task with highest weight is displayed.
             ChatMessageType.ACTION_BAR ->
                 if (actionTask.containsKey(id)) {
                     return false

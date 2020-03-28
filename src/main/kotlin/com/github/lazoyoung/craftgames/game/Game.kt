@@ -88,7 +88,7 @@ class Game(
         }
 
         fun getMapNames(gameName: String, lobby: Boolean = true): List<String> {
-            return getMapList(gameName, lobby).map { it.mapID }
+            return getMapList(gameName, lobby).map { it.id }
         }
 
         /**
@@ -319,7 +319,7 @@ class Game(
         Module.getGameModule(this).teleportSpawn(playerData)
         players.add(uid)
         player.gameMode = GameMode.CREATIVE
-        player.sendMessage("You are editing \'${map.mapID}\' in $name.")
+        player.sendMessage("You are editing \'${map.id}\' in $name.")
     }
 
     fun leave(playerData: PlayerData) {
