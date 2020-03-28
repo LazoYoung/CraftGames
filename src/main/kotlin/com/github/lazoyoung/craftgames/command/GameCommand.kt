@@ -145,7 +145,8 @@ class GameCommand : CommandBase {
                     } catch (e: GameNotFound) {
                         sender.sendMessage(*ComponentBuilder("Game ${args[1]} does not exist!").color(ChatColor.RED).create())
                     } catch (e: Exception) {
-                        sender.sendMessage(*ComponentBuilder(e.localizedMessage).color(ChatColor.RED).create())
+                        sender.sendMessage(*ComponentBuilder("Error occurred! See console for details.").color(ChatColor.RED).create())
+                        e.printStackTrace()
                     }
                 }
             }

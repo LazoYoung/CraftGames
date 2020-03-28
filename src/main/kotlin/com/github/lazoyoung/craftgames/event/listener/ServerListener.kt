@@ -30,7 +30,7 @@ class ServerListener : Listener {
         if (pdata is GamePlayer && player.gameMode != GameMode.SPECTATOR) {
             val worldModule = Module.getWorldModule(pdata.game)
 
-            worldModule.getArenaNameAt(event.to)?.let {
+            worldModule.getAreaNameAt(event.to)?.let {
                 worldModule.triggers[it]?.accept(player)
             }
         }

@@ -58,7 +58,7 @@ class GameMap internal constructor(
         val container: Path
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
-        val label = Main.config.getString("world-name")
+        val label = Main.config.getString("world-label")
 
         if (label == null) {
             game.forceStop(error = true)

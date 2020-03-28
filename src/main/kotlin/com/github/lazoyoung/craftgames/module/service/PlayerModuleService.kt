@@ -34,29 +34,49 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
 
-    override fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>) {
-        killTriggers[killer.uniqueId] = BiConsumer { t, u ->
-            try {
-                trigger.accept(t, u)
-            } catch (e: Exception) {
-                script.writeStackTrace(e)
-                script.getLogger()?.println("Error occurred in Kill trigger: ${killer.name}")
+    override fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>?) {
+        val name = killer.name
+        val uid = killer.uniqueId
+
+        if (trigger == null) {
+            if (killTriggers.containsKey(uid)) {
+                killTriggers.remove(uid)
+                script.getLogger()?.println("A Kill trigger is un-bound from: $name")
             }
+        } else {
+            killTriggers[uid] = BiConsumer { t, u ->
+                try {
+                    trigger.accept(t, u)
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    script.getLogger()?.println("Error occurred in Kill trigger: $name")
+                }
+            }
+            script.getLogger()?.println("A kill trigger is bound to $name.")
         }
-        script.getLogger()?.println("A kill trigger is bound to ${killer.name}.")
     }
 
-    override fun setDeathTrigger(player: Player, trigger: Predicate<Player>) {
-        deathTriggers[player.uniqueId] = Predicate { p ->
-            try {
-                return@Predicate trigger.test(p)
-            } catch (e: Exception) {
-                script.writeStackTrace(e)
-                script.getLogger()?.println("Error occurred in Death trigger: ${player.name}")
+    override fun setDeathTrigger(player: Player, trigger: Predicate<Player>?) {
+        val name = player.name
+        val uid = player.uniqueId
+
+        if (trigger == null) {
+            if (deathTriggers.containsKey(uid)) {
+                deathTriggers.remove(uid)
+                script.getLogger()?.println("A Death trigger is un-bound from: $name")
             }
-            return@Predicate false
+        } else {
+            deathTriggers[uid] = Predicate { p ->
+                try {
+                    return@Predicate trigger.test(p)
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    script.getLogger()?.println("Error occurred in Death trigger: ${player.name}")
+                }
+                return@Predicate false
+            }
+            script.getLogger()?.println("A death trigger is bound to ${player.name}.")
         }
-        script.getLogger()?.println("A death trigger is bound to ${player.name}.")
     }
 
     override fun getLivingPlayers(): List<Player> {

@@ -34,12 +34,12 @@ class GameResource(val gameName: String) {
     /** Storage config for player inventory and spawnpoint. **/
     internal val restoreConfig: YamlConfiguration
 
+    /** The root folder among all the resources in this game **/
+    internal val root: Path
+
     private val restoreFile: File
 
     private val tagFile: File
-
-    /** The root folder among all the resources in this game **/
-    private val root: Path
 
     init {
         /*

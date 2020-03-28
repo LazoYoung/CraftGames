@@ -153,7 +153,7 @@ class Game(
         }
 
         private fun assignID(game: Game) {
-            val label = Main.config.getString("worlds.directory-label")!!
+            val label = Main.config.getString("world-label")!!
 
             Bukkit.getWorldContainer().listFiles()?.forEach {
                 if (it.isDirectory && it.name.startsWith(label.plus('_'))) {

@@ -32,7 +32,7 @@ class MobModuleService internal constructor(val game: Game) : MobModule {
 
     override fun spawnMythicMob(name: String, level: Int, spawnTag: String) {
         if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null)
-            throw DependencyNotFound("MythicMobs plugin is required to use this function.")
+            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
 
         // TODO MythicMobs should be referred via Reflection to eliminate local dependency
         val mapID = game.map.id
