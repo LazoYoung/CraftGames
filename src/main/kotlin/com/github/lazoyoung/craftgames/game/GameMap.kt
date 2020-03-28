@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.coordtag.AreaCapture
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.Bukkit
@@ -14,19 +15,22 @@ import java.nio.file.Path
 import java.util.function.Consumer
 
 class GameMap internal constructor(
-        /** ID of selected map **/
-        internal val mapID: String,
+        /** ID of this map **/
+        internal val id: String,
 
-        /** Alias name to be displayed **/
+        /** Display name **/
         val alias: String,
 
         /** Description of this map **/
         val description: List<String>,
 
-        /** Whether or not it's the map for lobby **/
+        /** Determines if this map is lobby **/
         val isLobby: Boolean = false,
 
-        /** Path to the original map folder. **/
+        /** Key: Tag name, Value: AreaCapture instance **/
+        internal val areaRegistry: HashMap<String, List<AreaCapture>> = HashMap(),
+
+        /** Path to original map folder. **/
         internal val repository: Path
 ) {
 
@@ -54,7 +58,7 @@ class GameMap internal constructor(
         val container: Path
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
-        val label = Main.config.getString("world-name")
+        val label = Main.config.getString("world-label")
 
         if (label == null) {
             game.forceStop(error = true)
@@ -100,10 +104,10 @@ class GameMap internal constructor(
                 }
             } catch (e: SecurityException) {
                 game.forceStop(error = true)
-                throw RuntimeException("Unable to access map file ($mapID) for ${game.name}.", e)
+                throw RuntimeException("Unable to access map file ($id) for ${game.name}.", e)
             } catch (e: IOException) {
                 game.forceStop(error = true)
-                throw RuntimeException("Failed to install map file ($mapID) for ${game.name}.", e)
+                throw RuntimeException("Failed to install map file ($id) for ${game.name}.", e)
             } catch (e: UnsupportedOperationException) {
                 game.forceStop(error = true)
                 throw RuntimeException(e)

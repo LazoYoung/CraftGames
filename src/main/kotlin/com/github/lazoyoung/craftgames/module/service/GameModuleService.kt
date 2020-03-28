@@ -12,6 +12,7 @@ import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
 import com.github.lazoyoung.craftgames.util.MessageTask
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.ChatMessageType
@@ -33,7 +34,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     internal var canJoinAfterStart = false
     internal var minPlayer = 1
     internal var maxPlayer = 10
-    private var timer: Long = Timer(Timer.Unit.MINUTE, 3).toSecond()
+    private var timer: Long = Timer(TimeUnit.MINUTE, 3).toSecond()
     private var timerLength = timer
 
     /* Service handling bossbar and timer */
@@ -46,15 +47,12 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     private val notFound = ComponentBuilder("Unable to locate spawnpoint!")
             .color(ChatColor.RED).create().first() as TextComponent
 
-    override fun getGameTimer(): Timer {
-        return Timer(Timer.Unit.TICK, timer)
+    override fun getTimer(): Timer {
+        return Timer(TimeUnit.TICK, timer)
     }
 
-    override fun setGameTimer(timer: Timer) {
-        if (game.phase == Game.Phase.LOBBY) {
-            this.timerLength = timer.toSecond()
-        }
-
+    override fun setTimer(timer: Timer) {
+        this.timerLength = timer.toSecond()
         this.timer = timer.toSecond()
     }
 
@@ -81,16 +79,18 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
      * Teleport [player][playerData] to the relevant spawnpoint
      * matching with its [type][PlayerData].
      */
-    fun teleport(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+    fun teleportSpawn(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
         val world = game.map.world!!
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val player = playerData.player
-        val playerModule = game.module.playerModule
+        val playerModule = Module.getPlayerModule(game)
         val tag = when (playerData) {
             is GameEditor -> playerModule.editor
-            is GamePlayer -> playerModule.personal
             is Spectator -> playerModule.spectator
+            is GamePlayer -> {
+                Module.getTeamModule(game).getSpawn(player) ?: playerModule.personal
+            }
             else -> null
         }
         val location: Location
@@ -99,10 +99,13 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             location = world.spawnLocation
             player.sendMessage(notFound)
         } else {
-            if (tag.getLocalCaptures().isEmpty())
-                throw UndefinedCoordTag("${tag.name} has no capture in map: ${game.map.mapID}")
+            val mapID = game.map.id
+            val captures = tag.getCaptures(mapID)
 
-            val c = tag.getLocalCaptures().random() as SpawnCapture
+            if (captures.isEmpty())
+                throw UndefinedCoordTag("${tag.name} has no capture in map: $mapID")
+
+            val c = captures.random() as SpawnCapture
             location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
         }
 
@@ -117,7 +120,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         }
     }
 
-    internal fun finish() {
+    internal fun finishGame() {
         fun doCeremony() {
             /* TODO Ceremony & Reward */
         }
@@ -126,22 +129,22 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         game.close()
     }
 
-    internal fun startService() {
-        val playerModule = game.module.playerModule
+    internal fun start() {
+        val playerModule = Module.getPlayerModule(game)
 
         // Fire event
         Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
-            teleport(p)
+            teleportSpawn(p)
             playerModule.restore(p.player)
             bossBar.addPlayer(p.player)
         }
 
         serviceTask = object : BukkitRunnable() {
             override fun run() {
-                val format = Timer(Timer.Unit.SECOND, timer).format(false)
+                val format = Timer(TimeUnit.SECOND, timer).format(false)
                 val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
                 val progress = timer.toDouble() / timerLength
 
@@ -164,7 +167,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                 bossBar.setTitle(title.toString())
 
                 if (timer-- < 1) {
-                    finish()
+                    finishGame()
                     this.cancel()
                     return
                 }
@@ -173,23 +176,23 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
-    internal fun endService() {
+    internal fun terminate() {
         bossBar.removeAll()
         Bukkit.removeBossBar(bossBarKey)
         serviceTask?.cancel()
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
-        val playerModule = game.module.playerModule
+        val playerModule = Module.getPlayerModule(game)
         val player = gamePlayer.player
         val actionBar = MessageTask(
                 player = player,
                 type = ChatMessageType.ACTION_BAR,
                 textCases = listOf(
-                        "You will respawn in a moment.",
-                        "&eYou will respawn in a moment."
+                        "&eYou will respawn in a moment.",
+                        "&e&lYou will respawn in a moment."
                 ),
-                interval = Timer(Timer.Unit.TICK, 30)
+                interval = Timer(TimeUnit.TICK, 30)
         )
 
         // Temporarily spectate
@@ -201,10 +204,10 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                 return@Runnable
 
             // Rollback to spawnpoint with default GameMode
-            teleport(gamePlayer)
+            teleportSpawn(gamePlayer)
             playerModule.restore(gamePlayer.player)
             actionBar.clear()
-            player.sendActionBar('&', "&aRESPAWN")
+            player.sendActionBar('&', "&a&lRESPAWN")
         }, playerModule.respawnTimer)
     }
 

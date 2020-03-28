@@ -10,6 +10,7 @@ import com.github.lazoyoung.craftgames.module.api.PlayerType
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -18,7 +19,6 @@ import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
-import org.bukkit.scoreboard.Team
 import java.util.*
 import java.util.function.BiConsumer
 import java.util.function.Predicate
@@ -29,40 +29,58 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     internal var personal: CoordTag? = null
     internal var editor: CoordTag? = null
     internal var spectator: CoordTag? = null
-    internal var respawnTimer: Long = Timer(Timer.Unit.SECOND, 20).toTick()
+    internal var respawnTimer: Long = Timer(TimeUnit.SECOND, 20).toTick()
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
 
-    override fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>) {
-        killTriggers[killer.uniqueId] = BiConsumer { t, u ->
-            try {
-                trigger.accept(t, u)
-            } catch (e: Exception) {
-                script.writeStackTrace(e)
+    override fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>?) {
+        val name = killer.name
+        val uid = killer.uniqueId
+
+        if (trigger == null) {
+            if (killTriggers.containsKey(uid)) {
+                killTriggers.remove(uid)
+                script.getLogger()?.println("A Kill trigger is un-bound from: $name")
             }
+        } else {
+            killTriggers[uid] = BiConsumer { t, u ->
+                try {
+                    trigger.accept(t, u)
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    script.getLogger()?.println("Error occurred in Kill trigger: $name")
+                }
+            }
+            script.getLogger()?.println("A kill trigger is bound to $name.")
         }
-        script.getLogger()?.println("A kill trigger has been binded to ${killer.name}.")
     }
 
-    override fun setDeathTrigger(player: Player, trigger: Predicate<Player>) {
-        deathTriggers[player.uniqueId] = Predicate { p ->
-            try {
-                return@Predicate trigger.test(p)
-            } catch (e: Exception) {
-                script.writeStackTrace(e)
+    override fun setDeathTrigger(player: Player, trigger: Predicate<Player>?) {
+        val name = player.name
+        val uid = player.uniqueId
+
+        if (trigger == null) {
+            if (deathTriggers.containsKey(uid)) {
+                deathTriggers.remove(uid)
+                script.getLogger()?.println("A Death trigger is un-bound from: $name")
             }
-            return@Predicate false
+        } else {
+            deathTriggers[uid] = Predicate { p ->
+                try {
+                    return@Predicate trigger.test(p)
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    script.getLogger()?.println("Error occurred in Death trigger: ${player.name}")
+                }
+                return@Predicate false
+            }
+            script.getLogger()?.println("A death trigger is bound to ${player.name}.")
         }
-        script.getLogger()?.println("A death trigger has been binded to ${player.name}.")
     }
 
     override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
-    }
-
-    override fun getTeamPlayers(team: Team): List<Player> {
-        return game.getPlayers().filter { team.hasEntry(it.name) }
     }
 
     override fun getDeadPlayers(): List<Player> {
@@ -108,11 +126,12 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     }
 
     fun restore(player: Player, leave: Boolean = false) {
-        player.gameMode = game.module.gameModule.defaultGameMode
+        player.gameMode = Module.getGameModule(game).defaultGameMode
         player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
         player.foodLevel = 20
         player.saturation = 5.0f
         player.exhaustion = 0.0f
+        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
 
         if (leave) {
             // TODO Restore inventory

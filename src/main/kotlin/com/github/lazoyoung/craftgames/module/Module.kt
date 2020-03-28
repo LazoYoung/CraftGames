@@ -10,48 +10,66 @@ import javax.script.Bindings
 
 class Module internal constructor(val game: Game) {
 
-    internal val gameModule = GameModuleService(game)
-    internal val lobbyModule = LobbyModuleService(game)
-    internal val playerModule = PlayerModuleService(game)
-    internal val mobModule = MobModuleService(game)
-    internal val scriptModule = ScriptModuleService()
-    internal val eventModule = EventModuleService(game)
+    private val script = game.resource.script
+    private val gameModule = GameModuleService(game)
+    private val teamModule = TeamModuleService(game)
+    private val lobbyModule = LobbyModuleService(game)
+    private val playerModule = PlayerModuleService(game)
+    private val mobModule = MobModuleService(game)
+    private val scriptModule = ScriptModuleService(script)
+    private val worldModule = WorldModuleService(game)
     private var terminateSignal = false
     private val bind: Bindings
 
     init {
-        val script = game.resource.script
-
         bind = script.getBindings()
         bind["gameModule"] = gameModule as GameModule
+        bind["teamModule"] = teamModule as TeamModule
         bind["lobbyModule"] = lobbyModule as LobbyModule
         bind["playerModule"] = playerModule as PlayerModule
         bind["mobModule"] = mobModule as MobModule
         bind["scriptModule"] = scriptModule as ScriptModule
-        bind["eventModule"] = eventModule as EventModule
+        bind["worldModule"] = worldModule as WorldModule
         script.startLogging()
         script.parse()
-        CoordTag.reload(game)
+        CoordTag.reload(game.resource)
     }
 
     companion object {
-        fun getGameModule(game: Game): GameModule {
+        fun getGameModule(game: Game): GameModuleService {
             return game.module.gameModule
         }
 
-        fun getLobbyModule(game: Game): LobbyModule {
+        fun getTeamModule(game: Game): TeamModuleService {
+            return game.module.teamModule
+        }
+
+        fun getLobbyModule(game: Game): LobbyModuleService {
             return game.module.lobbyModule
         }
 
-        fun getPlayerModule(game: Game): PlayerModule {
+        fun getPlayerModule(game: Game): PlayerModuleService {
             return game.module.playerModule
         }
 
+        fun getMobModule(game: Game): MobModuleService {
+            return game.module.mobModule
+        }
+
+        fun getScriptModule(game: Game): ScriptModuleService {
+            return game.module.scriptModule
+        }
+
+        fun getWorldModule(game: Game): WorldModuleService {
+            return game.module.worldModule
+        }
+
         internal fun getSpawnTag(game: Game, name: String): CoordTag {
-            val tag = CoordTag.get(game, name) ?: throw IllegalArgumentException("Unable to identify $name tag.")
+            val tag = CoordTag.get(game, name)
+                    ?: throw IllegalArgumentException("Unable to identify $name tag.")
 
             if (tag.mode != TagMode.SPAWN)
-                throw IllegalArgumentException("Parameter does not accept block tag.")
+                throw IllegalArgumentException("You passed a BlockTag to parameter which is invalid.")
 
             return tag
         }
@@ -65,14 +83,16 @@ class Module internal constructor(val game: Game) {
             when (game.phase) {
                 Game.Phase.LOBBY -> {}
                 Game.Phase.PLAYING -> {
-                    lobbyModule.clear()
-                    gameModule.startService()
+                    lobbyModule.terminate()
+                    gameModule.start()
                 }
                 Game.Phase.SUSPEND -> {
-                    lobbyModule.clear()
-                    gameModule.endService()
-                    bind.clear()
+                    lobbyModule.terminate()
+                    teamModule.terminate()
+                    gameModule.terminate()
+                    scriptModule.terminate()
                     game.resource.script.closeIO()
+                    bind.clear()
                 }
             }
         } catch (e: Exception) {

@@ -126,7 +126,7 @@ class GameCommand : CommandBase {
 
                 val present = Game.find(args[1], true).firstOrNull()
 
-                if (present != null && present.map.mapID == args[2]) {
+                if (present != null && present.map.id == args[2]) {
                     sender.sendMessage("That map is being edited by someone else.")
                     return true
                 }
@@ -145,7 +145,8 @@ class GameCommand : CommandBase {
                     } catch (e: GameNotFound) {
                         sender.sendMessage(*ComponentBuilder("Game ${args[1]} does not exist!").color(ChatColor.RED).create())
                     } catch (e: Exception) {
-                        sender.sendMessage(*ComponentBuilder(e.localizedMessage).color(ChatColor.RED).create())
+                        sender.sendMessage(*ComponentBuilder("Error occurred! See console for details.").color(ChatColor.RED).create())
+                        e.printStackTrace()
                     }
                 }
             }

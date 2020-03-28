@@ -1,8 +1,9 @@
 name: CraftGames
 main: com.github.lazoyoung.craftgames.Main
+author: LazoYoung
 api-version: '1.15'
 version: $version
-softdepend: [ MythicMobs ]
+softdepend: [ WorldEdit, MythicMobs ]
 commands:
   join:
     description: Join a game.

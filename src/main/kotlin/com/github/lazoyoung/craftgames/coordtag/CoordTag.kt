@@ -1,10 +1,10 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
-import java.math.BigDecimal
+import com.github.lazoyoung.craftgames.game.GameResource
 
 class CoordTag private constructor(
-        val game: Game,
+        val resource: GameResource,
         val mode: TagMode,
         val name: String,
         private val captures: List<CoordCapture>
@@ -22,11 +22,18 @@ class CoordTag private constructor(
          * @return List of CoordTag matching the conditions above.
          */
         fun getAll(game: Game): List<CoordTag> {
-            return tags[game.name] ?: emptyList()
+            return getAll(game.name)
         }
 
         /**
-         * @return CoordTag matching the name inside the game, if found.
+         * @see [getAll]
+         */
+        fun getAll(gameName: String): List<CoordTag> {
+            return tags[gameName] ?: emptyList()
+        }
+
+        /**
+         * @return CoordTag matching with [name] inside the [game]. Null if not found.
          */
         fun get(game: Game, name: String): CoordTag? {
             return getAll(game).firstOrNull { it.name == name }
@@ -35,58 +42,74 @@ class CoordTag private constructor(
         /**
          * Reload all tags associated with specific game.
          */
-        internal fun reload(game: Game) {
-            val config = game.resource.tagConfig
+        @Suppress("UNCHECKED_CAST")
+        internal fun reload(resource: GameResource) {
+            val config = resource.tagConfig
             val list = ArrayList<CoordTag>()
 
             for (name in config.getKeys(false)) {
-                val modeStr = config.getString(name.plus('.').plus("mode"))
-                        ?.toUpperCase() ?: continue
+                val modeStr = config.getString(name.plus('.')
+                        .plus("mode"))?.toUpperCase()
+                        ?: continue
                 val mode = TagMode.valueOf(modeStr)
                 val captList = ArrayList<CoordCapture>()
-                val mapIterate = config.getConfigurationSection(name.plus('.').plus("captures"))
-                        ?.getKeys(false) ?: emptyList<String>()
+                val mapIterate = config.getConfigurationSection(name.plus('.')
+                        .plus("captures"))?.getKeys(false)
+                        ?: emptyList<String>()
 
                 for (map in mapIterate) {
-                    captList.addAll(deserialize(game, map, mode, name))
+                    captList.addAll(deserialize(resource, map, mode, name))
                 }
-                list.add(CoordTag(game, mode, name, captList))
+                list.add(CoordTag(resource, mode, name, captList))
             }
-            tags[game.name] = list
+
+            tags[resource.gameName] = list
         }
 
-        internal fun create(game: Game, mode: TagMode, name: String) {
-            val config = game.resource.tagConfig
+        internal fun create(resource: GameResource, mapID: String, mode: TagMode, name: String) {
+            val config = resource.tagConfig
 
             config.set(name.plus(".mode"), mode.label)
-            config.createSection(name.plus(".captures.").plus(game.map.mapID))
-            reload(game)
+            config.createSection(name.plus(".captures.").plus(mapID))
+            reload(resource)
         }
 
         internal fun getKeyToCaptureStream(name: String, mapID: String): String {
             return name.plus('.').plus("captures").plus('.').plus(mapID)
         }
 
-        private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
+        private fun deserialize(resource: GameResource, mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
             val list = ArrayList<CoordCapture>()
-            val stream = game.resource.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
+            val stream = resource.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
             var index = 0
 
             for (line in stream) {
-                val arr = line.split(',', ignoreCase = false, limit = 5)
-                val x = arr[0].toBigDecimal()
-                val y = arr[1].toBigDecimal()
-                val z = arr[2].toBigDecimal()
-                val yaw: BigDecimal
-                val pitch: BigDecimal
+                val arr = line.split(',', ignoreCase = false, limit = 6)
 
-                if (mode == TagMode.SPAWN) {
-                    yaw = arr[3].toBigDecimal()
-                    pitch = arr[4].toBigDecimal()
-                    list.add(SpawnCapture(x.toDouble(), y.toDouble(), z.toDouble(),
-                            yaw.toFloat(), pitch.toFloat(), mapID, index++))
-                } else {
-                    list.add(BlockCapture(x.toInt(), y.toInt(), z.toInt(), mapID, index++))
+                when (mode) {
+                    TagMode.SPAWN -> {
+                        val x = arr[0].toBigDecimal().toDouble()
+                        val y = arr[1].toBigDecimal().toDouble()
+                        val z = arr[2].toBigDecimal().toDouble()
+                        val yaw = arr[3].toBigDecimal().toFloat()
+                        val pitch = arr[4].toBigDecimal().toFloat()
+                        list.add(SpawnCapture(x, y, z, yaw, pitch, mapID, index++))
+                    }
+                    TagMode.BLOCK -> {
+                        val x = arr[0].toBigDecimal().toInt()
+                        val y = arr[1].toBigDecimal().toInt()
+                        val z = arr[2].toBigDecimal().toInt()
+                        list.add(BlockCapture(x, y, z, mapID, index++))
+                    }
+                    TagMode.AREA -> {
+                        val x1 = arr[0].toBigDecimal().toInt()
+                        val x2 = arr[1].toBigDecimal().toInt()
+                        val y1 = arr[2].toBigDecimal().toInt()
+                        val y2 = arr[3].toBigDecimal().toInt()
+                        val z1 = arr[4].toBigDecimal().toInt()
+                        val z2 = arr[5].toBigDecimal().toInt()
+                        list.add(AreaCapture(x1, x2, y1, y2, z1, z2, mapID, index++))
+                    }
                 }
             }
             return list
@@ -104,15 +127,6 @@ class CoordTag private constructor(
     }
 
     /**
-     * Returns the captures associated with the current map.
-     *
-     * @return List of CoordCapture matching the conditions.
-     */
-    fun getLocalCaptures(): List<CoordCapture> {
-        return captures.filter { it.mapID == game.map.mapID }
-    }
-
-    /**
      * This method scans the captures to examine if this tag is incomplete.
      * Incomplete tags are those who omit to capture coordinate from at least one map.
      *
@@ -121,7 +135,7 @@ class CoordTag private constructor(
     fun scanIncompleteMaps(): List<String> {
         val list = ArrayList<String>()
 
-        for (mapID in Game.getMapNames(game.name)) {
+        for (mapID in Game.getMapNames(resource.gameName)) {
             if (captures.none { mapID == it.mapID }) {
                 list.add(mapID)
             }
@@ -134,22 +148,24 @@ class CoordTag private constructor(
      * You will have to manually save the config to disk.
      */
     fun remove() {
-        game.resource.tagConfig.set(name, null)
-        reload(game)
+        resource.tagConfig.set(name, null)
+        reload(resource)
     }
 
     /**
      * Remove the one capture at given index and map inside this tag.
      * You will have to manually save the config to disk.
+     *
+     * @throws IllegalArgumentException if [capture] is not registerd to a tag.
      */
-    fun removeCapture(index: Int, mapID: String) {
+    fun removeCapture(capture: CoordCapture) {
         try {
-            val key = getKeyToCaptureStream(name, mapID)
-            val config = game.resource.tagConfig
+            val key = getKeyToCaptureStream(name, capture.mapID!!)
+            val config = resource.tagConfig
             val stream = config.getStringList(key)
-            stream.removeAt(index)
+            stream.removeAt(capture.index!!)
             config.set(key, stream)
-            reload(game)
+            reload(resource)
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }

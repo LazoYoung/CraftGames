@@ -3,25 +3,40 @@ package com.github.lazoyoung.craftgames.event.listener
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.service.GameModuleService
-import com.github.lazoyoung.craftgames.module.service.PlayerModuleService
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldInitEvent
 
 class ServerListener : Listener {
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGH)
+    fun onPlayerMove(event: PlayerMoveEvent) {
+        val player = event.player
+        val pdata = PlayerData.get(player) ?: return
+
+        if (pdata is GamePlayer && player.gameMode != GameMode.SPECTATOR) {
+            val worldModule = Module.getWorldModule(pdata.game)
+
+            worldModule.getAreaNameAt(event.to)?.let {
+                worldModule.triggers[it]?.accept(player)
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
     fun onWorldLoad(event: WorldInitEvent) {
         for (game in Game.find()) {
             if (event.world.name == game.map.worldName) {
@@ -34,16 +49,24 @@ class ServerListener : Listener {
     @EventHandler
     fun onBlockClick(event: PlayerInteractEvent) {
         event.clickedBlock?.let {
-            val playerData = PlayerData.get(event.player) ?: return
+            val pdata = PlayerData.get(event.player) ?: return
+            val action = event.action
 
-            if (playerData is GameEditor) {
-                if (playerData.callBlockPrompt(it))
+            if (pdata is GameEditor) {
+                if (action != Action.LEFT_CLICK_BLOCK && action != Action.RIGHT_CLICK_BLOCK)
+                    return
+
+                if (event.isBlockInHand || event.player.isSneaking)
+                    return
+
+                if (pdata.callBlockPrompt(it) || pdata.callAreaPrompt(it, event.action)) {
                     event.isCancelled = true
+                }
             }
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGH)
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
 
@@ -57,7 +80,7 @@ class ServerListener : Listener {
                 ?.let { PlayerData.get(it.uniqueId) } as? GamePlayer
                 ?: return
         val player = gamePlayer.player
-        val service = gamePlayer.game.module.playerModule
+        val service = Module.getPlayerModule(gamePlayer.game)
 
         if (gamePlayer.game.phase == Game.Phase.PLAYING) {
             service.killTriggers[player.uniqueId]?.accept(player, entity)
@@ -68,13 +91,14 @@ class ServerListener : Listener {
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
         val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
-        val playerModule = getPlayerModuleImpl(event.entity) ?: return
+        val game = gamePlayer.game
 
-        if (playerModule.game.phase != Game.Phase.PLAYING)
+        if (game.phase != Game.Phase.PLAYING)
             return
 
         // Trigger DeathEvent
-        val gameModule = Module.getGameModule(playerModule.game) as GameModuleService
+        val playerModule = Module.getPlayerModule(game)
+        val gameModule = Module.getGameModule(game)
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.test(player)
         event.isCancelled = true
 
@@ -86,14 +110,6 @@ class ServerListener : Listener {
                 playerModule.eliminate(player)
             }
         })
-    }
-
-    private fun getPlayerModuleImpl(player: Player): PlayerModuleService? {
-        val game = Game.find().firstOrNull {
-            it.phase == Game.Phase.PLAYING && it.map.world == player.world
-        } ?: return null
-
-        return Module.getPlayerModule(game) as PlayerModuleService
     }
 
 }

@@ -65,7 +65,7 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
             engine.eval(reader)
         }
 
-        logger?.println("Script execution complete.")
+        logger?.println("Script evaluation complete.")
     }
 
     override fun invokeFunction(name: String, args: Array<Any>?): Any? {
@@ -105,9 +105,10 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
                 error.println("    $label <- Plugin can't resolve this function.")
             }
         } else {
-            e.cause?.stackTrace?.find { regex.matches(it.fileName ?: "") }?.let {
-                error.println("   at ${file.name}:${it.lineNumber}")
-            } ?: error.println("    N/A")
+            e.stackTrace.plus(e.cause?.stackTrace ?: emptyArray())
+                    .find { regex.matches(it.fileName ?: "") }
+                    ?.let { error.println("   at ${file.name}:${it.lineNumber}") }
+                    ?: error.println("    N/A")
         }
         error.println()
         error.println()

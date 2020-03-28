@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
 import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
+import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.EventType
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -12,11 +13,12 @@ class GameListener : Listener {
 
     @EventHandler
     fun onGameInit(event: GameInitEvent) {
-        val script = event.game.resource.script
+        val game = event.game
+        val script = game.resource.script
 
         try {
             script.execute()
-            event.game.module.eventModule
+            Module.getScriptModule(game)
                     .events[EventType.GAME_INIT_EVENT]?.accept(event)
         } catch (e: Exception) {
             script.writeStackTrace(e)
@@ -29,7 +31,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            game.module.eventModule
+            Module.getScriptModule(game)
                     .events[EventType.GAME_START_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
@@ -42,7 +44,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            game.module.eventModule
+            Module.getScriptModule(game)
                     .events[EventType.PLAYER_JOIN_GAME_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
@@ -55,7 +57,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            game.module.eventModule
+            Module.getScriptModule(game)
                     .events[EventType.PLAYER_LEAVE_GAME_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)

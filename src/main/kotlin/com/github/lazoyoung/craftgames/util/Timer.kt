@@ -3,34 +3,30 @@ package com.github.lazoyoung.craftgames.util
 import java.text.DecimalFormat
 
 class Timer(
-        private val unit: Unit,
+        private val timeUnit: TimeUnit,
         private val value: Long
 ) {
-    enum class Unit {
-        TICK, SECOND, MINUTE
-    }
-
     fun toTick(): Long {
-        return when (unit) {
-            Unit.MINUTE -> value * 1200
-            Unit.SECOND -> value * 20
-            Unit.TICK -> value
+        return when (timeUnit) {
+            TimeUnit.MINUTE -> value * 1200
+            TimeUnit.SECOND -> value * 20
+            TimeUnit.TICK -> value
         }
     }
 
     fun toSecond(): Long {
-        return when (unit) {
-            Unit.TICK -> value / 20
-            Unit.SECOND -> value
-            Unit.MINUTE -> value * 60
+        return when (timeUnit) {
+            TimeUnit.TICK -> value / 20
+            TimeUnit.SECOND -> value
+            TimeUnit.MINUTE -> value * 60
         }
     }
 
     fun toMinute(): Long {
-        return when (unit) {
-            Unit.TICK -> value / (20 * 60)
-            Unit.SECOND -> value / 60
-            Unit.MINUTE -> value
+        return when (timeUnit) {
+            TimeUnit.TICK -> value / (20 * 60)
+            TimeUnit.SECOND -> value / 60
+            TimeUnit.MINUTE -> value
         }
     }
 

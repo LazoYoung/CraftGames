@@ -5,6 +5,12 @@ file-encoding: UTF-8
 # Shall we install the game sample?
 install-sample: false
 
+# Limits the number of blocks in one schematic to be processed.
+schematic-throttle: 10000
+
+# The prefix of generated world's directory name.
+world-label: game
+
 # Specification for every games.
 # The root folder is equivalent to: plugins/CraftGames/
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
