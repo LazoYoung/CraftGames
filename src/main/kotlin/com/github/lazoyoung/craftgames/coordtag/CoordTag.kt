@@ -1,9 +1,10 @@
 package com.github.lazoyoung.craftgames.coordtag
 
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameResource
 
 class CoordTag private constructor(
-        val game: Game,
+        val resource: GameResource,
         val mode: TagMode,
         val name: String,
         private val captures: List<CoordCapture>
@@ -21,7 +22,14 @@ class CoordTag private constructor(
          * @return List of CoordTag matching the conditions above.
          */
         fun getAll(game: Game): List<CoordTag> {
-            return tags[game.name] ?: emptyList()
+            return getAll(game.name)
+        }
+
+        /**
+         * @see [getAll]
+         */
+        fun getAll(gameName: String): List<CoordTag> {
+            return tags[gameName] ?: emptyList()
         }
 
         /**
@@ -34,8 +42,9 @@ class CoordTag private constructor(
         /**
          * Reload all tags associated with specific game.
          */
-        internal fun reload(game: Game) {
-            val config = game.resource.tagConfig
+        @Suppress("UNCHECKED_CAST")
+        internal fun reload(resource: GameResource) {
+            val config = resource.tagConfig
             val list = ArrayList<CoordTag>()
 
             for (name in config.getKeys(false)) {
@@ -49,29 +58,29 @@ class CoordTag private constructor(
                         ?: emptyList<String>()
 
                 for (map in mapIterate) {
-                    captList.addAll(deserialize(game, map, mode, name))
+                    captList.addAll(deserialize(resource, map, mode, name))
                 }
-                list.add(CoordTag(game, mode, name, captList))
+                list.add(CoordTag(resource, mode, name, captList))
             }
 
-            tags[game.name] = list
+            tags[resource.gameName] = list
         }
 
-        internal fun create(game: Game, mode: TagMode, name: String) {
-            val config = game.resource.tagConfig
+        internal fun create(resource: GameResource, mapID: String, mode: TagMode, name: String) {
+            val config = resource.tagConfig
 
             config.set(name.plus(".mode"), mode.label)
-            config.createSection(name.plus(".captures.").plus(game.map.id))
-            reload(game)
+            config.createSection(name.plus(".captures.").plus(mapID))
+            reload(resource)
         }
 
         internal fun getKeyToCaptureStream(name: String, mapID: String): String {
             return name.plus('.').plus("captures").plus('.').plus(mapID)
         }
 
-        private fun deserialize(game: Game, mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
+        private fun deserialize(resource: GameResource, mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
             val list = ArrayList<CoordCapture>()
-            val stream = game.resource.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
+            val stream = resource.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
             var index = 0
 
             for (line in stream) {
@@ -118,15 +127,6 @@ class CoordTag private constructor(
     }
 
     /**
-     * Returns the captures associated with the current map.
-     *
-     * @return List of CoordCapture matching the conditions.
-     */
-    fun getLocalCaptures(): List<CoordCapture> {
-        return captures.filter { it.mapID == game.map.id }
-    }
-
-    /**
      * This method scans the captures to examine if this tag is incomplete.
      * Incomplete tags are those who omit to capture coordinate from at least one map.
      *
@@ -135,7 +135,7 @@ class CoordTag private constructor(
     fun scanIncompleteMaps(): List<String> {
         val list = ArrayList<String>()
 
-        for (mapID in Game.getMapNames(game.name)) {
+        for (mapID in Game.getMapNames(resource.gameName)) {
             if (captures.none { mapID == it.mapID }) {
                 list.add(mapID)
             }
@@ -148,8 +148,8 @@ class CoordTag private constructor(
      * You will have to manually save the config to disk.
      */
     fun remove() {
-        game.resource.tagConfig.set(name, null)
-        reload(game)
+        resource.tagConfig.set(name, null)
+        reload(resource)
     }
 
     /**
@@ -161,11 +161,11 @@ class CoordTag private constructor(
     fun removeCapture(capture: CoordCapture) {
         try {
             val key = getKeyToCaptureStream(name, capture.mapID!!)
-            val config = game.resource.tagConfig
+            val config = resource.tagConfig
             val stream = config.getStringList(key)
             stream.removeAt(capture.index!!)
             config.set(key, stream)
-            reload(game)
+            reload(resource)
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }

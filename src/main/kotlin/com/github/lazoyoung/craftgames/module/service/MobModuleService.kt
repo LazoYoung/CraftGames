@@ -15,10 +15,11 @@ import org.bukkit.entity.LivingEntity
 class MobModuleService internal constructor(val game: Game) : MobModule {
 
     override fun spawnMob(type: String, spawnTag: String) {
-        val capture = Module.getSpawnTag(game, spawnTag).getLocalCaptures()
+        val mapID = game.map.id
+        val capture = Module.getSpawnTag(game, spawnTag).getCaptures(mapID)
 
         if (capture.isEmpty())
-            throw FaultyConfiguration("Tag $spawnTag has no capture in map: ${game.map.id}")
+            throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
 
         capture.forEach {
             it as SpawnCapture
@@ -34,10 +35,11 @@ class MobModuleService internal constructor(val game: Game) : MobModule {
             throw DependencyNotFound("MythicMobs plugin is required to use this function.")
 
         // TODO MythicMobs should be referred via Reflection to eliminate local dependency
-        val capture = Module.getSpawnTag(game, spawnTag).getLocalCaptures()
+        val mapID = game.map.id
+        val capture = Module.getSpawnTag(game, spawnTag).getCaptures(mapID)
 
         if (capture.isEmpty())
-            throw FaultyConfiguration("Tag $spawnTag has no capture in map: ${game.map.id}")
+            throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
 
         capture.forEach {
             it as SpawnCapture

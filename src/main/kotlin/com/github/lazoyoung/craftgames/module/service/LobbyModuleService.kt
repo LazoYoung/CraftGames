@@ -77,7 +77,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
 
     internal fun join(player: Player) {
         val world = game.map.world!!
-        val c = tag?.getLocalCaptures()?.random() as SpawnCapture?
+        val c = tag?.getCaptures(game.map.id)?.random() as SpawnCapture?
 
         if (c != null) {
             player.teleport(Location(world, c.x, c.y, c.z, c.yaw, c.pitch))

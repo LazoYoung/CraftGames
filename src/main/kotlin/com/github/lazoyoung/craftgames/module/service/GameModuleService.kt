@@ -99,10 +99,13 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             location = world.spawnLocation
             player.sendMessage(notFound)
         } else {
-            if (tag.getLocalCaptures().isEmpty())
-                throw UndefinedCoordTag("${tag.name} has no capture in map: ${game.map.id}")
+            val mapID = game.map.id
+            val captures = tag.getCaptures(mapID)
 
-            val c = tag.getLocalCaptures().random() as SpawnCapture
+            if (captures.isEmpty())
+                throw UndefinedCoordTag("${tag.name} has no capture in map: $mapID")
+
+            val c = captures.random() as SpawnCapture
             location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
         }
 

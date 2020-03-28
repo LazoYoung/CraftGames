@@ -11,12 +11,13 @@ import javax.script.Bindings
 class Module internal constructor(val game: Game) {
 
     private val script = game.resource.script
-    internal val gameModule = GameModuleService(game)
-    internal val teamModule = TeamModuleService(game)
-    internal val lobbyModule = LobbyModuleService(game)
-    internal val playerModule = PlayerModuleService(game)
-    internal val mobModule = MobModuleService(game)
-    internal val scriptModule = ScriptModuleService(script)
+    private val gameModule = GameModuleService(game)
+    private val teamModule = TeamModuleService(game)
+    private val lobbyModule = LobbyModuleService(game)
+    private val playerModule = PlayerModuleService(game)
+    private val mobModule = MobModuleService(game)
+    private val scriptModule = ScriptModuleService(script)
+    private val worldModule = WorldModuleService(game)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -28,9 +29,10 @@ class Module internal constructor(val game: Game) {
         bind["playerModule"] = playerModule as PlayerModule
         bind["mobModule"] = mobModule as MobModule
         bind["scriptModule"] = scriptModule as ScriptModule
+        bind["worldModule"] = worldModule as WorldModule
         script.startLogging()
         script.parse()
-        CoordTag.reload(game)
+        CoordTag.reload(game.resource)
     }
 
     companion object {
@@ -56,6 +58,10 @@ class Module internal constructor(val game: Game) {
 
         fun getScriptModule(game: Game): ScriptModuleService {
             return game.module.scriptModule
+        }
+
+        fun getWorldModule(game: Game): WorldModuleService {
+            return game.module.worldModule
         }
 
         internal fun getSpawnTag(game: Game, name: String): CoordTag {

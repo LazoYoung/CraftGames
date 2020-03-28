@@ -1,6 +1,9 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.coordtag.AreaCapture
+import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.exception.GameNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
@@ -17,7 +20,7 @@ import java.nio.file.Path
 /**
  * @throws GameNotFound
  */
-class GameResource(private val gameName: String) {
+class GameResource(val gameName: String) {
 
     lateinit var script: ScriptBase
 
@@ -25,18 +28,18 @@ class GameResource(private val gameName: String) {
 
     val mapRegistry = HashMap<String, GameMap>()
 
-    val restoreFile: File
-
-    val tagFile: File
-
     /** CoordTags configuration across all maps. **/
     internal val tagConfig: YamlConfiguration
 
     /** Storage config for player inventory and spawnpoint. **/
     internal val restoreConfig: YamlConfiguration
 
+    private val restoreFile: File
+
+    private val tagFile: File
+
     /** The root folder among all the resources in this game **/
-    val root: Path
+    private val root: Path
 
     init {
         /*
@@ -66,8 +69,36 @@ class GameResource(private val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
+         * Load CoordTags, player restoration data
+         */
+        val restorePath = layoutConfig.getString("players.path")
+                ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
+        val tagPath = layoutConfig.getString("coordinate-tags.path")
+                ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
+
+        restoreFile = layoutFile.parentFile!!.resolve(restorePath)
+        tagFile = layoutFile.parentFile!!.resolve(tagPath)
+        restoreFile.parentFile!!.mkdirs()
+
+        if (!restoreFile.isFile && !restoreFile.createNewFile())
+            throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
+        if (!tagFile.isFile && !tagFile.createNewFile())
+            throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
+        if (restoreFile.extension != "yml")
+            throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
+        if (tagFile.extension != "yml")
+            throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
+
+        restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
+        tagConfig = YamlConfiguration.loadConfiguration(tagFile)
+
+        // Load tags into memory.
+        CoordTag.reload(this)
+
+        /*
          * Load maps from config
          */
+        @Suppress("UNCHECKED_CAST")
         while (mapItr.hasNext()) {
             val mutmap = mapItr.next().toMutableMap()
             val mapID = mutmap["id"] as String?
@@ -76,7 +107,6 @@ class GameResource(private val gameName: String) {
             val repository: Path?  // Path to original map folder
             val lobby = mutmap["lobby"] as Boolean? ?: false
 
-            @Suppress("UNCHECKED_CAST")
             val description: List<String> = when (val descRaw = mutmap["description"]) {
                 is String -> {
                     listOf(descRaw)
@@ -108,7 +138,13 @@ class GameResource(private val gameName: String) {
                 throw FaultyConfiguration("Unable to locate path to map '$mapID' for $gameName", e)
             }
 
-            val map = GameMap(mapID, alias, description, lobby, repository)
+            val areaRegistry = HashMap<String, List<AreaCapture>>()
+
+            CoordTag.getAll(gameName).filter { it.mode == TagMode.AREA }.forEach {
+                areaRegistry[it.name] = it.getCaptures(mapID) as List<AreaCapture>
+            }
+
+            val map = GameMap(mapID, alias, description, lobby, areaRegistry, repository)
             mapRegistry[mapID] = map
 
             if (lobby) {
@@ -141,28 +177,6 @@ class GameResource(private val gameName: String) {
         } catch (e: ScriptEngineNotFound) {
             Main.logger.warning(e.localizedMessage)
         }
-
-        // Load coordinate tags, player restoration data
-        val restorePath = layoutConfig.getString("players.path")
-                ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
-        val tagPath = layoutConfig.getString("coordinate-tags.path")
-                ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
-
-        restoreFile = layoutFile.parentFile!!.resolve(restorePath)
-        tagFile = layoutFile.parentFile!!.resolve(tagPath)
-        restoreFile.parentFile!!.mkdirs()
-
-        if (!restoreFile.isFile && !restoreFile.createNewFile())
-            throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
-        if (!tagFile.isFile && !tagFile.createNewFile())
-            throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
-        if (restoreFile.extension != "yml")
-            throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
-        if (tagFile.extension != "yml")
-            throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
-
-        restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
-        tagConfig = YamlConfiguration.loadConfiguration(tagFile)
     }
 
     internal fun saveToDisk(saveTag: Boolean) {

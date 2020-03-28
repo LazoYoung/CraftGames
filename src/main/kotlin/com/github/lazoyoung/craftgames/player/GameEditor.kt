@@ -153,6 +153,7 @@ class GameEditor private constructor(
 
         game.leave(this)
         actionBar.clear()
+        player.sendMessage("Saving files! Please wait...")
 
         // Save world
         try {
@@ -178,7 +179,7 @@ class GameEditor private constructor(
                 FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
                 Files.move(target.resolve(source.fileName), target.resolve(renameTo))
                 scheduler.runTask(plugin, Runnable{
-                    player.sendMessage("Saved the changes! Leaving editor mode...")
+                player.sendMessage("Changes are saved!")
 
                     // Inform to editor if incomplete tag were found.
                     CoordTag.getAll(game).forEach { tag ->

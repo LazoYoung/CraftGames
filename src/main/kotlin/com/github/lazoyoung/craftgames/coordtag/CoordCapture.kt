@@ -18,11 +18,11 @@ abstract class CoordCapture(
     fun add(tag: CoordTag) {
         try {
             val key = CoordTag.getKeyToCaptureStream(tag.name, mapID!!)
-            val config = tag.game.resource.tagConfig
+            val config = tag.resource.tagConfig
             val stream = config.getStringList(key)
             stream.add(serialize())
             config.set(key, stream)
-            CoordTag.reload(tag.game)
+            CoordTag.reload(tag.resource)
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }

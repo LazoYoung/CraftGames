@@ -40,9 +40,10 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
                 trigger.accept(t, u)
             } catch (e: Exception) {
                 script.writeStackTrace(e)
+                script.getLogger()?.println("Error occurred in Kill trigger: ${killer.name}")
             }
         }
-        script.getLogger()?.println("A kill trigger has been binded to ${killer.name}.")
+        script.getLogger()?.println("A kill trigger is bound to ${killer.name}.")
     }
 
     override fun setDeathTrigger(player: Player, trigger: Predicate<Player>) {
@@ -51,10 +52,11 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
                 return@Predicate trigger.test(p)
             } catch (e: Exception) {
                 script.writeStackTrace(e)
+                script.getLogger()?.println("Error occurred in Death trigger: ${player.name}")
             }
             return@Predicate false
         }
-        script.getLogger()?.println("A death trigger has been binded to ${player.name}.")
+        script.getLogger()?.println("A death trigger is bound to ${player.name}.")
     }
 
     override fun getLivingPlayers(): List<Player> {

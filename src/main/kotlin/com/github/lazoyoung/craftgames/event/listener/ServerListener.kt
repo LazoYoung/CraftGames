@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -15,12 +16,27 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldInitEvent
 
 class ServerListener : Listener {
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGH)
+    fun onPlayerMove(event: PlayerMoveEvent) {
+        val player = event.player
+        val pdata = PlayerData.get(player) ?: return
+
+        if (pdata is GamePlayer && player.gameMode != GameMode.SPECTATOR) {
+            val worldModule = Module.getWorldModule(pdata.game)
+
+            worldModule.getArenaNameAt(event.to)?.let {
+                worldModule.triggers[it]?.accept(player)
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
     fun onWorldLoad(event: WorldInitEvent) {
         for (game in Game.find()) {
             if (event.world.name == game.map.worldName) {
@@ -50,7 +66,7 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGH)
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
 

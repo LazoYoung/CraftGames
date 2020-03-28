@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.coordtag.AreaCapture
 import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.Bukkit
@@ -25,6 +26,9 @@ class GameMap internal constructor(
 
         /** Determines if this map is lobby **/
         val isLobby: Boolean = false,
+
+        /** Key: Tag name, Value: AreaCapture instance **/
+        internal val areaRegistry: HashMap<String, List<AreaCapture>> = HashMap(),
 
         /** Path to original map folder. **/
         internal val repository: Path

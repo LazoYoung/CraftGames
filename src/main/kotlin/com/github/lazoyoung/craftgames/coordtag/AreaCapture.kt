@@ -115,4 +115,15 @@ class AreaCapture(
         }.runTaskTimer(plugin, 0L, 5L)
     }
 
+    fun isInside(loc: Location): Boolean {
+        val x = loc.x.toInt()
+        val y = loc.y.toInt()
+        val z = loc.z.toInt()
+        val inX = x == x.coerceIn(x1, x2)
+        val inY = y == y.coerceIn(y1, y2)
+        val inZ = z == z.coerceIn(z1, z2)
+
+        return inX && inY && inZ
+    }
+
 }
