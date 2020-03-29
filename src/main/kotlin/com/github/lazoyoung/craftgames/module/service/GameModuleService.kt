@@ -185,6 +185,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     internal fun respawn(gamePlayer: GamePlayer) {
         val playerModule = Module.getPlayerModule(game)
         val player = gamePlayer.player
+        val timer = playerModule.respawnTimer[player.uniqueId] ?: Timer(TimeUnit.SECOND, 5)
         val actionBar = MessageTask(
                 player = player,
                 type = ChatMessageType.ACTION_BAR,
@@ -208,7 +209,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             playerModule.restore(gamePlayer.player)
             actionBar.clear()
             player.sendActionBar('&', "&a&lRESPAWN")
-        }, playerModule.respawnTimer)
+        }, timer.toTick())
     }
 
 }

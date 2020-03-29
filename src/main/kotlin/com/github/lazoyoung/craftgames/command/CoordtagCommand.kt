@@ -44,10 +44,10 @@ class CoordtagCommand : CommandBase {
                 }
 
                 val elements = PageElement.getPageComponents(
-                        PageElement("◎ /ctag create <tag> <mode>", "Create a new tag in specific mode.", "/ctag create"),
-                        PageElement("◎ /ctag capture <tag>", "Capture the current coordinate for specific tag", "/ctag capture"),
-                        PageElement("◎ /ctag remove <tag>", "Wipe out the whole tag.", "/ctag remove"),
-                        PageElement("◎ /ctag tp <tag> [index]", "Teleport to one of the captures defined in this tag.", "/ctag tp")
+                        PageElement("◎ /ctag create (tag) <mode>", "Create a new tag in specific mode.", "/ctag create"),
+                        PageElement("◎ /ctag capture (tag)", "Capture the current coordinate for specific tag", "/ctag capture"),
+                        PageElement("◎ /ctag remove (tag)", "Wipe out the whole tag.", "/ctag remove"),
+                        PageElement("◎ /ctag tp (tag) [index]", "Teleport to one of the captures defined in this tag.", "/ctag tp")
                 )
 
                 sender.sendMessage(
@@ -73,8 +73,8 @@ class CoordtagCommand : CommandBase {
                 val elements = PageElement.getPageComponents(
                         PageElement("◎ /ctag list", "Show all captures matching the flags.", "/ctag list"),
                         PageElement("◎ /ctag list -mode <mode>", "Apply filter by capture mode.", "/ctag list -mode "),
-                        PageElement("◎ /ctag list -tag <name>", "Apply filter by specific tag.", "/ctag list -tag "),
-                        PageElement("◎ /ctag list -map <mapID>", "Apply filter by specific map.", "/ctag list -map "),
+                        PageElement("◎ /ctag list -tag (name)", "Apply filter by specific tag.", "/ctag list -tag "),
+                        PageElement("◎ /ctag list -map (mapID)", "Apply filter by specific map.", "/ctag list -map "),
                         PageElement("◎ /ctag list -reset", "Reset all filters.", "/ctag list -reset")
                 )
 
@@ -99,7 +99,7 @@ class CoordtagCommand : CommandBase {
                 }
 
                 val elements = PageElement.getPageComponents(
-                        PageElement("◎ /ctag display <tag> <index>", "Display a particular capture.", "/ctag display ")
+                        PageElement("◎ /ctag display (tag) <index>", "Display a particular capture.", "/ctag display ")
                 )
 
                 sender.sendMessage(

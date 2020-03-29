@@ -83,12 +83,10 @@ class GameAccessCommand : CommandBase {
     }
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
-        val cmd = command.label
-
         if (args.isEmpty())
             return command.aliases
 
-        if (cmd == "join" && args.size == 1)
+        if (command.label == "join" && args.size == 1)
             return getGameTitles(args[0])
 
         return mutableListOf()

@@ -152,14 +152,16 @@ class GameMap internal constructor(
                                         .exceptionally { it.printStackTrace(); return@exceptionally null }
                                         .get()
 
-                                players.drop(1).forEach {
-                                    it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                                }
-
                                 scheduler.runTask(plugin, Runnable {
-                                    // We're now safe to unload the old world.
-                                    game.map.destruct()
-                                    init()
+                                    players.drop(1).forEach {
+                                        it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                                    }
+
+                                    scheduler.runTaskLater(plugin, Runnable {
+                                        // We're now safe to unload the old world.
+                                        game.map.destruct()
+                                        init()
+                                    }, 5L)
                                 })
                             })
                             return@sync

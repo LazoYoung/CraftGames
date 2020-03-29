@@ -1,14 +1,11 @@
 package com.github.lazoyoung.craftgames
 
-import com.github.lazoyoung.craftgames.command.CoordtagCommand
-import com.github.lazoyoung.craftgames.command.GameAccessCommand
-import com.github.lazoyoung.craftgames.command.GameCommand
-import com.github.lazoyoung.craftgames.command.VoteCommand
+import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.event.listener.GameListener
-import com.github.lazoyoung.craftgames.util.MessengerUtil
 import com.github.lazoyoung.craftgames.event.listener.ServerListener
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.util.FileUtil
+import com.github.lazoyoung.craftgames.util.MessengerUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -18,6 +15,7 @@ import java.nio.charset.Charset
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.logging.Logger
 
 class Main : JavaPlugin(), CommandExecutor {
@@ -35,14 +33,16 @@ class Main : JavaPlugin(), CommandExecutor {
 
     override fun onEnable() {
         val gameCmd = getCommand("game")!!
-        val ctCmd = getCommand("coord")!!
+        val ctCmd = getCommand("ctag")!!
         val joinCmd = getCommand("join")!!
         val leaveCmd = getCommand("leave")!!
         val voteCmd = getCommand("mapvote")!!
+        val kitCmd = getCommand("kit")!!
         val gameExecutor = GameCommand()
         val ctExecutor = CoordtagCommand()
         val accessExecutor = GameAccessCommand()
         val voteExecutor = VoteCommand()
+        val kitExecutor = KitCommand()
         val manager = Bukkit.getPluginManager()
         val messenger = Bukkit.getMessenger()
         instance = this
@@ -56,11 +56,13 @@ class Main : JavaPlugin(), CommandExecutor {
         joinCmd.setExecutor(accessExecutor)
         leaveCmd.setExecutor(accessExecutor)
         voteCmd.setExecutor(voteExecutor)
+        kitCmd.setExecutor(kitExecutor)
         gameCmd.tabCompleter = gameExecutor
         ctCmd.tabCompleter = ctExecutor
         joinCmd.tabCompleter = accessExecutor
         leaveCmd.tabCompleter = accessExecutor
         voteCmd.tabCompleter = voteExecutor
+        kitCmd.tabCompleter = kitExecutor
         manager.registerEvents(ServerListener(), this)
         manager.registerEvents(GameListener(), this)
         messenger.registerOutgoingPluginChannel(this, "BungeeCord")
@@ -99,7 +101,7 @@ class Main : JavaPlugin(), CommandExecutor {
             }
 
             try {
-                FileUtil.cloneFileTree(source, target)
+                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
             } catch (e: SecurityException) {
                 e.printStackTrace()
                 logger.severe("Access denied! Unable to install sample files.")

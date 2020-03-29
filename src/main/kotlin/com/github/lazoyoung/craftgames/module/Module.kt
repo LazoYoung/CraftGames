@@ -18,7 +18,7 @@ class Module internal constructor(val game: Game) {
     private val mobModule = MobModuleService(game)
     private val scriptModule = ScriptModuleService(script)
     private val worldModule = WorldModuleService(game)
-    private val itemModule = ItemModuleService(script)
+    private val itemModule = ItemModuleService(game.resource)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -64,6 +64,10 @@ class Module internal constructor(val game: Game) {
 
         fun getWorldModule(game: Game): WorldModuleService {
             return game.module.worldModule
+        }
+
+        fun getItemModule(game: Game): ItemModuleService {
+            return game.module.itemModule
         }
 
         /**

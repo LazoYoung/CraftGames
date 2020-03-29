@@ -11,7 +11,6 @@ import com.github.lazoyoung.craftgames.module.api.PlayerType
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
-import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -30,7 +29,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     internal var personal: CoordTag? = null
     internal var editor: CoordTag? = null
     internal var spectator: CoordTag? = null
-    internal var respawnTimer: Long = Timer(TimeUnit.SECOND, 20).toTick()
+    internal var respawnTimer = HashMap<UUID, Timer>()
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
@@ -104,8 +103,8 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         gamePlayer.toSpectator()
     }
 
-    override fun setRespawnTimer(timer: Timer) {
-        this.respawnTimer = timer.toTick()
+    override fun setRespawnTimer(player: Player, timer: Timer) {
+        this.respawnTimer[player.uniqueId] = timer
     }
 
     override fun setSpawn(type: PlayerType, spawnTag: String) {

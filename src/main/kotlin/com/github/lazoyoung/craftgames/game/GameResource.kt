@@ -14,6 +14,7 @@ import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -28,6 +29,10 @@ class GameResource(val gameName: String) {
 
     val mapRegistry = HashMap<String, GameMap>()
 
+    internal val kitData = HashMap<String, ByteArray>()
+
+    internal val kitFiles = HashMap<String, File>()
+
     /** CoordTags configuration across all maps. **/
     internal val tagConfig: YamlConfiguration
 
@@ -36,6 +41,8 @@ class GameResource(val gameName: String) {
 
     /** The root folder among all the resources in this game **/
     internal val root: Path
+
+    private val kitRoot: Path
 
     private val restoreFile: File
 
@@ -69,7 +76,7 @@ class GameResource(val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
-         * Load CoordTags, player restoration data
+         * Load CoordTags, player inventory, location, and kit.
          */
         val restorePath = layoutConfig.getString("players.path")
                 ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
@@ -79,6 +86,9 @@ class GameResource(val gameName: String) {
         restoreFile = layoutFile.parentFile!!.resolve(restorePath)
         tagFile = layoutFile.parentFile!!.resolve(tagPath)
         restoreFile.parentFile!!.mkdirs()
+
+        val kitPath = layoutConfig.getString("kits.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
+        kitRoot = root.resolve(kitPath)
 
         if (!restoreFile.isFile && !restoreFile.createNewFile())
             throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
@@ -91,6 +101,21 @@ class GameResource(val gameName: String) {
 
         restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
         tagConfig = YamlConfiguration.loadConfiguration(tagFile)
+
+        kitRoot.toFile().listFiles()?.forEach { file ->
+            if (file.extension != "bin")
+                return@forEach
+
+            val name = file.nameWithoutExtension
+
+            try {
+                file.parentFile!!.mkdirs()
+                kitData[name] = Files.readAllBytes(file.toPath())
+                kitFiles[name] = file
+            } catch (e: IOException) {
+                throw RuntimeException("Failed to read kit config.", e)
+            }
+        }
 
         // Load tags into memory.
         CoordTag.reload(this)
@@ -179,12 +204,30 @@ class GameResource(val gameName: String) {
         }
     }
 
-    internal fun saveToDisk(saveTag: Boolean) {
+    internal fun saveToDisk(editMode: Boolean) {
         // TODO Restore Module: Concurrent modification is not handled!
         restoreConfig.save(restoreFile)
 
-        if (saveTag) {
+        if (editMode) {
+            // Save coordtags
             tagConfig.save(tagFile)
+
+            // Save kits
+            try {
+                kitData.forEach { (name, byteArr) ->
+                    var file = kitFiles[name]
+
+                    if (file == null) {
+                        file = getKitFile(name)
+                        file.createNewFile()
+                    }
+
+                    Files.write(file.toPath(), byteArr)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Main.logger.severe("Failed to save kit data!")
+            }
         }
     }
 
@@ -203,5 +246,9 @@ class GameResource(val gameName: String) {
             throw MapNotFound("$gameName doesn't have a map.")
         }
         return map
+    }
+
+    internal fun getKitFile(name: String): File {
+        return kitRoot.resolve(name.plus(".bin")).toFile()
     }
 }

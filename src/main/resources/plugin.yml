@@ -13,13 +13,17 @@ commands:
     description: Leave a game.
     usage: /leave
     aliases: [ quit ]
+  kit:
+    description: Select a kit.
+    usage: /kit [name]
+    aliases: [ kits ]
   game:
     description: Manage games.
     usage: Type /game to see command list.
-  coord:
+  ctag:
     description: Manage coordinate tags.
     usage: Type /ctag to see command list.
-    aliases: [ ctag, coordtag ]
+    aliases: [ coord, coordtag ]
   mapvote:
     description: Vote for a map inside a game.
     usage: Type /vote to open menu.

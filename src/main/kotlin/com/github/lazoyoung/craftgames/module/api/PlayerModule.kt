@@ -38,7 +38,7 @@ interface PlayerModule {
 
     fun eliminate(player: Player)
 
-    fun setRespawnTimer(timer: Timer)
+    fun setRespawnTimer(player: Player, timer: Timer)
 
     fun setSpawn(type: PlayerType, spawnTag: String)
 

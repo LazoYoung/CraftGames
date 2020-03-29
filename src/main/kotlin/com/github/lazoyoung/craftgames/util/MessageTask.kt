@@ -94,7 +94,9 @@ class MessageTask(
     }
 
     fun clear() {
-        task.cancel()
+        if (!task.isCancelled) {
+            task.cancel()
+        }
 
         when (type) {
             ChatMessageType.ACTION_BAR -> actionTask.remove(player.uniqueId)
