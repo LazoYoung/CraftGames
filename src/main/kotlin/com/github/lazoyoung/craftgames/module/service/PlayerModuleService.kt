@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.module.service
 import com.destroystokyo.paper.Title
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.PlayerModule
@@ -108,7 +109,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     }
 
     override fun setSpawn(type: PlayerType, spawnTag: String) {
-        val tag = Module.getSpawnTag(game, spawnTag)
+        val tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
 
         when (type) {
             PlayerType.PERSONAL -> personal = tag

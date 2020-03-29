@@ -18,6 +18,7 @@ class Module internal constructor(val game: Game) {
     private val mobModule = MobModuleService(game)
     private val scriptModule = ScriptModuleService(script)
     private val worldModule = WorldModuleService(game)
+    private val itemModule = ItemModuleService(script)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -30,6 +31,7 @@ class Module internal constructor(val game: Game) {
         bind["mobModule"] = mobModule as MobModule
         bind["scriptModule"] = scriptModule as ScriptModule
         bind["worldModule"] = worldModule as WorldModule
+        bind["itemModule"] = itemModule as ItemModule
         script.startLogging()
         script.parse()
         CoordTag.reload(game.resource)
@@ -64,12 +66,15 @@ class Module internal constructor(val game: Game) {
             return game.module.worldModule
         }
 
-        internal fun getSpawnTag(game: Game, name: String): CoordTag {
+        /**
+         * @throws IllegalArgumentException is thrown if the tag's mode differs from [mode].
+         */
+        internal fun getRelevantTag(game: Game, name: String, mode: TagMode): CoordTag {
             val tag = CoordTag.get(game, name)
-                    ?: throw IllegalArgumentException("Unable to identify $name tag.")
+                    ?: throw IllegalArgumentException("Unable to identify $name tag!")
 
-            if (tag.mode != TagMode.SPAWN)
-                throw IllegalArgumentException("You passed a BlockTag to parameter which is invalid.")
+            if (tag.mode != mode)
+                throw IllegalArgumentException("$name is not a $mode tag!")
 
             return tag
         }

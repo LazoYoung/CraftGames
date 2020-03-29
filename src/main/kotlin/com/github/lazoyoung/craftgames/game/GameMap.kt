@@ -183,17 +183,21 @@ class GameMap internal constructor(
      * @throws NullPointerException is thrown if world is not initialized.
      */
     internal fun destruct(async: Boolean = true) {
-        if (Bukkit.unloadWorld(world!!, false)) {
-            val run = Runnable{ FileUtil.deleteFileTree(worldPath!!) }
+        try {
+            if (Bukkit.unloadWorld(world!!, false)) {
+                val run = Runnable { FileUtil.deleteFileTree(worldPath!!) }
 
-            if (async) {
-                Bukkit.getScheduler().runTaskAsynchronously(Main.instance, run)
+                if (async) {
+                    Bukkit.getScheduler().runTaskAsynchronously(Main.instance, run)
+                } else {
+                    run.run()
+                }
+                isGenerated = false
             } else {
-                run.run()
+                throw RuntimeException("Failed to unload world \'$worldName\' at $worldPath")
             }
-            isGenerated = false
-        } else {
-            Main.logger.warning("Failed to unload world \'$worldName\' at $worldPath")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to unload world \'$worldName\' at $worldPath", e)
         }
     }
 }

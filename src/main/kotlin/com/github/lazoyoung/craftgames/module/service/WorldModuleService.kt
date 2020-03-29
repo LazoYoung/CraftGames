@@ -6,7 +6,9 @@ import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.exception.MapNotFound
+import com.github.lazoyoung.craftgames.exception.UndefinedCoordTag
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.WorldModule
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.WorldEditException
@@ -18,7 +20,10 @@ import com.sk89q.worldedit.session.ClipboardHolder
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.WorldBorder
+import org.bukkit.block.Container
 import org.bukkit.entity.Player
+import org.bukkit.loot.LootTable
+import org.bukkit.loot.Lootable
 import java.io.FileInputStream
 import java.util.function.Consumer
 
@@ -27,6 +32,14 @@ class WorldModuleService(val game: Game) : WorldModule {
     /** Key: AreaName(Tag), Value: Trigger function **/
     internal val triggers = HashMap<String, Consumer<Player>>()
     private val script = game.resource.script
+
+    override fun getMapID(): String {
+        return game.map.id
+    }
+
+    override fun getWorldBorder(): WorldBorder {
+        return game.map.world?.worldBorder ?: throw MapNotFound("World is not loaded yet.")
+    }
 
     override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {
         if (!game.map.areaRegistry.containsKey(tag))
@@ -49,8 +62,35 @@ class WorldModuleService(val game: Game) : WorldModule {
         script.getLogger()?.println("An Area trigger is bound to tag: $tag")
     }
 
-    override fun getWorldBorder(): WorldBorder {
-        return game.map.world?.worldBorder ?: throw MapNotFound("Map is not loaded yet.")
+    override fun fillContainers(tag: String, loot: LootTable) {
+        val world = game.map.world ?: throw MapNotFound("World is not loaded yet.")
+        val mapID = game.map.id
+        val ctag = Module.getRelevantTag(game, tag, TagMode.BLOCK)
+        val captures = ctag.getCaptures(mapID)
+
+        if (captures.isEmpty()) {
+            throw UndefinedCoordTag("$tag has no capture in map: $mapID")
+        }
+
+        captures.filterIsInstance(BlockCapture::class.java).forEach {
+            val ident = ctag.name.plus("/").plus(it.index)
+            val loc = it.toLocation(world)
+            val block = loc.block
+            val state = block.state
+
+            if (state !is Lootable || state !is Container) {
+                throw IllegalArgumentException("Unable to locate lootable container from: $ident")
+            }
+
+            if (!state.isPlaced) {
+                throw RuntimeException("BlockState is not available!")
+            }
+
+            state.inventory.clear()
+            state.lootTable = loot
+            state.update(true, false)
+            script.getLogger()?.println("Filled a container at $ident with ${loot.key}")
+        }
     }
 
     override fun placeSchematics(tag: String, path: String, biomes: Boolean, entities: Boolean, ignoreAir: Boolean) {
@@ -59,7 +99,7 @@ class WorldModuleService(val game: Game) : WorldModule {
 
         val filePath = game.resource.root.resolve(path)
         val file = filePath.toFile()
-        val world = game.map.world ?: throw MapNotFound("Map is not loaded yet.")
+        val world = game.map.world ?: throw MapNotFound("World is not loaded yet.")
         val maxBlocks = Main.config.getInt("schematic-throttle")
         val format = ClipboardFormats.findByFile(file)
                 ?: throw IllegalArgumentException("Unable to resolve schematic file: $filePath")
