@@ -105,7 +105,10 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
             /* Read PotionEffects from InputStream */
             for (i in 0 until effSize) {
-                player.addPotionEffect(data.readObject() as PotionEffect)
+                var potionEffect = data.readObject() as PotionEffect
+
+                potionEffect = potionEffect.withDuration(Int.MAX_VALUE)
+                player.addPotionEffect(potionEffect)
             }
 
             /* Close InputStream */
