@@ -78,9 +78,9 @@ class GameResource(val gameName: String) {
         /*
          * Load CoordTags, player inventory, location, and kit.
          */
-        val restorePath = layoutConfig.getString("players.path")
+        val restorePath = layoutConfig.getString("players.file.path")
                 ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
-        val tagPath = layoutConfig.getString("coordinate-tags.path")
+        val tagPath = layoutConfig.getString("coordinate-tags.file.path")
                 ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
 
         restoreFile = layoutFile.parentFile!!.resolve(restorePath)
@@ -186,8 +186,8 @@ class GameResource(val gameName: String) {
         /*
          * Load scripts from config
          */
-        val scriptPath = layoutConfig.getString("script.path")
-                ?: throw FaultyConfiguration("Script is not defined in ${layoutFile.toPath()}")
+        val scriptPath = layoutConfig.getString("script.file.path")
+                ?: throw FaultyConfiguration("Script path is not defined in ${layoutFile.toPath()}")
         val scriptFile = layoutFile.parentFile!!.resolve(scriptPath)
 
         try {

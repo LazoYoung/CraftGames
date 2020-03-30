@@ -126,15 +126,21 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     }
 
     fun restore(player: Player, leave: Boolean = false) {
+        val maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)
+        val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
+        val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
+
         player.gameMode = Module.getGameModule(game).defaultGameMode
-        player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
+        maxHealth?.defaultValue?.let { maxHealth.baseValue = it }
+        flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
+        walkSpeed?.defaultValue?.let { walkSpeed.baseValue = it }
         player.foodLevel = 20
         player.saturation = 5.0f
         player.exhaustion = 0.0f
-        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
 
         if (leave) {
             // TODO Restore inventory
+            player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
         }
     }
 

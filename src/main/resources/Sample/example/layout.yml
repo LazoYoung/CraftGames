@@ -14,9 +14,13 @@ maps:
     path: lobby
     lobby: true
 kits:
-  directory: data/kits
-  list:
-    - test
-script.path: core.groovy
-coordinate-tags.path: data/coordinate-tags.yml
-players.path: data/players.yml
+  path: data/kits
+script:
+  file:
+    path: core.groovy
+coordinate-tags:
+  file:
+    path: data/coordinate-tags.yml
+players:
+  file:
+    path: data/players.yml

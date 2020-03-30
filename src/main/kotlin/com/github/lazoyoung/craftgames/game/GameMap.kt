@@ -115,27 +115,28 @@ class GameMap internal constructor(
 
             // Load world (Sync)
             scheduler.runTask(plugin, Runnable sync@{
-                // Assign worldName so that WorldInitEvent detects the new world.
-                this.worldName = worldName
                 val gen = WorldCreator(worldName)
                 val world: World?
+                val legacyMap = game.map
 
+                // Assign worldName so that WorldInitEvent detects the new world.
+                this.worldName = worldName
+                game.map = this
                 gen.type(WorldType.FLAT)
                 world = gen.createWorld()
                 Main.logger.info("World $worldName generated.")
 
                 if (world == null) {
+                    game.map = legacyMap
                     game.forceStop(error = true)
                     throw RuntimeException("Unable to load world $worldName for ${game.name}")
                 }
 
                 val init = {
-                    // Feed new instance into the Game
                     world.isAutoSave = false
                     this.isGenerated = true
                     this.world = world
                     this.worldPath = container.resolve(worldName)
-                    game.map = this
 
                     // Don't forget to callback.
                     callback?.accept(world)
@@ -159,7 +160,7 @@ class GameMap internal constructor(
 
                                     scheduler.runTaskLater(plugin, Runnable {
                                         // We're now safe to unload the old world.
-                                        game.map.destruct()
+                                        legacyMap.destruct()
                                         init()
                                     }, 5L)
                                 })

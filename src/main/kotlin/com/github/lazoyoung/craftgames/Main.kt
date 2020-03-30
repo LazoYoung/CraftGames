@@ -92,7 +92,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
             try {
                 sys = FileSystems.newFileSystem(file.toPath(), classLoader)
-                source = sys.getPath("Sample")
+                source = sys.getPath("/Sample")
                 target = root.toPath()
             } catch (e: Exception) {
                 e.printStackTrace()

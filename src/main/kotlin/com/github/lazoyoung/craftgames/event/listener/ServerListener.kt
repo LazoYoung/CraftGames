@@ -39,6 +39,7 @@ class ServerListener : Listener {
     @EventHandler(priority = EventPriority.HIGH)
     fun onWorldLoad(event: WorldInitEvent) {
         for (game in Game.find()) {
+            // FIXME New map is not updated at this moment.
             if (event.world.name == game.map.worldName) {
                 event.world.keepSpawnInMemory = false
                 break
