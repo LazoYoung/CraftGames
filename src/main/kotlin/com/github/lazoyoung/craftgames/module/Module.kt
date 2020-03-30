@@ -18,6 +18,7 @@ class Module internal constructor(val game: Game) {
     private val mobModule = MobModuleService(game)
     private val scriptModule = ScriptModuleService(script)
     private val worldModule = WorldModuleService(game)
+    private val itemModule = ItemModuleService(game)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -30,6 +31,7 @@ class Module internal constructor(val game: Game) {
         bind["mobModule"] = mobModule as MobModule
         bind["scriptModule"] = scriptModule as ScriptModule
         bind["worldModule"] = worldModule as WorldModule
+        bind["itemModule"] = itemModule as ItemModule
         script.startLogging()
         script.parse()
         CoordTag.reload(game.resource)
@@ -64,14 +66,27 @@ class Module internal constructor(val game: Game) {
             return game.module.worldModule
         }
 
-        internal fun getSpawnTag(game: Game, name: String): CoordTag {
+        fun getItemModule(game: Game): ItemModuleService {
+            return game.module.itemModule
+        }
+
+        /**
+         * Returns the relevant tag matching with [name] inside [game].
+         *
+         * If tag mode doesn't match with any of those [modes], it's considered __irrelevant__.
+         *
+         * @throws IllegalArgumentException is thrown if tag is irrelevant.
+         */
+        internal fun getRelevantTag(game: Game, name: String, vararg modes: TagMode): CoordTag {
             val tag = CoordTag.get(game, name)
-                    ?: throw IllegalArgumentException("Unable to identify $name tag.")
+                    ?: throw IllegalArgumentException("Unable to identify $name tag!")
 
-            if (tag.mode != TagMode.SPAWN)
-                throw IllegalArgumentException("You passed a BlockTag to parameter which is invalid.")
+            for (mode in modes) {
+                if (mode == tag.mode)
+                    return tag
+            }
 
-            return tag
+            throw IllegalArgumentException("$name is not relevant! Acceptable tag modes: $modes")
         }
     }
 

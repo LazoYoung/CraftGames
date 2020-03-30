@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.exception.GameNotFound
-import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.player.GameEditor
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -29,15 +29,15 @@ class GameCommand : CommandBase {
                     .append("◎ /game stop [id]\n", RESET_FORMAT)
                         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Stop the running game.").create()))
                         .event(ClickEvent(SUGGEST_CMD, "/game stop"))
-                    .append("◎ /game edit <title> <map>\n", RESET_FORMAT)
+                    .append("◎ /game edit (title) (map)\n", RESET_FORMAT)
                         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Start editor mode.").create()))
                         .event(ClickEvent(SUGGEST_CMD, "/game edit"))
                     .append("◎ /game save\n", RESET_FORMAT)
                         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Leave editor mode.\nChanges are saved to disk.").create()))
                         .event(ClickEvent(SUGGEST_CMD, "/game save"))
-                    .append("◎ /game script execute\n", RESET_FORMAT)
-                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Execute script in the current game.").create()))
-                        .event(ClickEvent(SUGGEST_CMD, "/game script execute"))
+                    .append("◎ /game kit <list/select/save/delete> (name)\n", RESET_FORMAT)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Save or delete a kit inventory.").create()))
+                        .event(ClickEvent(SUGGEST_CMD, "/game kit "))
                     .append(PREV_NAV_END, RESET_FORMAT)
                     .append("- PAGE NAVIGATION -", RESET_FORMAT)
                     .append(NEXT_NAV_END)
@@ -164,15 +164,13 @@ class GameCommand : CommandBase {
                     playerData.saveAndLeave()
                 }
             }
-            "script" -> {
-                if (args.size < 2)
-                    return false
-
+            "kit" -> {
                 if (sender !is Player) {
                     sender.sendMessage("This cannot be done from console.")
                     return true
                 }
 
+                val game: Game
                 val playerData = PlayerData.get(sender)
 
                 if (playerData !is GameEditor) {
@@ -180,18 +178,58 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                if (args[1] == "execute") {
-                    val script = playerData.game.resource.script
+                game = playerData.game
 
-                    try {
-                        script.parse()
-                        script.execute()
-                        sender.sendMessage("Script has been executed.")
-                    } catch (e: ScriptEngineNotFound) {
-                        sender.sendMessage(e.message)
-                    } catch (e: Exception) {
-                        sender.sendMessage("Error: ${e.message}")
-                        script.writeStackTrace(e)
+                if (args.size < 2)
+                    return false
+
+                when (args[1].toLowerCase()) {
+                    "list" -> {
+                        val list = game.resource.kitData.keys.joinToString(limit = 20)
+                        val text = ComponentBuilder("Available kits: ")
+                                .append(list).color(ChatColor.GREEN).create()
+                        sender.sendMessage(*text)
+                    }
+                    "select", "test" -> {
+                        if (args.size > 2) {
+                            try {
+                                val name = args[2].toLowerCase()
+                                Module.getItemModule(game).selectKit(name, sender)
+                                Module.getItemModule(game).applyKit(sender)
+                                sender.sendMessage("Applied kit: $name")
+                            } catch (e: IllegalArgumentException) {
+                                sender.sendMessage("That kit does not exist!")
+                            }
+                        } else {
+                            sender.sendMessage("Provide the name of kit!")
+                            return false
+                        }
+                    }
+                    "create", "save" -> {
+                        if (args.size > 2) {
+                            val name = args[2].toLowerCase()
+
+                            Module.getItemModule(game).saveKit(name, sender)
+                            sender.sendMessage("Kit \'$name\' has been saved.")
+                        } else {
+                            sender.sendMessage("Provide the name of kit!")
+                            return false
+                        }
+                    }
+                    "remove", "delete" -> {
+                        if (args.size > 2) {
+                            try {
+                                val name = args[2].toLowerCase()
+
+                                game.resource.kitData.remove(name)
+                                sender.sendMessage("Removed kit: $name")
+                            } catch (e: IllegalArgumentException) {
+                                sender.sendMessage("That kit does not exist!")
+                            }
+                        } else {
+                            sender.sendMessage("Provide the name of kit!")
+                            return false
+                        }
                     }
                 }
             }
@@ -206,7 +244,7 @@ class GameCommand : CommandBase {
             return command.aliases
 
         if (args.size == 1)
-            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "script")
+            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "script", "kit")
 
         when (args[0].toLowerCase()) {
             "start" -> {
@@ -231,9 +269,21 @@ class GameCommand : CommandBase {
                     else -> mutableListOf()
                 }
             }
-            "script" -> {
-                if (args.size == 2) {
-                    return getCompletions(args[1], "execute")
+            "kit" -> {
+                return when (args.size) {
+                    2 -> {
+                        getCompletions(args[1], "list", "test", "save", "delete")
+                    }
+                    3 -> {
+                        if (args[2].equals("list", true)) {
+                            mutableListOf()
+                        } else {
+                            PlayerData.get(sender as Player)?.let {
+                                getCompletions(args[2], *it.game.resource.kitData.keys.toTypedArray())
+                            } ?: mutableListOf()
+                        }
+                    }
+                    else -> mutableListOf()
                 }
             }
         }

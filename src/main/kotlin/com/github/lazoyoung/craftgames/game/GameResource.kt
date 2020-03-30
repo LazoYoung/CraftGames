@@ -14,6 +14,7 @@ import com.github.lazoyoung.craftgames.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -28,6 +29,10 @@ class GameResource(val gameName: String) {
 
     val mapRegistry = HashMap<String, GameMap>()
 
+    internal val kitData = HashMap<String, ByteArray>()
+
+    internal val kitFiles = HashMap<String, File>()
+
     /** CoordTags configuration across all maps. **/
     internal val tagConfig: YamlConfiguration
 
@@ -36,6 +41,8 @@ class GameResource(val gameName: String) {
 
     /** The root folder among all the resources in this game **/
     internal val root: Path
+
+    private val kitRoot: Path
 
     private val restoreFile: File
 
@@ -69,16 +76,18 @@ class GameResource(val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
-         * Load CoordTags, player restoration data
+         * Load CoordTags, player inventory, location, and kit.
          */
-        val restorePath = layoutConfig.getString("players.path")
+        val restorePath = layoutConfig.getString("players.file.path")
                 ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
-        val tagPath = layoutConfig.getString("coordinate-tags.path")
+        val tagPath = layoutConfig.getString("coordinate-tags.file.path")
                 ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
 
         restoreFile = layoutFile.parentFile!!.resolve(restorePath)
         tagFile = layoutFile.parentFile!!.resolve(tagPath)
         restoreFile.parentFile!!.mkdirs()
+
+        val kitPath = layoutConfig.getString("kits.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
 
         if (!restoreFile.isFile && !restoreFile.createNewFile())
             throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
@@ -91,6 +100,24 @@ class GameResource(val gameName: String) {
 
         restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
         tagConfig = YamlConfiguration.loadConfiguration(tagFile)
+        kitRoot = root.resolve(kitPath)
+
+        kitRoot.toFile().let {
+            it.mkdirs()
+            it.listFiles()?.forEach { file ->
+                if (file.extension != "bin")
+                    return@forEach
+
+                val name = file.nameWithoutExtension
+
+                try {
+                    kitData[name] = Files.readAllBytes(file.toPath())
+                    kitFiles[name] = file
+                } catch (e: IOException) {
+                    throw RuntimeException("Failed to read kit config.", e)
+                }
+            }
+        }
 
         // Load tags into memory.
         CoordTag.reload(this)
@@ -161,8 +188,8 @@ class GameResource(val gameName: String) {
         /*
          * Load scripts from config
          */
-        val scriptPath = layoutConfig.getString("script.path")
-                ?: throw FaultyConfiguration("Script is not defined in ${layoutFile.toPath()}")
+        val scriptPath = layoutConfig.getString("script.file.path")
+                ?: throw FaultyConfiguration("Script path is not defined in ${layoutFile.toPath()}")
         val scriptFile = layoutFile.parentFile!!.resolve(scriptPath)
 
         try {
@@ -179,12 +206,30 @@ class GameResource(val gameName: String) {
         }
     }
 
-    internal fun saveToDisk(saveTag: Boolean) {
+    internal fun saveToDisk(editMode: Boolean) {
         // TODO Restore Module: Concurrent modification is not handled!
         restoreConfig.save(restoreFile)
 
-        if (saveTag) {
+        if (editMode) {
+            // Save coordtags
             tagConfig.save(tagFile)
+
+            // Save kits
+            try {
+                kitData.forEach { (name, byteArr) ->
+                    var file = kitFiles[name]
+
+                    if (file == null) {
+                        file = kitRoot.resolve(name.plus(".bin")).toFile()
+                        file.createNewFile()
+                    }
+
+                    Files.write(file!!.toPath(), byteArr)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Main.logger.severe("Failed to save kit data!")
+            }
         }
     }
 

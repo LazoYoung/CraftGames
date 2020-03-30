@@ -115,27 +115,28 @@ class GameMap internal constructor(
 
             // Load world (Sync)
             scheduler.runTask(plugin, Runnable sync@{
-                // Assign worldName so that WorldInitEvent detects the new world.
-                this.worldName = worldName
                 val gen = WorldCreator(worldName)
                 val world: World?
+                val legacyMap = game.map
 
+                // Assign worldName so that WorldInitEvent detects the new world.
+                this.worldName = worldName
+                game.map = this
                 gen.type(WorldType.FLAT)
                 world = gen.createWorld()
                 Main.logger.info("World $worldName generated.")
 
                 if (world == null) {
+                    game.map = legacyMap
                     game.forceStop(error = true)
                     throw RuntimeException("Unable to load world $worldName for ${game.name}")
                 }
 
                 val init = {
-                    // Feed new instance into the Game
                     world.isAutoSave = false
                     this.isGenerated = true
                     this.world = world
                     this.worldPath = container.resolve(worldName)
-                    game.map = this
 
                     // Don't forget to callback.
                     callback?.accept(world)
@@ -152,14 +153,16 @@ class GameMap internal constructor(
                                         .exceptionally { it.printStackTrace(); return@exceptionally null }
                                         .get()
 
-                                players.drop(1).forEach {
-                                    it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                                }
-
                                 scheduler.runTask(plugin, Runnable {
-                                    // We're now safe to unload the old world.
-                                    game.map.destruct()
-                                    init()
+                                    players.drop(1).forEach {
+                                        it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                                    }
+
+                                    scheduler.runTaskLater(plugin, Runnable {
+                                        // We're now safe to unload the old world.
+                                        legacyMap.destruct()
+                                        init()
+                                    }, 5L)
                                 })
                             })
                             return@sync
@@ -176,24 +179,33 @@ class GameMap internal constructor(
     }
 
     /**
-     * Players need to leave before taking this action.
+     * Erase this world completely.
      *
-     * @param async Determines to unload the world asynchronously or not.
-     * @throws RuntimeException is thrown if plugin fails to unload world.
+     * Remaining players are kicked out of the server.
+     * Their destination is configuration-dependent.
+     *
+     * @param async Determines if the task is conducted asynchronously or not.
+     * @throws RuntimeException is thrown if the task fails.
      * @throws NullPointerException is thrown if world is not initialized.
      */
     internal fun destruct(async: Boolean = true) {
-        if (Bukkit.unloadWorld(world!!, false)) {
-            val run = Runnable{ FileUtil.deleteFileTree(worldPath!!) }
+        world!!.players.forEach { it.kickPlayer("Destructing the world! Please join again.") }
 
-            if (async) {
-                Bukkit.getScheduler().runTaskAsynchronously(Main.instance, run)
+        try {
+            if (Bukkit.unloadWorld(world!!, false)) {
+                val run = Runnable { FileUtil.deleteFileTree(worldPath!!) }
+
+                if (async) {
+                    Bukkit.getScheduler().runTaskAsynchronously(Main.instance, run)
+                } else {
+                    run.run()
+                }
+                isGenerated = false
             } else {
-                run.run()
+                throw RuntimeException("Failed to unload world \'$worldName\' at $worldPath")
             }
-            isGenerated = false
-        } else {
-            Main.logger.warning("Failed to unload world \'$worldName\' at $worldPath")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to unload world \'$worldName\' at $worldPath", e)
         }
     }
 }

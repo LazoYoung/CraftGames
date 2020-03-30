@@ -368,7 +368,7 @@ class Game(
      */
     internal fun close(async: Boolean = true) {
         players.mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
-        resource.saveToDisk(saveTag = editMode)
+        resource.saveToDisk(editMode)
         updatePhase(Phase.SUSPEND)
 
         if (map.world != null) {

@@ -32,10 +32,14 @@ dependencies {
     implementation 'org.codehaus.groovy:groovy-groovysh:3.0.2'
     implementation 'org.codehaus.groovy:groovy-jsr223:3.0.2'
     compileOnly 'com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT'
-    compileOnly 'com.sk89q.worldedit:worldedit-bukkit:7.1.0'
-    compileOnly 'io.lumine.xikage:MythicMobs:4.9.0'
+    compileOnly ('com.sk89q.worldedit:worldedit-bukkit:7.1.0') {
+        exclude(group: 'org.bukkit', module: 'bukkit')
+    }
+    compileOnly ('io.lumine.xikage:MythicMobs:4.9.0')
     compileOnly fileTree('libs')
-    // compile 'org.graalvm.js:js:20.0.0' for JavaScript engine (GraalVM required)
+
+    // CraftBukkit internal
+    compileOnly 'org.bukkit:craftbukkit:1.15-R0.1-SNAPSHOT'
 }
 
 idea.module {
@@ -62,8 +66,8 @@ publishing {
             name = "github"
             url = uri("https://maven.pkg.github.com/LazoYoung/CraftGames")
             credentials {
-                username = getProperty('github.username')
-                password = getProperty('github.token')
+                username = getProperty('github.username') ?: "undefined"
+                password = getProperty('github.token') ?: "undefined"
             }
         }
     }

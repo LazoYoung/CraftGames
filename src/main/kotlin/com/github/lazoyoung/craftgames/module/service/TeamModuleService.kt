@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.module.service
 
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.TeamModule
@@ -11,7 +12,7 @@ import org.bukkit.scoreboard.Scoreboard
 import org.bukkit.scoreboard.Team
 import kotlin.math.roundToInt
 
-class TeamModuleService(val game: Game) : TeamModule {
+class TeamModuleService(private val game: Game) : TeamModule {
 
     private var spawnTag = HashMap<String, CoordTag>()
     private var scoreboard = Bukkit.getScoreboardManager().newScoreboard
@@ -73,7 +74,7 @@ class TeamModuleService(val game: Game) : TeamModule {
     }
 
     override fun setSpawn(team: Team, spawnTag: String) {
-        this.spawnTag[team.name] = Module.getSpawnTag(game, spawnTag)
+        this.spawnTag[team.name] = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
     }
 
     internal fun getSpawn(player: Player): CoordTag? {

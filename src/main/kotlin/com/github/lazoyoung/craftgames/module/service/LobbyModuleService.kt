@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.module.service
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.SpawnCapture
+import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
@@ -20,7 +21,7 @@ import java.util.*
 import kotlin.collections.HashMap
 
 
-class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
+class LobbyModuleService internal constructor(private val game: Game) : LobbyModule {
 
     internal var exitLoc: Location? = null
     internal var exitServer: String? = null
@@ -35,7 +36,7 @@ class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
     private var serviceTask: BukkitRunnable? = null
 
     override fun setSpawn(spawnTag: String) {
-        tag = Module.getSpawnTag(game, spawnTag)
+        tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
     }
 
     override fun setTimer(timer: Timer) {

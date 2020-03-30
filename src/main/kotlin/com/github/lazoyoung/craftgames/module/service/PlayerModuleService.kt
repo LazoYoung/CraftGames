@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.module.service
 import com.destroystokyo.paper.Title
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
 import com.github.lazoyoung.craftgames.coordtag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.module.api.PlayerModule
@@ -10,7 +11,6 @@ import com.github.lazoyoung.craftgames.module.api.PlayerType
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
 import com.github.lazoyoung.craftgames.player.Spectator
-import com.github.lazoyoung.craftgames.util.TimeUnit
 import com.github.lazoyoung.craftgames.util.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -24,12 +24,12 @@ import java.util.function.BiConsumer
 import java.util.function.Predicate
 import kotlin.collections.HashMap
 
-class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
+class PlayerModuleService internal constructor(private val game: Game) : PlayerModule {
 
     internal var personal: CoordTag? = null
     internal var editor: CoordTag? = null
     internal var spectator: CoordTag? = null
-    internal var respawnTimer: Long = Timer(TimeUnit.SECOND, 20).toTick()
+    internal var respawnTimer = HashMap<UUID, Timer>()
     internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
     private val script = game.resource.script
@@ -103,12 +103,12 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         gamePlayer.toSpectator()
     }
 
-    override fun setRespawnTimer(timer: Timer) {
-        this.respawnTimer = timer.toTick()
+    override fun setRespawnTimer(player: Player, timer: Timer) {
+        this.respawnTimer[player.uniqueId] = timer
     }
 
     override fun setSpawn(type: PlayerType, spawnTag: String) {
-        val tag = Module.getSpawnTag(game, spawnTag)
+        val tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
 
         when (type) {
             PlayerType.PERSONAL -> personal = tag
@@ -126,15 +126,28 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
     }
 
     fun restore(player: Player, leave: Boolean = false) {
+        val maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)
+        val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
+        val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
+
+        // Reset player attribute
         player.gameMode = Module.getGameModule(game).defaultGameMode
-        player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
+        maxHealth?.defaultValue?.let { maxHealth.baseValue = it }
+        flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
+        walkSpeed?.defaultValue?.let { walkSpeed.baseValue = it }
         player.foodLevel = 20
         player.saturation = 5.0f
         player.exhaustion = 0.0f
+
+        // Clear potion effects
         player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
 
         if (leave) {
+            player.inventory.clear()
             // TODO Restore inventory
+        } else {
+            // Apply kit
+            Module.getItemModule(game).applyKit(player)
         }
     }
 

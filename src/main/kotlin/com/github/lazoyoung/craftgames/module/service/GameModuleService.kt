@@ -24,11 +24,13 @@ import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
+import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.scheduler.BukkitRunnable
+import org.bukkit.scoreboard.Team
 import java.util.function.Consumer
 
-class GameModuleService internal constructor(val game: Game) : GameModule {
+class GameModuleService internal constructor(private val game: Game) : GameModule {
 
     internal var defaultGameMode = GameMode.ADVENTURE
     internal var canJoinAfterStart = false
@@ -75,6 +77,21 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         }
     }
 
+    override fun finishGame(winner: Team, timer: Timer) {
+        broadcast("&6Congratulations, &r${winner.displayName} &6won the game!")
+        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
+    }
+
+    override fun finishGame(winner: Player, timer: Timer) {
+        broadcast("&6Congratulations, &r${winner.displayName} &6won the game!")
+        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
+    }
+
+    override fun finishGame(timer: Timer) {
+        broadcast("&6Time out! The game ended in a draw...")
+        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
+    }
+
     /**
      * Teleport [player][playerData] to the relevant spawnpoint
      * matching with its [type][PlayerData].
@@ -97,6 +114,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
 
         if (tag == null) {
             location = world.spawnLocation
+            location.y = world.getHighestBlockYAt(location).toDouble()
             player.sendMessage(notFound)
         } else {
             val mapID = game.map.id
@@ -120,15 +138,6 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
         }
     }
 
-    internal fun finishGame() {
-        fun doCeremony() {
-            /* TODO Ceremony & Reward */
-        }
-
-        // ...then suspend it
-        game.close()
-    }
-
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
 
@@ -144,6 +153,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
 
         serviceTask = object : BukkitRunnable() {
             override fun run() {
+                val livingPlayers = playerModule.getLivingPlayers()
                 val format = Timer(TimeUnit.SECOND, timer).format(false)
                 val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
                 val progress = timer.toDouble() / timerLength
@@ -166,8 +176,19 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
                 bossBar.progress = progress
                 bossBar.setTitle(title.toString())
 
-                if (timer-- < 1) {
-                    finishGame()
+                if (livingPlayers.size == 1) {
+                    val player = livingPlayers.first()
+                    val team = Module.getTeamModule(game).getPlayerTeam(player)
+                    val timer = Timer(TimeUnit.SECOND, 5)
+
+                    if (team != null) {
+                        finishGame(team, timer)
+                    } else {
+                        finishGame(player, timer)
+                    }
+                    this.cancel()
+                } else if (livingPlayers.isEmpty() || timer-- < 1) {
+                    finishGame(Timer(TimeUnit.SECOND, 5))
                     this.cancel()
                     return
                 }
@@ -185,6 +206,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
     internal fun respawn(gamePlayer: GamePlayer) {
         val playerModule = Module.getPlayerModule(game)
         val player = gamePlayer.player
+        val timer = playerModule.respawnTimer[player.uniqueId] ?: Timer(TimeUnit.SECOND, 5)
         val actionBar = MessageTask(
                 player = player,
                 type = ChatMessageType.ACTION_BAR,
@@ -208,7 +230,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
             playerModule.restore(gamePlayer.player)
             actionBar.clear()
             player.sendActionBar('&', "&a&lRESPAWN")
-        }, playerModule.respawnTimer)
+        }, timer.toTick())
     }
 
 }
