@@ -16,7 +16,6 @@ commands:
   kit:
     description: Select a kit.
     usage: /kit [name]
-    aliases: [ kits ]
   game:
     description: Manage games.
     usage: Type /game to see command list.

@@ -19,7 +19,7 @@ import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
 import kotlin.random.Random
 
-class MobModuleService internal constructor(val game: Game) : MobModule {
+class MobModuleService internal constructor(private val game: Game) : MobModule {
 
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id

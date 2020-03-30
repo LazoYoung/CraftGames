@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.module.Module
 import com.github.lazoyoung.craftgames.player.GamePlayer
 import com.github.lazoyoung.craftgames.player.PlayerData
@@ -16,25 +15,28 @@ class KitCommand : CommandBase {
             return true
         }
 
-        if (args.isEmpty()) {
-            sender.sendMessage("Provide the name of kit to select.")
-            return false
-        }
-
         when (val pdata = PlayerData.get(sender)) {
             is GamePlayer -> {
                 val game = pdata.game
 
-                if (game.phase != Game.Phase.LOBBY) {
-                    sender.sendMessage("You can't select a kit now.")
-                } else {
-                    val name = args[0].toLowerCase()
+                when {
+                    !(Module.getItemModule(game).allowKit) -> {
+                        sender.sendMessage("You can't do this now.")
+                    }
+                    args.isEmpty() -> {
+                        sender.sendMessage("Provide the name of kit to select.")
+                        return false
+                    }
+                    else -> {
+                        val name = args[0].toLowerCase()
 
-                    try {
-                        Module.getItemModule(game).fillKit(name, sender.inventory)
-                        sender.sendMessage("Selected kit: $name")
-                    } catch (e: IllegalArgumentException) {
-                        sender.sendMessage("That kit does not exist!")
+                        try {
+                            val module = Module.getItemModule(game)
+                            module.selectKit(name, sender)
+                            sender.sendMessage("Selected kit: $name")
+                        } catch (e: IllegalArgumentException) {
+                            sender.sendMessage("That kit does not exist!")
+                        }
                     }
                 }
             }
@@ -51,7 +53,12 @@ class KitCommand : CommandBase {
             return command.aliases
 
         if (args.size == 1) {
-            // TODO List up all the kits.
+            val playerData = PlayerData.get(sender as Player)
+            val kitList = playerData?.game?.resource?.kitData?.keys
+
+            if (kitList?.isEmpty() == false) {
+                return getCompletions(args[0], *kitList.toTypedArray())
+            }
         }
 
         return mutableListOf()

@@ -5,12 +5,13 @@ import com.github.lazoyoung.craftgames.module.api.EventType
 import com.github.lazoyoung.craftgames.module.api.ScriptModule
 import com.github.lazoyoung.craftgames.script.ScriptBase
 import com.github.lazoyoung.craftgames.util.Timer
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.event.Event
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import java.util.function.Consumer
 
-class ScriptModuleService internal constructor(val script: ScriptBase) : ScriptModule {
+class ScriptModuleService internal constructor(private val script: ScriptBase) : ScriptModule {
 
     internal val events = HashMap<EventType, Consumer<in Event>>()
     private val tasks = ArrayList<BukkitTask>()
@@ -66,6 +67,14 @@ class ScriptModuleService internal constructor(val script: ScriptBase) : ScriptM
 
         tasks.add(bukkitTask)
         return bukkitTask
+    }
+
+    override fun readByteStream(file: String): ByteArray {
+        TODO("Not yet implemented")
+    }
+
+    override fun readYAML(file: String): YamlConfiguration {
+        TODO("Not yet implemented")
     }
 
     internal fun terminate() {

@@ -88,7 +88,6 @@ class GameResource(val gameName: String) {
         restoreFile.parentFile!!.mkdirs()
 
         val kitPath = layoutConfig.getString("kits.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
-        kitRoot = root.resolve(kitPath)
 
         if (!restoreFile.isFile && !restoreFile.createNewFile())
             throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
@@ -101,19 +100,22 @@ class GameResource(val gameName: String) {
 
         restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
         tagConfig = YamlConfiguration.loadConfiguration(tagFile)
+        kitRoot = root.resolve(kitPath)
 
-        kitRoot.toFile().listFiles()?.forEach { file ->
-            if (file.extension != "bin")
-                return@forEach
+        kitRoot.toFile().let {
+            it.mkdirs()
+            it.listFiles()?.forEach { file ->
+                if (file.extension != "bin")
+                    return@forEach
 
-            val name = file.nameWithoutExtension
+                val name = file.nameWithoutExtension
 
-            try {
-                file.parentFile!!.mkdirs()
-                kitData[name] = Files.readAllBytes(file.toPath())
-                kitFiles[name] = file
-            } catch (e: IOException) {
-                throw RuntimeException("Failed to read kit config.", e)
+                try {
+                    kitData[name] = Files.readAllBytes(file.toPath())
+                    kitFiles[name] = file
+                } catch (e: IOException) {
+                    throw RuntimeException("Failed to read kit config.", e)
+                }
             }
         }
 
@@ -218,11 +220,11 @@ class GameResource(val gameName: String) {
                     var file = kitFiles[name]
 
                     if (file == null) {
-                        file = getKitFile(name)
+                        file = kitRoot.resolve(name.plus(".bin")).toFile()
                         file.createNewFile()
                     }
 
-                    Files.write(file.toPath(), byteArr)
+                    Files.write(file!!.toPath(), byteArr)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -246,9 +248,5 @@ class GameResource(val gameName: String) {
             throw MapNotFound("$gameName doesn't have a map.")
         }
         return map
-    }
-
-    internal fun getKitFile(name: String): File {
-        return kitRoot.resolve(name.plus(".bin")).toFile()
     }
 }

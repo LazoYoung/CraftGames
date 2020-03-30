@@ -24,7 +24,7 @@ import java.util.function.BiConsumer
 import java.util.function.Predicate
 import kotlin.collections.HashMap
 
-class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
+class PlayerModuleService internal constructor(private val game: Game) : PlayerModule {
 
     internal var personal: CoordTag? = null
     internal var editor: CoordTag? = null
@@ -130,6 +130,7 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
         val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
 
+        // Reset player attribute
         player.gameMode = Module.getGameModule(game).defaultGameMode
         maxHealth?.defaultValue?.let { maxHealth.baseValue = it }
         flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
@@ -138,9 +139,15 @@ class PlayerModuleService internal constructor(val game: Game) : PlayerModule {
         player.saturation = 5.0f
         player.exhaustion = 0.0f
 
+        // Clear potion effects
+        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
+
         if (leave) {
+            player.inventory.clear()
             // TODO Restore inventory
-            player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
+        } else {
+            // Apply kit
+            Module.getItemModule(game).applyKit(player)
         }
     }
 

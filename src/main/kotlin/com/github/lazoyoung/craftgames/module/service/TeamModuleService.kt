@@ -12,7 +12,7 @@ import org.bukkit.scoreboard.Scoreboard
 import org.bukkit.scoreboard.Team
 import kotlin.math.roundToInt
 
-class TeamModuleService(val game: Game) : TeamModule {
+class TeamModuleService(private val game: Game) : TeamModule {
 
     private var spawnTag = HashMap<String, CoordTag>()
     private var scoreboard = Bukkit.getScoreboardManager().newScoreboard

@@ -21,7 +21,7 @@ import java.util.*
 import kotlin.collections.HashMap
 
 
-class LobbyModuleService internal constructor(val game: Game) : LobbyModule {
+class LobbyModuleService internal constructor(private val game: Game) : LobbyModule {
 
     internal var exitLoc: Location? = null
     internal var exitServer: String? = null

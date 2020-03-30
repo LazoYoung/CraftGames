@@ -18,7 +18,7 @@ class Module internal constructor(val game: Game) {
     private val mobModule = MobModuleService(game)
     private val scriptModule = ScriptModuleService(script)
     private val worldModule = WorldModuleService(game)
-    private val itemModule = ItemModuleService(game.resource)
+    private val itemModule = ItemModuleService(game)
     private var terminateSignal = false
     private val bind: Bindings
 
@@ -71,16 +71,22 @@ class Module internal constructor(val game: Game) {
         }
 
         /**
-         * @throws IllegalArgumentException is thrown if the tag's mode differs from [mode].
+         * Returns the relevant tag matching with [name] inside [game].
+         *
+         * If tag mode doesn't match with any of those [modes], it's considered __irrelevant__.
+         *
+         * @throws IllegalArgumentException is thrown if tag is irrelevant.
          */
-        internal fun getRelevantTag(game: Game, name: String, mode: TagMode): CoordTag {
+        internal fun getRelevantTag(game: Game, name: String, vararg modes: TagMode): CoordTag {
             val tag = CoordTag.get(game, name)
                     ?: throw IllegalArgumentException("Unable to identify $name tag!")
 
-            if (tag.mode != mode)
-                throw IllegalArgumentException("$name is not a $mode tag!")
+            for (mode in modes) {
+                if (mode == tag.mode)
+                    return tag
+            }
 
-            return tag
+            throw IllegalArgumentException("$name is not relevant! Acceptable tag modes: $modes")
         }
     }
 

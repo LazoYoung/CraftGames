@@ -35,7 +35,7 @@ class GameCommand : CommandBase {
                     .append("◎ /game save\n", RESET_FORMAT)
                         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Leave editor mode.\nChanges are saved to disk.").create()))
                         .event(ClickEvent(SUGGEST_CMD, "/game save"))
-                    .append("◎ /game kit <list/save/delete> [name]\n", RESET_FORMAT)
+                    .append("◎ /game kit <list/select/save/delete> (name)\n", RESET_FORMAT)
                         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Save or delete a kit inventory.").create()))
                         .event(ClickEvent(SUGGEST_CMD, "/game kit "))
                     .append(PREV_NAV_END, RESET_FORMAT)
@@ -190,28 +190,29 @@ class GameCommand : CommandBase {
                                 .append(list).color(ChatColor.GREEN).create()
                         sender.sendMessage(*text)
                     }
-                    "select" -> {
+                    "select", "test" -> {
                         if (args.size > 2) {
                             try {
                                 val name = args[2].toLowerCase()
-                                Module.getItemModule(game).fillKit(name, sender.inventory)
-                                sender.sendMessage("Selected kit: $name")
+                                Module.getItemModule(game).selectKit(name, sender)
+                                Module.getItemModule(game).applyKit(sender)
+                                sender.sendMessage("Applied kit: $name")
                             } catch (e: IllegalArgumentException) {
                                 sender.sendMessage("That kit does not exist!")
                             }
                         } else {
-                            sender.sendMessage("Provide the name of kit to select!")
+                            sender.sendMessage("Provide the name of kit!")
                             return false
                         }
                     }
-                    "add", "create", "save" -> {
+                    "create", "save" -> {
                         if (args.size > 2) {
                             val name = args[2].toLowerCase()
 
-                            Module.getItemModule(game).saveKit(name, sender.inventory)
-                            sender.sendMessage("Kit \'$name\' has been saved by cloning your inventory.")
+                            Module.getItemModule(game).saveKit(name, sender)
+                            sender.sendMessage("Kit \'$name\' has been saved.")
                         } else {
-                            sender.sendMessage("Provide the name of kit to create!")
+                            sender.sendMessage("Provide the name of kit!")
                             return false
                         }
                     }
@@ -226,7 +227,7 @@ class GameCommand : CommandBase {
                                 sender.sendMessage("That kit does not exist!")
                             }
                         } else {
-                            sender.sendMessage("Provide the name of kit to remove!")
+                            sender.sendMessage("Provide the name of kit!")
                             return false
                         }
                     }
@@ -270,10 +271,17 @@ class GameCommand : CommandBase {
             }
             "kit" -> {
                 return when (args.size) {
-                    1 -> {
-                        PlayerData.get(sender as Player)?.let {
-                            getCompletions(args[0], *it.game.resource.kitData.keys.toTypedArray())
-                        } ?: mutableListOf()
+                    2 -> {
+                        getCompletions(args[1], "list", "test", "save", "delete")
+                    }
+                    3 -> {
+                        if (args[2].equals("list", true)) {
+                            mutableListOf()
+                        } else {
+                            PlayerData.get(sender as Player)?.let {
+                                getCompletions(args[2], *it.game.resource.kitData.keys.toTypedArray())
+                            } ?: mutableListOf()
+                        }
                     }
                     else -> mutableListOf()
                 }

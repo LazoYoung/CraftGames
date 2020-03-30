@@ -30,7 +30,7 @@ import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
 import java.util.function.Consumer
 
-class GameModuleService internal constructor(val game: Game) : GameModule {
+class GameModuleService internal constructor(private val game: Game) : GameModule {
 
     internal var defaultGameMode = GameMode.ADVENTURE
     internal var canJoinAfterStart = false
@@ -114,6 +114,7 @@ class GameModuleService internal constructor(val game: Game) : GameModule {
 
         if (tag == null) {
             location = world.spawnLocation
+            location.y = world.getHighestBlockYAt(location).toDouble()
             player.sendMessage(notFound)
         } else {
             val mapID = game.map.id

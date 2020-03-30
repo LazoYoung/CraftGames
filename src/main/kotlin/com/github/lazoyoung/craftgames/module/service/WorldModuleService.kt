@@ -27,7 +27,7 @@ import org.bukkit.loot.Lootable
 import java.io.FileInputStream
 import java.util.function.Consumer
 
-class WorldModuleService(val game: Game) : WorldModule {
+class WorldModuleService(private val game: Game) : WorldModule {
 
     /** Key: AreaName(Tag), Value: Trigger function **/
     internal val triggers = HashMap<String, Consumer<Player>>()

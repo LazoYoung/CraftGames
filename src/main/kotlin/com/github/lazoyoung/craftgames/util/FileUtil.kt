@@ -32,7 +32,7 @@ class FileUtil {
                         return FileVisitResult.CONTINUE
 
                     val targetDir = when (sourcePath.parent) {
-                        null -> target.resolve(dir.toString()) // FIXME dir is absolute, breaking the resolve
+                        null -> target.resolve(dir.toString())
                         else -> target.resolve(sourcePath.parent.relativize(dir).toString())
                     }
                     Main.logger.info("Copying directory: ${dir.fileName} -> $targetDir")
