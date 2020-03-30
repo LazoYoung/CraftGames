@@ -179,13 +179,18 @@ class GameMap internal constructor(
     }
 
     /**
-     * Players need to leave before taking this action.
+     * Erase this world completely.
      *
-     * @param async Determines to unload the world asynchronously or not.
-     * @throws RuntimeException is thrown if plugin fails to unload world.
+     * Remaining players are kicked out of the server.
+     * Their destination is configuration-dependent.
+     *
+     * @param async Determines if the task is conducted asynchronously or not.
+     * @throws RuntimeException is thrown if the task fails.
      * @throws NullPointerException is thrown if world is not initialized.
      */
     internal fun destruct(async: Boolean = true) {
+        world!!.players.forEach { it.kickPlayer("Destructing the world! Please join again.") }
+
         try {
             if (Bukkit.unloadWorld(world!!, false)) {
                 val run = Runnable { FileUtil.deleteFileTree(worldPath!!) }
