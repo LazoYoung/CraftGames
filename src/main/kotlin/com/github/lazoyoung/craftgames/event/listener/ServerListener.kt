@@ -2,10 +2,10 @@ package com.github.lazoyoung.craftgames.event.listener
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.player.GameEditor
-import com.github.lazoyoung.craftgames.player.GamePlayer
-import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.player.GameEditor
+import com.github.lazoyoung.craftgames.game.player.GamePlayer
+import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.Player

@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.exception.GameNotFound
+import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.player.GameEditor
-import com.github.lazoyoung.craftgames.player.GamePlayer
-import com.github.lazoyoung.craftgames.player.PlayerData
-import com.github.lazoyoung.craftgames.player.Spectator
+import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.player.GameEditor
+import com.github.lazoyoung.craftgames.game.player.GamePlayer
+import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.game.player.Spectator
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder

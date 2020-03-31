@@ -4,8 +4,8 @@ import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
 import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
-import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.module.api.EventType
+import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.api.EventType
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 
