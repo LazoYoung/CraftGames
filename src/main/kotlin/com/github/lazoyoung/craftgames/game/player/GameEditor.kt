@@ -36,7 +36,8 @@ class GameEditor private constructor(
     private var areaPrompt: BiConsumer<Block, Action>? = null
     private var block1: Block? = null
     private var block2: Block? = null
-    private val actionbarTask = ActionbarTask(
+    private var dialogActionbar: ActionbarTask? = null
+    private val mainActionbar = ActionbarTask(
             player = player,
             period = Timer(TimeUnit.SECOND, 5),
             repeat = true,
@@ -47,7 +48,7 @@ class GameEditor private constructor(
     )
 
     init {
-        actionbarTask.start()
+        mainActionbar.start()
     }
 
     companion object {
@@ -107,14 +108,22 @@ class GameEditor private constructor(
                 else -> return@BiConsumer
             }
 
+            dialogActionbar?.clear()
+
             when {
                 block1 == null -> {
-                    ActionbarTask(player, text = *arrayOf("&eSelect another block with Left-click!"))
-                            .start()
+                    dialogActionbar = ActionbarTask(
+                            player = player,
+                            repeat = true,
+                            text = *arrayOf("&eCapture another block with &6Left click&e!")
+                    ).start()
                 }
                 block2 == null -> {
-                    ActionbarTask(player, text = *arrayOf("&eSelect another block with Right-click!"))
-                            .start()
+                    dialogActionbar = ActionbarTask(
+                            player = player,
+                            repeat = true,
+                            text = *arrayOf("&eCapture another block with &6Right click&e!")
+                    ).start()
                 }
                 else -> {
                     consumer.accept(block1!!, block2!!)
@@ -145,7 +154,7 @@ class GameEditor private constructor(
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
 
         game.leave(this)
-        actionbarTask.clear()
+        mainActionbar.clear()
         player.sendMessage("Saving files! Please wait...")
 
         // Save world

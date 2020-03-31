@@ -213,22 +213,29 @@ class CoordtagCommand : CommandBase {
                     }
                 } else { // display
                     if (args.size == 2) {
-                        sender.sendMessage("[CoordTag] Don't omit the index of capture to display!")
+                        sender.sendMessage("[CoordTag] Do not omit the index of capture!")
                     } else {
                         val capture = captures.firstOrNull {
                             it.index == args[2].toIntOrNull()
                         }
 
-                        if (capture == null) {
-                            sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
-                        } else if (capture is AreaCapture) {
-                            val timer = Timer(TimeUnit.SECOND, 20)
+                        when (capture) {
+                            null -> {
+                                sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
+                            }
+                            is AreaCapture -> {
+                                val timer = Timer(TimeUnit.SECOND, 20)
 
-                            capture.displayBorder(sender.world, 5, timer)
-                            ActionbarTask(sender, text = *arrayOf("&9Displaying area $tagName/${capture.index}"))
-                                    .start()
-                        } else {
-                            sender.sendMessage("[CoordTag] Display feature doesn't support ${tag.mode} tags yet.")
+                                capture.displayBorder(sender.world, 5, timer)
+                                ActionbarTask(
+                                        player = sender,
+                                        period = timer,
+                                        text = *arrayOf("&9Displaying area $tagName/${capture.index}")
+                                ).start()
+                            }
+                            else -> {
+                                sender.sendMessage("[CoordTag] Display feature doesn't support ${tag.mode} tags yet.")
+                            }
                         }
                     }
                 }
@@ -290,22 +297,30 @@ class CoordtagCommand : CommandBase {
                                     .start()
                         }
                         TagMode.BLOCK -> {
+                            val dialog = ActionbarTask(
+                                    sender, repeat = true, text = *arrayOf("&eClick a block to capture it!")
+                            ).start()
+
                             pdata.requestBlockPrompt(Consumer {
                                 BlockCapture(it.x, it.y, it.z, pdata.mapID)
                                         .add(tag)
                                 ActionbarTask(sender, text = *arrayOf("&aCaptured a block."))
                                         .start()
+                                dialog.clear()
                             })
-                            sender.sendMessage("[CoordTag] Please click a block to capture it.")
                         }
                         TagMode.AREA -> {
+                            val dialog = ActionbarTask(
+                                    sender, repeat = true, text = *arrayOf("&eClick a block to capture it!")
+                            ).start()
+
                             pdata.requestAreaPrompt(BiConsumer { b1, b2 ->
                                 AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID)
                                         .add(tag)
                                 ActionbarTask(sender, text = *arrayOf("&aCaptured an area."))
                                         .start()
+                                dialog.clear()
                             })
-                            sender.sendMessage("[CoordTag] Please capture 2 blocks by Left/Right-click.")
                         }
                     }
                 } catch (e: NullPointerException) {

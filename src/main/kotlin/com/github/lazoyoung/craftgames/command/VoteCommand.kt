@@ -40,10 +40,10 @@ class VoteCommand : CommandBase {
             val text = if (lobby.voteMap(player, mapName = args[0])) {
                 "&aYou voted for ${args[0]}!"
             } else {
-                "&eYou have already voted."
+                "&eYou have voted already."
             }
 
-            ActionbarTask(player, Timer(TimeUnit.SECOND, 2), false, text)
+            ActionbarTask(player, Timer(TimeUnit.SECOND, 3), false, text)
                     .start()
         } catch (e: MapNotFound) {
             sender.sendActionBar(ChatColor.YELLOW.toString() + e.localizedMessage)

@@ -275,11 +275,20 @@ class Game(
             if (phase == Phase.LOBBY) {
                 Module.getPlayerModule(this).restore(player)
                 Module.getLobbyModule(this).join(player)
-                player.sendMessage("You joined the game: $name")
+                Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
+                ActionbarTask(
+                        player = player,
+                        text = *arrayOf("&aWelcome to &f$name&a!", "&aPlease wait until the game starts.")
+                ).start()
             } else if (phase == Phase.PLAYING) {
                 Module.getPlayerModule(this).restore(player)
                 Module.getGameModule(this).teleportSpawn(playerData)
                 player.sendMessage("You joined the ongoing game: $name")
+                Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
+                ActionbarTask(
+                        player = player,
+                        text = *arrayOf("&aWelcome to &f$name&a!", "&aThis game was started a while ago.")
+                ).start()
             }
         } else {
             val text = when (getRejectCause()) {
