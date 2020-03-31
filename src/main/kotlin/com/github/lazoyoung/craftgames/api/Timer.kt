@@ -13,7 +13,8 @@ class Timer(
 
     fun toTick(): Long {
         return when (timeUnit) {
-            TimeUnit.MINUTE -> value * 1200
+            TimeUnit.HOUR -> value * 20 * 60 * 60
+            TimeUnit.MINUTE -> value * 20 * 60
             TimeUnit.SECOND -> value * 20
             TimeUnit.TICK -> value
         }
@@ -21,17 +22,28 @@ class Timer(
 
     fun toSecond(): Long {
         return when (timeUnit) {
-            TimeUnit.TICK -> value / 20
-            TimeUnit.SECOND -> value
+            TimeUnit.HOUR -> value * 60 * 60
             TimeUnit.MINUTE -> value * 60
+            TimeUnit.SECOND -> value
+            TimeUnit.TICK -> Math.floorDiv(value, 20L)
         }
     }
 
     fun toMinute(): Long {
         return when (timeUnit) {
-            TimeUnit.TICK -> value / (20 * 60)
-            TimeUnit.SECOND -> value / 60
+            TimeUnit.HOUR -> value * 60
             TimeUnit.MINUTE -> value
+            TimeUnit.SECOND -> Math.floorDiv(value, 60L)
+            TimeUnit.TICK -> Math.floorDiv(value, 60 * 20L)
+        }
+    }
+
+    fun toHour(): Long {
+        return when (timeUnit) {
+            TimeUnit.HOUR -> value
+            TimeUnit.MINUTE -> Math.floorDiv(value, 60L)
+            TimeUnit.SECOND -> Math.floorDiv(value, 60 * 60L)
+            TimeUnit.TICK -> Math.floorDiv(value, 60 * 60 * 20L)
         }
     }
 
@@ -50,7 +62,7 @@ class Timer(
         val text = StringBuilder()
 
         if (sec > hourUnit) {
-            val hour = sec / hourUnit
+            val hour = toHour().toInt()
             sec -= hour * hourUnit
 
             if (!verbose) {
@@ -63,7 +75,7 @@ class Timer(
         }
 
         if (sec > minUnit) {
-            min = sec / minUnit
+            min = toMinute().toInt()
             sec -= min * minUnit
 
             if (verbose) {

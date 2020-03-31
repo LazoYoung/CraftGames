@@ -1,5 +1,5 @@
 package com.github.lazoyoung.craftgames.api
 
 enum class TimeUnit {
-    TICK, SECOND, MINUTE
+    TICK, SECOND, MINUTE, HOUR
 }

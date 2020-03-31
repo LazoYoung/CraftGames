@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.*
-import com.github.lazoyoung.craftgames.event.listener.GameListener
-import com.github.lazoyoung.craftgames.event.listener.ServerListener
+import com.github.lazoyoung.craftgames.internal.listener.GameListener
+import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil

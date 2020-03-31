@@ -1,2 +1,2 @@
-import com.github.lazoyoung.craftgames.util.*
-import com.github.lazoyoung.craftgames.module.api.*
+import com.github.lazoyoung.craftgames.api.*
+import com.github.lazoyoung.craftgames.event.*

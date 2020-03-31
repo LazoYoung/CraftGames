@@ -87,11 +87,6 @@ dokka {
         }
 
         perPackageOption {
-            prefix = "com.github.lazoyoung.craftgames.event.listener"
-            suppress = true
-        }
-
-        perPackageOption {
             prefix = "com.github.lazoyoung.craftgames.game"
             suppress = true
         }

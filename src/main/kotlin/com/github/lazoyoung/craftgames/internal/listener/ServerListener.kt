@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.event.listener
+package com.github.lazoyoung.craftgames.internal.listener
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.Game
