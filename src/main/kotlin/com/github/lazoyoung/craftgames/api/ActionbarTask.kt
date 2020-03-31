@@ -36,7 +36,9 @@ class ActionbarTask(
                     return
                 }
 
-                player.sendActionBar('&', text[index])
+                if (active) { // Prevent concurrent actions from ovarlapping
+                    player.sendActionBar('&', text[index])
+                }
 
                 when {
                     (--repeat > 0) -> {
