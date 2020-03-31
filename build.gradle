@@ -61,7 +61,7 @@ processResources {
 
 dokka {
     outputFormat = "javadoc"
-    outputDirectory = "doc"
+    outputDirectory = "docs"
 
     configuration {
         moduleName = "kdoc"
