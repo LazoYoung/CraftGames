@@ -12,6 +12,7 @@ import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
+import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -52,6 +53,7 @@ class GameResource(val gameName: String) {
         /*
          * Read layout.yml
          */
+        var fileReader: BufferedReader? = null
         val layoutFile: File
         val layoutConfig: YamlConfiguration
         val layoutPathStr = Main.config.getString("games.$gameName.layout")
@@ -62,14 +64,21 @@ class GameResource(val gameName: String) {
             if (!layoutFile.isFile)
                 throw FaultyConfiguration("Game \'$gameName\' does not have layout.yml")
 
+            fileReader = FileUtil.getBufferedReader(layoutFile)
             root = layoutFile.parentFile.toPath()
-            layoutConfig = YamlConfiguration.loadConfiguration(FileUtil.getBufferedReader(layoutFile))
+            layoutConfig = YamlConfiguration.loadConfiguration(fileReader)
         } catch (e: IOException) {
             throw FaultyConfiguration("Unable to read ${layoutFile.toPath()} for $gameName. Is it missing?", e)
         } catch (e: IllegalArgumentException) {
             throw FaultyConfiguration("File is empty: ${layoutFile.toPath()}")
         } catch (e: InvalidPathException) {
             throw RuntimeException("Failed to resolve resource path.", e)
+        } finally {
+            try {
+                fileReader?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
         }
 
         val mapItr = layoutConfig.getMapList("maps").listIterator()
@@ -105,7 +114,7 @@ class GameResource(val gameName: String) {
         kitRoot.toFile().let {
             it.mkdirs()
             it.listFiles()?.forEach { file ->
-                if (file.extension != "bin")
+                if (file.extension != "kit")
                     return@forEach
 
                 val name = file.nameWithoutExtension
@@ -114,7 +123,7 @@ class GameResource(val gameName: String) {
                     kitData[name] = Files.readAllBytes(file.toPath())
                     kitFiles[name] = file
                 } catch (e: IOException) {
-                    throw RuntimeException("Failed to read kit config.", e)
+                    throw RuntimeException("Failed to read kit file.", e)
                 }
             }
         }
@@ -211,16 +220,13 @@ class GameResource(val gameName: String) {
         restoreConfig.save(restoreFile)
 
         if (editMode) {
-            // Save coordtags
-            tagConfig.save(tagFile)
-
-            // Save kits
             try {
+                tagConfig.save(tagFile)
                 kitData.forEach { (name, byteArr) ->
                     var file = kitFiles[name]
 
                     if (file == null) {
-                        file = kitRoot.resolve(name.plus(".bin")).toFile()
+                        file = kitRoot.resolve(name.plus(".kit")).toFile()
                         file.createNewFile()
                     }
 

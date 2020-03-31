@@ -2,18 +2,25 @@ package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.api.module.ScriptModule
-import com.github.lazoyoung.craftgames.game.script.ScriptBase
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.module.ScriptModule
+import com.github.lazoyoung.craftgames.game.GameResource
+import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.event.Event
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.util.io.BukkitObjectInputStream
+import org.bukkit.util.io.BukkitObjectOutputStream
+import java.io.*
+import java.nio.file.Paths
 import java.util.function.Consumer
 
-class ScriptModuleService internal constructor(private val script: ScriptBase) : ScriptModule {
-
+class ScriptModuleService internal constructor(
+        private val resource: GameResource
+) : ScriptModule {
     internal val events = HashMap<EventType, Consumer<in Event>>()
+    private val script = resource.script
     private val tasks = ArrayList<BukkitTask>()
 
     override fun attachEventMonitor(eventType: EventType, callback: Consumer<in Event>) {
@@ -69,12 +76,93 @@ class ScriptModuleService internal constructor(private val script: ScriptBase) :
         return bukkitTask
     }
 
-    override fun readByteStream(file: String): ByteArray {
-        TODO("Not yet implemented")
+    override fun readObjectStream(path: String, reader: Consumer<BukkitObjectInputStream>) {
+        if (Paths.get(path).isAbsolute)
+            throw IllegalArgumentException("Absolute path is not allowed.")
+
+        var stream: BukkitObjectInputStream? = null
+        val file = resource.root.resolve(path).toFile()
+
+        if (!file.isFile)
+            throw FileNotFoundException("Unable to locate file: $path")
+
+        try {
+            val wrapper = BufferedInputStream(FileInputStream(file))
+            stream = BukkitObjectInputStream(wrapper)
+            reader.accept(stream)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            script.writeStackTrace(e)
+        } finally {
+            try {
+                stream?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                script.writeStackTrace(e)
+            }
+        }
     }
 
-    override fun readYAML(file: String): YamlConfiguration {
-        TODO("Not yet implemented")
+    override fun writeObjectStream(path: String, writer: Consumer<BukkitObjectOutputStream>) {
+        if (Paths.get(path).isAbsolute)
+            throw IllegalArgumentException("Absolute path is not allowed: $path")
+
+        val file = resource.root.resolve(path).toFile()
+        var stream: BukkitObjectOutputStream? = null
+
+        if (!file.isFile) {
+            file.parentFile!!.mkdirs()
+            file.createNewFile()
+        }
+
+        try {
+            val wrapper = BufferedOutputStream(FileOutputStream(file))
+            stream = BukkitObjectOutputStream(wrapper)
+            writer.accept(stream)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            script.writeStackTrace(e)
+            stream?.reset()
+        } finally {
+            try {
+                stream?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                script.writeStackTrace(e)
+            }
+        }
+    }
+
+    override fun getYamlConfiguration(path: String, consumer: Consumer<YamlConfiguration>) {
+        if (Paths.get(path).isAbsolute)
+            throw IllegalArgumentException("Absolute path is not allowed: $path")
+
+        val file = resource.root.resolve(path).toFile()
+        val ext = file.extension
+        var fileReader: BufferedReader? = null
+
+        if (!ext.equals("yml", true))
+            throw IllegalArgumentException("Illegal file format: $ext")
+
+        if (!file.isFile)
+            throw FileNotFoundException("Unable to locate file: $path")
+
+        try {
+            fileReader = FileUtil.getBufferedReader(file)
+            val config = YamlConfiguration.loadConfiguration(fileReader)
+            consumer.accept(config)
+            config.save(file)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            script.writeStackTrace(e)
+        } finally {
+            try {
+                fileReader?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                script.writeStackTrace(e)
+            }
+        }
     }
 
     internal fun terminate() {

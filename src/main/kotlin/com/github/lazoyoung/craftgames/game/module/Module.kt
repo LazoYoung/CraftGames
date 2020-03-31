@@ -1,9 +1,9 @@
 package com.github.lazoyoung.craftgames.game.module
 
+import com.github.lazoyoung.craftgames.api.module.*
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.api.module.*
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import javax.script.Bindings
 
@@ -15,11 +15,11 @@ class Module internal constructor(val game: Game) {
     private val lobbyModule = LobbyModuleService(game)
     private val playerModule = PlayerModuleService(game)
     private val mobModule = MobModuleService(game)
-    private val scriptModule = ScriptModuleService(script)
+    private val scriptModule = ScriptModuleService(game.resource)
     private val worldModule = WorldModuleService(game)
     private val itemModule = ItemModuleService(game)
-    private var terminateSignal = false
     private val bind: Bindings
+    private var terminateSignal = false
 
     init {
         bind = script.getBindings()

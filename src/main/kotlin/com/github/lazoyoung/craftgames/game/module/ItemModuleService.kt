@@ -1,11 +1,11 @@
 package com.github.lazoyoung.craftgames.game.module
 
+import com.github.lazoyoung.craftgames.api.module.ItemModule
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
-import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.api.module.ItemModule
+import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
@@ -17,6 +17,7 @@ import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.util.*
 
 
@@ -84,6 +85,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     override fun applyKit(player: Player) {
         val byteArr = kitSel[player.uniqueId] ?: defaultKit
         val inv = player.inventory
+        var data: BukkitObjectInputStream? = null
 
         // Clear Inventory and PotionEffects
         player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
@@ -94,7 +96,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
         try {
             val stream = ByteArrayInputStream(Base64.getDecoder().decode(byteArr))
-            val data = BukkitObjectInputStream(stream)
+            data = BukkitObjectInputStream(stream)
             val invSize = data.readInt()
 
             /* Read ItemStacks from InputStream */
@@ -112,20 +114,27 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 player.addPotionEffect(potionEffect)
             }
 
-            /* Close InputStream */
-            data.close()
         } catch (e: Exception) {
             e.printStackTrace()
+            script.writeStackTrace(e)
+        } finally {
+            try {
+                data?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                script.writeStackTrace(e)
+            }
         }
     }
 
     override fun saveKit(name: String, player: Player) {
         val inv = player.inventory
         val effects = player.activePotionEffects
+        var data: BukkitObjectOutputStream? = null
 
         try {
             val stream = ByteArrayOutputStream()
-            val data = BukkitObjectOutputStream(stream)
+            data = BukkitObjectOutputStream(stream)
 
             /* Write ItemStacks to OutputStream */
             data.writeInt(inv.size)
@@ -141,13 +150,19 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 data.writeObject(effect)
             }
 
-            /* Close OutputStream */
-            data.close()
-
             val byteArr = Base64.getEncoder().encode(stream.toByteArray())
             resource.kitData[name] = byteArr
         } catch (e: Exception) {
             e.printStackTrace()
+            script.writeStackTrace(e)
+            data?.reset()
+        } finally {
+            try {
+                data?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                script.writeStackTrace(e)
+            }
         }
     }
 
