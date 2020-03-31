@@ -1,16 +1,16 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.coordtag.AreaCapture
-import com.github.lazoyoung.craftgames.coordtag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.TagMode
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.exception.GameNotFound
-import com.github.lazoyoung.craftgames.exception.MapNotFound
-import com.github.lazoyoung.craftgames.exception.ScriptEngineNotFound
-import com.github.lazoyoung.craftgames.script.ScriptBase
-import com.github.lazoyoung.craftgames.script.ScriptFactory
-import com.github.lazoyoung.craftgames.util.FileUtil
+import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.game.script.ScriptBase
+import com.github.lazoyoung.craftgames.game.script.ScriptFactory
+import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
+import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
+import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.io.IOException

@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.player.GameEditor
-import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.game.player.GameEditor
+import com.github.lazoyoung.craftgames.game.player.PlayerData
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.command.Command

@@ -1,11 +1,16 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.coordtag.*
+import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.api.TimeUnit
+import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
+import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.player.GameEditor
-import com.github.lazoyoung.craftgames.player.PlayerData
-import com.github.lazoyoung.craftgames.util.TimeUnit
-import com.github.lazoyoung.craftgames.util.Timer
+import com.github.lazoyoung.craftgames.game.player.GameEditor
+import com.github.lazoyoung.craftgames.game.player.PlayerData
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -184,7 +189,8 @@ class CoordtagCommand : CommandBase {
                             val capture = captures.random()
 
                             sender.teleport(capture.toLocation(sender.world))
-                            sender.sendMessage("[CoordTag] Teleported to $tagName/${capture.index}.")
+                            ActionbarTask(sender, text = *arrayOf("&9Teleported to $tagName/${capture.index}"))
+                                    .start()
                         }
                         else -> {
                             val capture = captures.firstOrNull {
@@ -219,7 +225,8 @@ class CoordtagCommand : CommandBase {
                             val timer = Timer(TimeUnit.SECOND, 20)
 
                             capture.displayBorder(sender.world, 5, timer)
-                            sender.sendMessage("[CoordTag] Displaying area $tagName/${capture.index}")
+                            ActionbarTask(sender, text = *arrayOf("&9Displaying area $tagName/${capture.index}"))
+                                    .start()
                         } else {
                             sender.sendMessage("[CoordTag] Display feature doesn't support ${tag.mode} tags yet.")
                         }
@@ -259,7 +266,8 @@ class CoordtagCommand : CommandBase {
                     }
                     else -> {
                         CoordTag.create(game.resource, game.map.id, mode, args[1])
-                        sender.sendMessage("[CoordTag] Created tag: ${args[1]}")
+                        ActionbarTask(sender, text = *arrayOf("Tag ${args[1]} has been created."))
+                                .start()
                     }
                 }
             }
@@ -278,13 +286,15 @@ class CoordtagCommand : CommandBase {
                             val loc = sender.location
                             SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID)
                                     .add(tag)
-                            sender.sendMessage("[CoordTag] Captured a spawnpoint.")
+                            ActionbarTask(sender, text = *arrayOf("&aCaptured a spawnpoint."))
+                                    .start()
                         }
                         TagMode.BLOCK -> {
                             pdata.requestBlockPrompt(Consumer {
                                 BlockCapture(it.x, it.y, it.z, pdata.mapID)
                                         .add(tag)
-                                sender.sendMessage("[CoordTag] Captured a block.")
+                                ActionbarTask(sender, text = *arrayOf("&aCaptured a block."))
+                                        .start()
                             })
                             sender.sendMessage("[CoordTag] Please click a block to capture it.")
                         }
@@ -292,7 +302,8 @@ class CoordtagCommand : CommandBase {
                             pdata.requestAreaPrompt(BiConsumer { b1, b2 ->
                                 AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID)
                                         .add(tag)
-                                sender.sendMessage("[CoordTag] Captured an area.")
+                                ActionbarTask(sender, text = *arrayOf("&aCaptured an area."))
+                                        .start()
                             })
                             sender.sendMessage("[CoordTag] Please capture 2 blocks by Left/Right-click.")
                         }
@@ -307,18 +318,21 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 val tag = CoordTag.get(pdata.game, args[1])
+                val tagName = tag?.name
 
                 if (tag == null) {
                     sender.sendMessage("[CoordTag] ${args[1]} does not exist.")
                 } else if (args.size == 2) {
                     tag.remove()
-                    sender.sendMessage("[CoordTag] Tag \'${args[1]}\' removed.")
+                    ActionbarTask(sender, text = *arrayOf("&aTag '$tagName' has been removed."))
+                            .start()
                 } else {
                     val capture = tag.getCaptures(pdata.mapID).firstOrNull { it.index == args[2].toIntOrNull() }
 
                     if (capture != null) {
                         tag.removeCapture(capture)
-                        sender.sendMessage("[CoordTag] Capture ${args[1]} removed.")
+                        ActionbarTask(sender, text = *arrayOf("&aCapture '$tagName/${capture.index}' has been removed."))
+                                .start()
                     } else {
                         sender.sendMessage("[CoordTag] Unknown capture index: ${args[2]}")
                     }

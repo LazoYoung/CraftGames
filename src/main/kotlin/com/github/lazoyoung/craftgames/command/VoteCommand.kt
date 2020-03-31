@@ -1,15 +1,14 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.exception.MapNotFound
+import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.api.TimeUnit
+import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.player.GamePlayer
-import com.github.lazoyoung.craftgames.player.PlayerData
-import com.github.lazoyoung.craftgames.util.MessageTask
-import com.github.lazoyoung.craftgames.util.TimeUnit
-import com.github.lazoyoung.craftgames.util.Timer
+import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.player.GamePlayer
+import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -37,18 +36,17 @@ class VoteCommand : CommandBase {
 
         try {
             val player = pdata.player
-            val actionBar = ChatMessageType.ACTION_BAR
             val lobby = Module.getLobbyModule(pdata.game)
             val text = if (lobby.voteMap(player, mapName = args[0])) {
-                listOf("&aYou voted for ${args[0]}!")
+                "&aYou voted for ${args[0]}!"
             } else {
-                listOf("&eYou have already voted.")
+                "&eYou have already voted."
             }
 
-            MessageTask.clear(player, actionBar)
-            MessageTask(player, actionBar, text, 2, Timer(TimeUnit.SECOND, 2)).start()
+            ActionbarTask(player, Timer(TimeUnit.SECOND, 2), false, text)
+                    .start()
         } catch (e: MapNotFound) {
-            sender.sendActionBar('&', e.localizedMessage)
+            sender.sendActionBar(ChatColor.YELLOW.toString() + e.localizedMessage)
         }
         return true
     }

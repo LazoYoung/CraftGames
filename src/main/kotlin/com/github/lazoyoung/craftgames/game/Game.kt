@@ -1,20 +1,20 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.api.MessageTask
 import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
 import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
-import com.github.lazoyoung.craftgames.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.exception.GameNotFound
-import com.github.lazoyoung.craftgames.exception.MapNotFound
-import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.player.GamePlayer
-import com.github.lazoyoung.craftgames.player.PlayerData
-import com.github.lazoyoung.craftgames.player.Spectator
-import com.github.lazoyoung.craftgames.util.MessageTask
-import com.github.lazoyoung.craftgames.util.MessengerUtil
+import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.player.GamePlayer
+import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
+import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -333,7 +333,8 @@ class Game(
         Bukkit.getPluginManager().callEvent(PlayerLeaveGameEvent(this, player))
 
         // Clear data
-        MessageTask.clear(player, ChatMessageType.ACTION_BAR)
+        MessageTask.clearAll(player)
+        ActionbarTask.clearAll(player)
         module.ejectPlayer(playerData)
         players.remove(uid)
         playerData.unregister()

@@ -4,8 +4,8 @@ import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.event.listener.GameListener
 import com.github.lazoyoung.craftgames.event.listener.ServerListener
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.util.FileUtil
-import com.github.lazoyoung.craftgames.util.MessengerUtil
+import com.github.lazoyoung.craftgames.internal.util.FileUtil
+import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration

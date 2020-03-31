@@ -1,8 +1,9 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.module.Module
-import com.github.lazoyoung.craftgames.player.GamePlayer
-import com.github.lazoyoung.craftgames.player.PlayerData
+import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.player.GamePlayer
+import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -33,7 +34,7 @@ class KitCommand : CommandBase {
                         try {
                             val module = Module.getItemModule(game)
                             module.selectKit(name, sender)
-                            sender.sendMessage("Selected kit: $name")
+                            ActionbarTask(sender, text = *arrayOf("&aSelected kit: $name"))
                         } catch (e: IllegalArgumentException) {
                             sender.sendMessage("That kit does not exist!")
                         }
