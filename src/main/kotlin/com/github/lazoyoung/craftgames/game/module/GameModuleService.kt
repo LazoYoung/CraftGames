@@ -2,17 +2,19 @@ package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.event.GameFinishEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
@@ -76,16 +78,30 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun finishGame(winner: Team, timer: Timer) {
+        val winners = Module.getTeamModule(game).getPlayers(winner)
+
+        // Fire event
+        Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.TEAM_WIN, winner, winners))
+
+        // Ceremony and close
         broadcast("&6Congratulations, &r${winner.displayName} &6won the game!")
         Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
     }
 
     override fun finishGame(winner: Player, timer: Timer) {
+        // Fire event
+        Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.SOLO_WIN, null, listOf(winner)))
+
+        // Ceremony and close
         broadcast("&6Congratulations, &r${winner.displayName} &6won the game!")
         Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
     }
 
-    override fun finishGame(timer: Timer) {
+    override fun drawGame(timer: Timer) {
+        // Fire event
+        Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.DRAW, null, null))
+
+        // Ceremony and close
         broadcast("&6Time out! The game ended in a draw...")
         Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
     }
@@ -186,7 +202,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                     }
                     this.cancel()
                 } else if (livingPlayers.isEmpty() || timer-- < 1) {
-                    finishGame(Timer(TimeUnit.SECOND, 5))
+                    drawGame(Timer(TimeUnit.SECOND, 5))
                     this.cancel()
                     return
                 }

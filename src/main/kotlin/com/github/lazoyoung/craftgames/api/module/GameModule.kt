@@ -43,6 +43,6 @@ interface GameModule {
      *
      * @param timer Amount of time to celebrate.
      */
-    fun finishGame(timer: Timer)
+    fun drawGame(timer: Timer)
 
 }

@@ -1,11 +1,8 @@
 package com.github.lazoyoung.craftgames.internal.listener
 
-import com.github.lazoyoung.craftgames.event.GameInitEvent
-import com.github.lazoyoung.craftgames.event.GameStartEvent
-import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
-import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.api.EventType
+import com.github.lazoyoung.craftgames.event.*
+import com.github.lazoyoung.craftgames.game.module.Module
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 
@@ -18,8 +15,7 @@ class GameListener : Listener {
 
         try {
             script.execute()
-            Module.getScriptModule(game)
-                    .events[EventType.GAME_INIT_EVENT]?.accept(event)
+            Module.getScriptModule(game).events[EventType.GAME_INIT_EVENT]?.accept(event)
         } catch (e: Exception) {
             script.writeStackTrace(e)
             event.isCancelled = true
@@ -31,11 +27,22 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            Module.getScriptModule(game)
-                    .events[EventType.GAME_START_EVENT]?.accept(event)
+            Module.getScriptModule(game).events[EventType.GAME_START_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
             game.forceStop(error = true)
+        }
+    }
+
+    @EventHandler
+    fun onGameFinish(event: GameFinishEvent) {
+        val game = event.game
+
+        try {
+            Module.getScriptModule(game).events[EventType.GAME_FINISH_EVENT]?.accept(event)
+        } catch (e: Exception) {
+            game.resource.script.writeStackTrace(e)
+            game.close()
         }
     }
 
@@ -44,8 +51,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            Module.getScriptModule(game)
-                    .events[EventType.PLAYER_JOIN_GAME_EVENT]?.accept(event)
+            Module.getScriptModule(game).events[EventType.PLAYER_JOIN_GAME_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
             game.forceStop(error = true)
@@ -57,8 +63,7 @@ class GameListener : Listener {
         val game = event.game
 
         try {
-            Module.getScriptModule(game)
-                    .events[EventType.PLAYER_LEAVE_GAME_EVENT]?.accept(event)
+            Module.getScriptModule(game).events[EventType.PLAYER_LEAVE_GAME_EVENT]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
             game.forceStop(error = true)

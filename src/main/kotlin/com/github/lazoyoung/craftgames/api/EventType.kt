@@ -12,6 +12,11 @@ enum class EventType(val label: String) {
     GAME_START_EVENT("GameStartEvent"),
 
     /**
+     * @see [com.github.lazoyoung.craftgames.event.GameFinishEvent]
+     */
+    GAME_FINISH_EVENT("GameFinishEvent"),
+
+    /**
      * @see [com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent]
      */
     PLAYER_JOIN_GAME_EVENT("PlayerJoinGameEvent"),
