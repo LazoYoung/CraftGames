@@ -12,7 +12,7 @@ class FileUtil {
          * Clones the whole content inside the source directory.
          * @param source The root of the content to be cloned.
          * @param target Path to target directory.
-         * @param options You may define the copying behavior if desired.
+         * @param options You may define the [copying behavior][CopyOption] if desired.
          * @throws IllegalArgumentException Thrown if source does not indicate a directory
          * @throws SecurityException Thrown if system denied access to any file.
          * @throws IOException Thrown if copy-paste I/O process has failed.

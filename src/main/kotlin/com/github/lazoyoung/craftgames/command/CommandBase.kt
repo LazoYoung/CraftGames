@@ -39,7 +39,7 @@ interface CommandBase : TabExecutor {
     fun getGameTitles(query: String) : MutableList<String> {
         return getCompletions(
                 query = query,
-                args = *Main.config.getConfigurationSection("games")
+                args = *Main.getConfig()?.getConfigurationSection("games")
                         ?.getKeys(false)
                         ?.toTypedArray()
                         ?: emptyArray()

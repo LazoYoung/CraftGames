@@ -21,6 +21,3 @@ script:
 coordinate-tags:
   file:
     path: data/coordinate-tags.yml
-players:
-  file:
-    path: data/players.yml

@@ -19,6 +19,7 @@ import org.bukkit.Bukkit
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.event.block.Action
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -164,24 +165,30 @@ class GameEditor private constructor(
             throw RuntimeException("Unable to save map because the world is null.", e)
         }
 
-        // Clone map files to disk
-        scheduler.runTaskAsynchronously(plugin, Runnable {
-            val target = targetOrigin.parent ?: targetOrigin.root!!
-            val renameTo: Path
+        val target = targetOrigin.parent!!
+        val renameTo: Path
 
-            if (source == null || !Files.isDirectory(source))
-                throw RuntimeException("Unable to locate world files to save!")
+        if (source == null || !Files.isDirectory(source))
+            throw RuntimeException("Unable to locate world files to save!")
 
-            try {
-                if (Files.isDirectory(targetOrigin)) {
-                    FileUtil.deleteFileTree(targetOrigin)
+        try {
+            if (Files.isDirectory(targetOrigin)) {
+                FileUtil.deleteFileTree(targetOrigin)
+            }
+
+            renameTo = targetOrigin.fileName
+
+            fun cloneProcess(atomic: Boolean) {
+                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
+
+                if (atomic) {
+                    Files.move(target.resolve(source.fileName), target.resolve(renameTo), StandardCopyOption.ATOMIC_MOVE)
+                } else {
+                    Files.move(target.resolve(source.fileName), target.resolve(renameTo), StandardCopyOption.REPLACE_EXISTING)
                 }
 
-                renameTo = targetOrigin.fileName
-                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
-                Files.move(target.resolve(source.fileName), target.resolve(renameTo))
-                scheduler.runTask(plugin, Runnable{
-                player.sendMessage("Changes are saved!")
+                scheduler.runTask(plugin, Runnable {
+                    player.sendMessage("Changes are saved!")
 
                     // Inform to editor if incomplete tag were found.
                     CoordTag.getAll(game).forEach { tag ->
@@ -223,9 +230,21 @@ class GameEditor private constructor(
                     // Close the game
                     game.close()
                 })
-            } catch (e: Exception) {
-                throw RuntimeException("Unable to clone world files.", e)
             }
-        })
+
+            // Clone map files to disk
+            scheduler.runTaskAsynchronously(plugin, Runnable {
+                try {
+                    cloneProcess(true)
+                } catch (e: AtomicMoveNotSupportedException) {
+                    scheduler.runTask(plugin, Runnable {
+                        cloneProcess(false)
+                    })
+                    Main.logger.warning("Failed to process files in atomic move.")
+                }
+            })
+        } catch (e: Exception) {
+            throw RuntimeException("Unable to clone world files.", e)
+        }
     }
 }

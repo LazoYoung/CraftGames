@@ -84,7 +84,8 @@ class Game(
         }
 
         fun getGameNames(): Array<String> {
-            return Main.config.getConfigurationSection("games")
+            return Main.getConfig()
+                    ?.getConfigurationSection("games")
                     ?.getKeys(false)?.toTypedArray()
                     ?: emptyArray()
         }
@@ -155,7 +156,12 @@ class Game(
         }
 
         private fun assignID(game: Game) {
-            val label = Main.config.getString("world-label")!!
+            val label = Main.getConfig()?.getString("world-label")
+
+            if (label == null) {
+                game.forceStop(error = true)
+                throw FaultyConfiguration("world-label is not defined in config.yml")
+            }
 
             Bukkit.getWorldContainer().listFiles()?.forEach {
                 if (it.isDirectory && it.name.startsWith(label.plus('_'))) {
@@ -222,6 +228,11 @@ class Game(
         })
     }
 
+    /**
+     * Force to stop the game.
+     *
+     * This function is NOT thread-safe.
+     */
     fun forceStop(async: Boolean = true, error: Boolean) {
         getPlayers().forEach {
             if (error) {
@@ -287,7 +298,7 @@ class Game(
             }
 
             // TODO Restore Module: Config parse exception must be handled if World is not present.
-            resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+            resource.saveToDisk(false)
             players.add(uid)
 
             if (phase == Phase.LOBBY) {
@@ -324,7 +335,6 @@ class Game(
         val uid = player.uniqueId
         val playerData = Spectator.register(player, this)
 
-        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
         when (phase) {
             Phase.LOBBY -> {
                 Module.getLobbyModule(this).join(player)
@@ -342,7 +352,7 @@ class Game(
         val player = playerData.player
         val uid = player.uniqueId
 
-        resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
+        resource.saveToDisk(true)
         Module.getGameModule(this).teleportSpawn(playerData)
         players.add(uid)
         player.gameMode = GameMode.CREATIVE
@@ -351,7 +361,6 @@ class Game(
 
     fun leave(playerData: PlayerData) {
         val player = playerData.player
-        val restoreKey = player.uniqueId.toString().plus(".location")
         val uid = player.uniqueId
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
         val lobby = Module.getLobbyModule(this)
@@ -369,9 +378,11 @@ class Game(
         if (lobby.exitLoc != null) {
             player.teleport(lobby.exitLoc!!, cause)
         } else {
-            resource.restoreConfig.getLocation(restoreKey)?.let {
-                player.teleport(it, cause)
-            }
+            val world = Bukkit.getWorlds().filter { it.name != map.worldName }.random()
+            val loc = world.spawnLocation
+
+            loc.y = world.getHighestBlockYAt(world.spawnLocation).toDouble()
+            player.teleport(loc, cause)
         }
 
         if (lobby.exitServer != null) {

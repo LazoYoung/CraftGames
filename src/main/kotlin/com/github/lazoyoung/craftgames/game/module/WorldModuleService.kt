@@ -1,14 +1,15 @@
 package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
+import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
-import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.WorldEditException
 import com.sk89q.worldedit.bukkit.BukkitAdapter
@@ -98,11 +99,14 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
         val filePath = game.resource.root.resolve(path)
         val file = filePath.toFile()
-        val world = game.map.world ?: throw MapNotFound("World is not loaded yet.")
-        val maxBlocks = Main.config.getInt("schematic-throttle")
+        val world = game.map.world
+                ?: throw MapNotFound("World is not loaded yet.")
+        val maxBlocks = Main.getConfig()?.getInt("schematic-throttle")
+                ?: throw FaultyConfiguration("schematic-throttle is not defined in config.yml")
         val format = ClipboardFormats.findByFile(file)
                 ?: throw IllegalArgumentException("Unable to resolve schematic file: $filePath")
-        val ctag = CoordTag.get(game, tag) ?: throw IllegalArgumentException("Tag $tag doesn't exist in this map.")
+        val ctag = CoordTag.get(game, tag)
+                ?: throw IllegalArgumentException("Tag $tag doesn't exist in this map.")
 
         if (ctag.mode != TagMode.BLOCK)
             throw IllegalArgumentException("$ctag is an ${ctag.mode.label} tag which isn't supported by this function.")

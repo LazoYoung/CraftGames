@@ -109,6 +109,8 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     /**
      * Teleport [player][playerData] to the relevant spawnpoint
      * matching with its [type][PlayerData].
+     *
+     * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
     fun teleportSpawn(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
         val world = game.map.world!!
@@ -124,21 +126,27 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             }
             else -> null
         }
+        val log = game.resource.script.getLogger()
         val location: Location
 
         if (tag == null) {
             location = world.spawnLocation
             location.y = world.getHighestBlockYAt(location).toDouble()
             player.sendMessage(notFound)
+            log?.println("Spawn tag \'$tag\' is not defined.")
         } else {
             val mapID = game.map.id
             val captures = tag.getCaptures(mapID)
 
-            if (captures.isEmpty())
-                throw UndefinedCoordTag("${tag.name} has no capture in map: $mapID")
-
-            val c = captures.random() as SpawnCapture
-            location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
+            if (captures.isEmpty()) {
+                location = world.spawnLocation
+                location.y = world.getHighestBlockYAt(location).toDouble()
+                player.sendMessage(notFound)
+                log?.println("Spawn tag \'${tag.name}\' is not captured in: $mapID")
+            } else {
+                val c = captures.random() as SpawnCapture
+                location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
+            }
         }
 
         if (asyncCallback == null) {

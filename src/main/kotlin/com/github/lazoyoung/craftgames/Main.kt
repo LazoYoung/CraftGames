@@ -1,15 +1,17 @@
 package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.*
+import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.listener.GameListener
 import com.github.lazoyoung.craftgames.internal.listener.ServerListener
-import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.FileSystem
@@ -21,7 +23,7 @@ import java.util.logging.Logger
 class Main : JavaPlugin(), CommandExecutor {
 
     companion object {
-        lateinit var config: FileConfiguration
+        lateinit var dataFolder: File
             private set
         lateinit var instance: Main
             private set
@@ -29,6 +31,21 @@ class Main : JavaPlugin(), CommandExecutor {
             private set
         lateinit var logger: Logger
             private set
+
+        internal fun getConfig(): FileConfiguration? {
+            var config: FileConfiguration? = null
+
+            try {
+                val file = dataFolder.resolve("config.yml")
+                val reader = FileUtil.getBufferedReader(file)
+
+                config = YamlConfiguration.loadConfiguration(reader)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            return config
+        }
     }
 
     override fun onEnable() {
@@ -77,7 +94,7 @@ class Main : JavaPlugin(), CommandExecutor {
     private fun loadConfig() {
         saveDefaultConfig()
         config.options().copyDefaults(true)
-        Main.config = config
+        Main.dataFolder = dataFolder
         charset = Charset.forName(config.getString("file-encoding") ?: "UTF-8")
     }
 

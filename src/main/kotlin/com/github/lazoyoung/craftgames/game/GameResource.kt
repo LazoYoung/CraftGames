@@ -37,15 +37,12 @@ class GameResource(val gameName: String) {
     /** CoordTags configuration across all maps. **/
     internal val tagConfig: YamlConfiguration
 
-    /** Storage config for player inventory and spawnpoint. **/
-    internal val restoreConfig: YamlConfiguration
-
     /** The root folder among all the resources in this game **/
     internal val root: Path
 
     private val kitRoot: Path
 
-    private val restoreFile: File
+    private val locationFile: File
 
     private val tagFile: File
 
@@ -56,7 +53,7 @@ class GameResource(val gameName: String) {
         var fileReader: BufferedReader? = null
         val layoutFile: File
         val layoutConfig: YamlConfiguration
-        val layoutPathStr = Main.config.getString("games.$gameName.layout")
+        val layoutPathStr = Main.getConfig()?.getString("games.$gameName.layout")
                 ?: throw GameNotFound("Game \'$gameName\' is not defined in config.yml")
         layoutFile = Main.instance.dataFolder.resolve(layoutPathStr)
 
@@ -92,22 +89,21 @@ class GameResource(val gameName: String) {
         val tagPath = layoutConfig.getString("coordinate-tags.file.path")
                 ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
 
-        restoreFile = layoutFile.parentFile!!.resolve(restorePath)
+        locationFile = layoutFile.parentFile!!.resolve(restorePath)
         tagFile = layoutFile.parentFile!!.resolve(tagPath)
-        restoreFile.parentFile!!.mkdirs()
+        locationFile.parentFile!!.mkdirs()
 
         val kitPath = layoutConfig.getString("kits.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
 
-        if (!restoreFile.isFile && !restoreFile.createNewFile())
-            throw RuntimeException("Unable to create file: ${restoreFile.toPath()}")
+        if (!locationFile.isFile && !locationFile.createNewFile())
+            throw RuntimeException("Unable to create file: ${locationFile.toPath()}")
         if (!tagFile.isFile && !tagFile.createNewFile())
             throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
-        if (restoreFile.extension != "yml")
+        if (locationFile.extension != "yml")
             throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
         if (tagFile.extension != "yml")
             throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
 
-        restoreConfig = YamlConfiguration.loadConfiguration(restoreFile)
         tagConfig = YamlConfiguration.loadConfiguration(tagFile)
         kitRoot = root.resolve(kitPath)
 
@@ -216,9 +212,6 @@ class GameResource(val gameName: String) {
     }
 
     internal fun saveToDisk(editMode: Boolean) {
-        // TODO Restore Module: Concurrent modification is not handled!
-        restoreConfig.save(restoreFile)
-
         if (editMode) {
             try {
                 tagConfig.save(tagFile)
