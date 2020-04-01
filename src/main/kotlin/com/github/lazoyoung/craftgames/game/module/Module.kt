@@ -23,14 +23,14 @@ class Module internal constructor(val game: Game) {
 
     init {
         bind = script.getBindings()
-        bind["gameModule"] = gameModule as GameModule
-        bind["teamModule"] = teamModule as TeamModule
-        bind["lobbyModule"] = lobbyModule as LobbyModule
-        bind["playerModule"] = playerModule as PlayerModule
-        bind["mobModule"] = mobModule as MobModule
-        bind["scriptModule"] = scriptModule as ScriptModule
-        bind["worldModule"] = worldModule as WorldModule
-        bind["itemModule"] = itemModule as ItemModule
+        bind["GameModule"] = gameModule as GameModule
+        bind["TeamModule"] = teamModule as TeamModule
+        bind["LobbyModule"] = lobbyModule as LobbyModule
+        bind["PlayerModule"] = playerModule as PlayerModule
+        bind["MobModule"] = mobModule as MobModule
+        bind["ScriptModule"] = scriptModule as ScriptModule
+        bind["WorldModule"] = worldModule as WorldModule
+        bind["ItemModule"] = itemModule as ItemModule
         script.startLogging()
         script.parse()
         CoordTag.reload(game.resource)

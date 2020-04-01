@@ -22,4 +22,8 @@ class PlayerJoinGameEvent(game: Game, private val player: Player) : GameEvent(ga
     fun getPlayer(): Player {
         return this.player
     }
+
+    fun isGameStarted(): Boolean {
+        return game.phase == Game.Phase.PLAYING
+    }
 }

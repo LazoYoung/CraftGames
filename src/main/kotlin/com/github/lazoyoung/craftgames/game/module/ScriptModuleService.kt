@@ -76,15 +76,25 @@ class ScriptModuleService internal constructor(
         return bukkitTask
     }
 
-    override fun readObjectStream(path: String, reader: Consumer<BukkitObjectInputStream>) {
+    override fun getFile(path: String): File {
         if (Paths.get(path).isAbsolute)
             throw IllegalArgumentException("Absolute path is not allowed.")
 
-        var stream: BukkitObjectInputStream? = null
         val file = resource.root.resolve(path).toFile()
 
+        if (!file.isFile) {
+            file.parentFile!!.mkdirs()
+            file.createNewFile()
+        }
+
+        return file
+    }
+
+    override fun readObjectStream(file: File, reader: Consumer<BukkitObjectInputStream>) {
+        var stream: BukkitObjectInputStream? = null
+
         if (!file.isFile)
-            throw FileNotFoundException("Unable to locate file: $path")
+            throw FileNotFoundException("Unable to locate file: ${file.toPath()}")
 
         try {
             val wrapper = BufferedInputStream(FileInputStream(file))
@@ -103,17 +113,11 @@ class ScriptModuleService internal constructor(
         }
     }
 
-    override fun writeObjectStream(path: String, writer: Consumer<BukkitObjectOutputStream>) {
-        if (Paths.get(path).isAbsolute)
-            throw IllegalArgumentException("Absolute path is not allowed: $path")
-
-        val file = resource.root.resolve(path).toFile()
+    override fun writeObjectStream(file: File, writer: Consumer<BukkitObjectOutputStream>) {
         var stream: BukkitObjectOutputStream? = null
 
-        if (!file.isFile) {
-            file.parentFile!!.mkdirs()
-            file.createNewFile()
-        }
+        if (!file.isFile)
+            throw FileNotFoundException("Unable to locate file: ${file.toPath()}")
 
         try {
             val wrapper = BufferedOutputStream(FileOutputStream(file))
@@ -133,19 +137,15 @@ class ScriptModuleService internal constructor(
         }
     }
 
-    override fun getYamlConfiguration(path: String, consumer: Consumer<YamlConfiguration>) {
-        if (Paths.get(path).isAbsolute)
-            throw IllegalArgumentException("Absolute path is not allowed: $path")
-
-        val file = resource.root.resolve(path).toFile()
+    override fun getYamlConfiguration(file: File, consumer: Consumer<YamlConfiguration>) {
         val ext = file.extension
         var fileReader: BufferedReader? = null
 
+        if (!file.isFile)
+            throw FileNotFoundException("Unable to locate file: ${file.toPath()}")
+
         if (!ext.equals("yml", true))
             throw IllegalArgumentException("Illegal file format: $ext")
-
-        if (!file.isFile)
-            throw FileNotFoundException("Unable to locate file: $path")
 
         try {
             fileReader = FileUtil.getBufferedReader(file)
