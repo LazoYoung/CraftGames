@@ -4,8 +4,7 @@ import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.api.Timer
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
-import java.util.function.BiConsumer
-import java.util.function.Predicate
+import java.util.function.Consumer
 
 interface PlayerModule {
 
@@ -14,19 +13,19 @@ interface PlayerModule {
      *
      * @param killer is the only player binded to this trigger.
      * @param trigger The trigger that you want to add.
+     * Pass null to this parameter if you want to remove the previous one.
      */
-    fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>?)
+    fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?)
 
     /**
      * The [trigger] executes right after the given [player] dies.
      *
-     * Boolean value returned from the Predicate
-     * determines whether the player respawns(true) or not(false).
-     *
-     * @param player This player is the only one binded to the trigger.
+     * @param player This player is the only one binded to the trigger
+     * @param respawn Determines whether or not the player will respawn.
      * @param trigger The trigger that you want to add.
+     * Pass null to this parameter if you want to remove the previous one.
      */
-    fun setDeathTrigger(player: Player, trigger: Predicate<Player>?)
+    fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?)
 
     fun getLivingPlayers(): List<Player>
 

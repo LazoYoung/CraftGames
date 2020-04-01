@@ -83,7 +83,7 @@ class ServerListener : Listener {
         val service = Module.getPlayerModule(gamePlayer.game)
 
         if (gamePlayer.game.phase == Game.Phase.PLAYING) {
-            service.killTriggers[player.uniqueId]?.accept(player, entity)
+            service.killTriggers[player.uniqueId]?.accept(entity)
         }
     }
 
@@ -99,7 +99,7 @@ class ServerListener : Listener {
         // Trigger DeathEvent
         val playerModule = Module.getPlayerModule(game)
         val gameModule = Module.getGameModule(game)
-        val triggerResult = playerModule.deathTriggers[player.uniqueId]?.test(player)
+        val triggerResult = playerModule.deathTriggers[player.uniqueId]?.get()
         event.isCancelled = true
 
         // React to the trigger result

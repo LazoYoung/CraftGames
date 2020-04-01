@@ -269,11 +269,22 @@ class Game(
 
     fun join(player: Player) {
         if (canJoin()) {
-            val playerData = GamePlayer.register(player, this)
+            val event = PlayerJoinGameEvent(this, player)
             val uid = player.uniqueId
+            val playerData: GamePlayer
 
             // Fire an event.
-            Bukkit.getPluginManager().callEvent(PlayerJoinGameEvent(this, player))
+            Bukkit.getPluginManager().callEvent(event)
+
+            if (event.isCancelled) {
+                player.sendMessage(
+                        *ComponentBuilder("Unable to join the game.")
+                                .color(ChatColor.YELLOW).create()
+                )
+                return
+            } else {
+                playerData = GamePlayer.register(player, this)
+            }
 
             // TODO Restore Module: Config parse exception must be handled if World is not present.
             resource.restoreConfig.set(uid.toString().plus(".location"), player.location)
@@ -302,7 +313,7 @@ class Game(
                 JoinRejection.TERMINATING -> "The game is terminating."
                 JoinRejection.FULL -> "The game is full."
                 JoinRejection.IN_GAME -> "The game has already started."
-                else -> "You can't join this game."
+                else -> "Unable to join the game."
             }
 
             player.sendMessage(*ComponentBuilder(text).color(ChatColor.YELLOW).create())

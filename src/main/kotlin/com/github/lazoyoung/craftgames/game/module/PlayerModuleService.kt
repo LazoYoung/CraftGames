@@ -1,16 +1,16 @@
 package com.github.lazoyoung.craftgames.game.module
 
 import com.destroystokyo.paper.Title
+import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.api.module.PlayerModule
-import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
-import com.github.lazoyoung.craftgames.api.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
@@ -19,8 +19,8 @@ import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import java.util.*
-import java.util.function.BiConsumer
-import java.util.function.Predicate
+import java.util.function.Consumer
+import java.util.function.Supplier
 import kotlin.collections.HashMap
 
 class PlayerModuleService internal constructor(private val game: Game) : PlayerModule {
@@ -29,11 +29,11 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     internal var editor: CoordTag? = null
     internal var spectator: CoordTag? = null
     internal var respawnTimer = HashMap<UUID, Timer>()
-    internal val killTriggers = HashMap<UUID, BiConsumer<Player, LivingEntity>>()
-    internal val deathTriggers = HashMap<UUID, Predicate<Player>>()
+    internal val killTriggers = HashMap<UUID, Consumer<LivingEntity>>()
+    internal val deathTriggers = HashMap<UUID, Supplier<Boolean>>()
     private val script = game.resource.script
 
-    override fun setKillTrigger(killer: Player, trigger: BiConsumer<Player, LivingEntity>?) {
+    override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {
         val name = killer.name
         val uid = killer.uniqueId
 
@@ -43,9 +43,9 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 script.getLogger()?.println("A Kill trigger is un-bound from: $name")
             }
         } else {
-            killTriggers[uid] = BiConsumer { t, u ->
+            killTriggers[uid] = Consumer { livingEntity ->
                 try {
-                    trigger.accept(t, u)
+                    trigger.accept(livingEntity)
                 } catch (e: Exception) {
                     script.writeStackTrace(e)
                     script.getLogger()?.println("Error occurred in Kill trigger: $name")
@@ -55,7 +55,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }
     }
 
-    override fun setDeathTrigger(player: Player, trigger: Predicate<Player>?) {
+    override fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?) {
         val name = player.name
         val uid = player.uniqueId
 
@@ -65,16 +65,17 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 script.getLogger()?.println("A Death trigger is un-bound from: $name")
             }
         } else {
-            deathTriggers[uid] = Predicate { p ->
+            deathTriggers[uid] = Supplier {
                 try {
-                    return@Predicate trigger.test(p)
+                    trigger.run()
                 } catch (e: Exception) {
                     script.writeStackTrace(e)
                     script.getLogger()?.println("Error occurred in Death trigger: ${player.name}")
                 }
-                return@Predicate false
+                respawn
             }
             script.getLogger()?.println("A death trigger is bound to ${player.name}.")
+            script.getLogger()?.println("Respawn for ${player.name}: $respawn")
         }
     }
 

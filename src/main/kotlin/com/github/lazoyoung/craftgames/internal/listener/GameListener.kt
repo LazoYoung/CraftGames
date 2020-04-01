@@ -55,6 +55,7 @@ class GameListener : Listener {
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
             game.forceStop(error = true)
+            event.isCancelled = true
         }
     }
 

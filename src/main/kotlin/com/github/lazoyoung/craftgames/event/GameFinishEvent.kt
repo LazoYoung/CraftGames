@@ -16,6 +16,7 @@ class GameFinishEvent(
     companion object {
         private val handlerList = HandlerList()
 
+        @JvmStatic
         fun getHandlerList(): HandlerList {
             return this.handlerList
         }
