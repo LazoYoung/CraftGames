@@ -46,10 +46,8 @@ idea.module {
     downloadSources(true)
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
 }
 
 processResources {
@@ -65,6 +63,15 @@ dokka {
 
     configuration {
         moduleName = "kdoc"
+        targets = ["JVM"]
+        platform = "JVM"
+        jdkVersion = 8
+        noStdlibLink = false
+        noJdkLink = false
+
+        kotlinTasks {
+            defaultKotlinTasks()
+        }
 
         sourceLink {
             path = './'
@@ -72,8 +79,20 @@ dokka {
             lineSuffix = '#L'
         }
 
+        classpath = [new File("libs/spigot-api-1.15.2-R0.1-SNAPSHOT.jar")]
+
+        sourceRoot {
+            path = "src/main/kotlin"
+        }
+
         externalDocumentationLink {
             url = new URL("https://hub.spigotmc.org/javadocs/spigot/")
+            packageListUrl = new URL("https://hub.spigotmc.org/javadocs/spigot/package-list")
+        }
+
+        externalDocumentationLink {
+            url = new URL("https://ci.md-5.net/job/BungeeCord/ws/chat/target/apidocs/")
+            packageListUrl = new URL("https://ci.md-5.net/job/BungeeCord/ws/chat/target/apidocs/package-list")
         }
 
         perPackageOption {
