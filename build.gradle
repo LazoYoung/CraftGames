@@ -79,8 +79,6 @@ dokka {
             lineSuffix = '#L'
         }
 
-        classpath = [new File("libs/spigot-api-1.15.2-R0.1-SNAPSHOT.jar")]
-
         sourceRoot {
             path = "src/main/kotlin"
         }

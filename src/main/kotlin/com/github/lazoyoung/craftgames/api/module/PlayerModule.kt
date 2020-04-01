@@ -13,7 +13,7 @@ interface PlayerModule {
      *
      * @param killer is the only player binded to this trigger.
      * @param trigger The trigger that you want to add.
-     * Pass null to this parameter if you want to remove the previous one.
+     *   Pass null to this parameter if you want to remove the previous one.
      */
     fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?)
 
@@ -23,7 +23,7 @@ interface PlayerModule {
      * @param player This player is the only one binded to the trigger
      * @param respawn Determines whether or not the player will respawn.
      * @param trigger The trigger that you want to add.
-     * Pass null to this parameter if you want to remove the previous one.
+     *   Pass null to this parameter if you want to remove the previous one.
      */
     fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?)
 

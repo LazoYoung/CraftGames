@@ -50,7 +50,7 @@ interface ScriptModule {
      *
      * @param file The file to read data from. Use [getFile] to get one.
      * @param reader This lends you the [InputStream][BukkitObjectInputStream] to read stuff.
-     * You don't need to flush/close the stream afterwards as plugin does it for you.
+     *   You don't need to flush/close the stream afterwards as plugin does it for you.
      * @throws FileNotFoundException is thrown if [file] does not exist.
      */
     fun readObjectStream(file: File, reader: Consumer<BukkitObjectInputStream>)
@@ -63,7 +63,7 @@ interface ScriptModule {
      *
      * @param file The file to write data to. Use [getFile] to get one.
      * @param writer This lends you the [OutputStream][BukkitObjectOutputStream] to write stuff.
-     * You don't need to flush/close the stream afterwards as plugin does it for you.
+     *   You don't need to flush/close the stream afterwards as plugin does it for you.
      * @throws FileNotFoundException is thrown if [file] does not exist.
      */
     fun writeObjectStream(file: File, writer: Consumer<BukkitObjectOutputStream>)
@@ -73,7 +73,7 @@ interface ScriptModule {
      *
      * @param file The file you want to treat as YAML. Use [getFile] to get one.
      * @param consumer This lends you to the [YamlConfiguration] for you to take control of the file.
-     * You don't have to worry about saving the file because the plugin does it for you.
+     *   You don't have to worry about saving the file because the plugin does it for you.
      */
     fun getYamlConfiguration(file: File, consumer: Consumer<YamlConfiguration>)
 
