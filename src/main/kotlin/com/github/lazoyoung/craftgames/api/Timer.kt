@@ -7,8 +7,8 @@ class Timer(
         private var time: Long
 ) {
     init {
-        if (time <= 0)
-            throw IllegalArgumentException("Value must be greater than 0.")
+        if (time < 0)
+            throw IllegalArgumentException("Negative time is not acceptable.")
     }
 
     fun toTick(): Long {

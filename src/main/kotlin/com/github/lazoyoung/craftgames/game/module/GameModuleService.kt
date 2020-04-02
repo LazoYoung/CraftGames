@@ -193,8 +193,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         serviceTask = object : BukkitRunnable() {
             override fun run() {
                 val livingPlayers = playerModule.getLivingPlayers()
-
-                // FIXME timer is 0 after a game ends.
                 val format = timer.format(false)
                 val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
                 val progress = timer.toSecond().toDouble() / fullTime.toSecond()
