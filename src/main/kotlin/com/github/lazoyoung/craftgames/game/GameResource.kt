@@ -42,8 +42,6 @@ class GameResource(val gameName: String) {
 
     private val kitRoot: Path
 
-    private val locationFile: File
-
     private val tagFile: File
 
     init {
@@ -82,25 +80,18 @@ class GameResource(val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
-         * Load CoordTags, player inventory, location, and kit.
+         * Load CoordTags, location, and kit.
          */
-        val restorePath = layoutConfig.getString("players.file.path")
-                ?: throw FaultyConfiguration("players.path is not defined in ${layoutFile.toPath()}.")
         val tagPath = layoutConfig.getString("coordinate-tags.file.path")
-                ?: throw FaultyConfiguration("coordinate-tags.path is not defined in ${layoutFile.toPath()}.")
+                ?: throw FaultyConfiguration("coordinate-tags.file.path is not defined in ${layoutFile.toPath()}.")
 
-        locationFile = layoutFile.parentFile!!.resolve(restorePath)
-        tagFile = layoutFile.parentFile!!.resolve(tagPath)
-        locationFile.parentFile!!.mkdirs()
+        tagFile = root.resolve(tagPath).toFile()
+        tagFile.parentFile?.mkdirs()
 
         val kitPath = layoutConfig.getString("kits.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
 
-        if (!locationFile.isFile && !locationFile.createNewFile())
-            throw RuntimeException("Unable to create file: ${locationFile.toPath()}")
         if (!tagFile.isFile && !tagFile.createNewFile())
             throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
-        if (locationFile.extension != "yml")
-            throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
         if (tagFile.extension != "yml")
             throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
 
