@@ -18,6 +18,7 @@ import com.sk89q.worldedit.function.operation.Operations
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.session.ClipboardHolder
 import org.bukkit.Bukkit
+import org.bukkit.GameRule
 import org.bukkit.Location
 import org.bukkit.WorldBorder
 import org.bukkit.block.Container
@@ -67,6 +68,12 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
         world.setStorm(storm)
         world.weatherDuration = Int.MAX_VALUE
+    }
+
+    override fun <T> setGameRule(rule: GameRule<T>, value: T) {
+        val world = game.map.world ?: throw MapNotFound()
+
+        world.setGameRule(rule, value)
     }
 
     override fun fillContainers(tag: String, loot: LootTable) {

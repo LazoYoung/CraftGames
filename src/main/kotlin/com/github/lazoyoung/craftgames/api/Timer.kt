@@ -4,47 +4,38 @@ import java.text.DecimalFormat
 
 class Timer(
         private val timeUnit: TimeUnit,
-        private val value: Long
+        private var time: Long
 ) {
     init {
-        if (value <= 0)
+        if (time <= 0)
             throw IllegalArgumentException("Value must be greater than 0.")
     }
 
     fun toTick(): Long {
-        return when (timeUnit) {
-            TimeUnit.HOUR -> value * 20 * 60 * 60
-            TimeUnit.MINUTE -> value * 20 * 60
-            TimeUnit.SECOND -> value * 20
-            TimeUnit.TICK -> value
-        }
+        return toTick(timeUnit, time)
     }
 
     fun toSecond(): Long {
-        return when (timeUnit) {
-            TimeUnit.HOUR -> value * 60 * 60
-            TimeUnit.MINUTE -> value * 60
-            TimeUnit.SECOND -> value
-            TimeUnit.TICK -> Math.floorDiv(value, 20L)
-        }
+        return toSecond(timeUnit, time)
     }
 
     fun toMinute(): Long {
-        return when (timeUnit) {
-            TimeUnit.HOUR -> value * 60
-            TimeUnit.MINUTE -> value
-            TimeUnit.SECOND -> Math.floorDiv(value, 60L)
-            TimeUnit.TICK -> Math.floorDiv(value, 60 * 20L)
-        }
+        return toMinute(timeUnit, time)
     }
 
     fun toHour(): Long {
-        return when (timeUnit) {
-            TimeUnit.HOUR -> value
-            TimeUnit.MINUTE -> Math.floorDiv(value, 60L)
-            TimeUnit.SECOND -> Math.floorDiv(value, 60 * 60L)
-            TimeUnit.TICK -> Math.floorDiv(value, 60 * 60 * 20L)
+        return toHour(timeUnit, time)
+    }
+
+    fun subtract(unit: TimeUnit, amount: Long) {
+        val subtract = when (timeUnit) {
+            TimeUnit.HOUR -> toHour(unit, amount)
+            TimeUnit.MINUTE -> toMinute(unit, amount)
+            TimeUnit.SECOND -> toSecond(unit, amount)
+            TimeUnit.TICK -> toTick(unit, amount)
         }
+
+        this.time -= subtract
     }
 
     /**
@@ -99,5 +90,41 @@ class Timer(
         }
 
         return text.toString()
+    }
+
+    private fun toTick(timeUnit: TimeUnit, time: Long): Long {
+        return when (timeUnit) {
+            TimeUnit.HOUR -> time * 20 * 60 * 60
+            TimeUnit.MINUTE -> time * 20 * 60
+            TimeUnit.SECOND -> time * 20
+            TimeUnit.TICK -> time
+        }
+    }
+
+    private fun toSecond(timeUnit: TimeUnit, time: Long): Long {
+        return when (timeUnit) {
+            TimeUnit.HOUR -> time * 60 * 60
+            TimeUnit.MINUTE -> time * 60
+            TimeUnit.SECOND -> time
+            TimeUnit.TICK -> Math.floorDiv(time, 20L)
+        }
+    }
+
+    private fun toMinute(timeUnit: TimeUnit, time: Long): Long {
+        return when (timeUnit) {
+            TimeUnit.HOUR -> time * 60
+            TimeUnit.MINUTE -> time
+            TimeUnit.SECOND -> Math.floorDiv(time, 60L)
+            TimeUnit.TICK -> Math.floorDiv(time, 60 * 20L)
+        }
+    }
+
+    private fun toHour(timeUnit: TimeUnit, time: Long): Long {
+        return when (timeUnit) {
+            TimeUnit.HOUR -> time
+            TimeUnit.MINUTE -> Math.floorDiv(time, 60L)
+            TimeUnit.SECOND -> Math.floorDiv(time, 60 * 60L)
+            TimeUnit.TICK -> Math.floorDiv(time, 60 * 60 * 20L)
+        }
     }
 }

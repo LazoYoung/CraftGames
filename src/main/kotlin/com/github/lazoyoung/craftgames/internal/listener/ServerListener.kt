@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.internal.listener
 
 import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
@@ -11,6 +10,7 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
+import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -102,6 +102,8 @@ class ServerListener : Listener {
         // Death Trigger
         val playerModule = Module.getPlayerModule(game)
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.get()
+
+        player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
         event.isCancelled = true
 
         // React to the trigger result
@@ -115,7 +117,7 @@ class ServerListener : Listener {
     }
 
     @EventHandler
-    fun onSpectate(event: PlayerStartSpectatingEntityEvent) {
+    fun onSpectateEntity(event: PlayerStartSpectatingEntityEvent) {
         val playerData = PlayerData.get(event.player)
                 ?: return
         val entity = event.newSpectatorTarget
@@ -125,7 +127,6 @@ class ServerListener : Listener {
                 && PlayerData.get(entity) is GamePlayer)
             return
 
-        ActionbarTask(event.player, text = *arrayOf("&cTarget is out of this game."))
         event.isCancelled = true
     }
 
