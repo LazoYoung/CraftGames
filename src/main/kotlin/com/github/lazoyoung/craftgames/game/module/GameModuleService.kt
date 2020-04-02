@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
@@ -14,14 +13,12 @@ import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
-import org.bukkit.Bukkit
-import org.bukkit.GameMode
-import org.bukkit.Location
-import org.bukkit.NamespacedKey
+import org.bukkit.*
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
@@ -67,8 +64,20 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         this.canJoinAfterStart = boolean
     }
 
-    override fun setDefaultGameMode(mode: GameMode) {
+    override fun setGameMode(mode: GameMode) {
         this.defaultGameMode = mode
+    }
+
+    override fun <T> setGameRule(rule: GameRule<T>, value: T) {
+        val world = game.map.world ?: throw MapNotFound()
+
+        world.setGameRule(rule, value)
+    }
+
+    override fun setPVP(pvp: Boolean) {
+        val world = game.map.world ?: throw MapNotFound()
+
+        world.pvp = pvp
     }
 
     override fun broadcast(message: String) {
@@ -223,32 +232,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         bossBar.removeAll()
         Bukkit.removeBossBar(bossBarKey)
         serviceTask?.cancel()
-    }
-
-    internal fun respawn(gamePlayer: GamePlayer) {
-        val playerModule = Module.getPlayerModule(game)
-        val player = gamePlayer.player
-        val timer = playerModule.respawnTimer[player.uniqueId] ?: Timer(TimeUnit.SECOND, 5)
-        val actionBarTask = ActionbarTask(
-                player, Timer(TimeUnit.TICK, 30), true,
-                "&eYou will respawn in a moment.",
-                "&e&lYou will respawn in a moment."
-        )
-
-        // Temporarily spectate
-        player.gameMode = GameMode.SPECTATOR
-        actionBarTask.start()
-
-        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
-            if (!Module.getPlayerModule(game).isOnline(player))
-                return@Runnable
-
-            // Rollback to spawnpoint with default GameMode
-            teleportSpawn(gamePlayer)
-            playerModule.restore(gamePlayer.player)
-            actionBarTask.clear()
-            player.sendActionBar('&', "&a&lRESPAWN")
-        }, timer.toTick())
     }
 
 }

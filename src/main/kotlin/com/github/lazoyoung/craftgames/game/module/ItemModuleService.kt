@@ -168,7 +168,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
     override fun spawnItem(tag: String, itemStack: ItemStack) {
         val map = game.map
-        val world = map.world ?: throw MapNotFound("World is not loaded yet!")
+        val world = map.world ?: throw MapNotFound()
         val ctag = Module.getRelevantTag(game, tag, TagMode.SPAWN, TagMode.BLOCK)
         var counter = 0
 

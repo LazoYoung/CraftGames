@@ -22,6 +22,8 @@ interface WorldModule {
 
     fun setAreaTrigger(tag: String, task: Consumer<Player>?)
 
+    fun setStormyWeather(storm: Boolean)
+
     fun fillContainers(tag: String, loot: LootTable)
 
     /**

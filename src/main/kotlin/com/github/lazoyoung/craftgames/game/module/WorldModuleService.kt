@@ -38,7 +38,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun getWorldBorder(): WorldBorder {
-        return game.map.world?.worldBorder ?: throw MapNotFound("World is not loaded yet.")
+        return game.map.world?.worldBorder ?: throw MapNotFound()
     }
 
     override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {
@@ -62,8 +62,15 @@ class WorldModuleService(private val game: Game) : WorldModule {
         script.getLogger()?.println("An Area trigger is bound to tag: $tag")
     }
 
+    override fun setStormyWeather(storm: Boolean) {
+        val world = game.map.world ?: throw MapNotFound()
+
+        world.setStorm(storm)
+        world.weatherDuration = Int.MAX_VALUE
+    }
+
     override fun fillContainers(tag: String, loot: LootTable) {
-        val world = game.map.world ?: throw MapNotFound("World is not loaded yet.")
+        val world = game.map.world ?: throw MapNotFound()
         val mapID = game.map.id
         val ctag = Module.getRelevantTag(game, tag, TagMode.BLOCK)
         val captures = ctag.getCaptures(mapID)
@@ -99,8 +106,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
         val filePath = game.resource.root.resolve(path)
         val file = filePath.toFile()
-        val world = game.map.world
-                ?: throw MapNotFound("World is not loaded yet.")
+        val world = game.map.world ?: throw MapNotFound()
         val maxBlocks = Main.getConfig()?.getInt("schematic-throttle")
                 ?: throw FaultyConfiguration("schematic-throttle is not defined in config.yml")
         val format = ClipboardFormats.findByFile(file)

@@ -8,6 +8,17 @@ import java.util.function.Consumer
 
 interface PlayerModule {
 
+    fun getLivingPlayers(): List<Player>
+
+    fun getDeadPlayers(): List<Player>
+
+    /**
+     * Check if [player] is playing this game.
+     */
+    fun isOnline(player: Player): Boolean
+
+    fun eliminate(player: Player)
+
     /**
      * The [trigger] executes when the given [Player] kills a [LivingEntity].
      *
@@ -26,17 +37,6 @@ interface PlayerModule {
      *   Pass null to this parameter if you want to remove the previous one.
      */
     fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?)
-
-    fun getLivingPlayers(): List<Player>
-
-    fun getDeadPlayers(): List<Player>
-
-    /**
-     * Check if [player] is playing this game.
-     */
-    fun isOnline(player: Player): Boolean
-
-    fun eliminate(player: Player)
 
     fun setRespawnTimer(player: Player, timer: Timer)
 

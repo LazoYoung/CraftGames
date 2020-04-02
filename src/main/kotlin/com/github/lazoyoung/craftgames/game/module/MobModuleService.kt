@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.game.module
 
+import com.github.lazoyoung.craftgames.api.module.MobModule
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.api.module.MobModule
 import io.lumine.xikage.mythicmobs.MythicMobs
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -22,7 +22,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
-        val world = game.map.world ?: throw MapNotFound("World is not loaded yet.")
+        val world = game.map.world ?: throw MapNotFound()
         val capture = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null

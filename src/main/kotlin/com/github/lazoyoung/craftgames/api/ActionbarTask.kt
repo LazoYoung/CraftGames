@@ -119,9 +119,9 @@ class ActionbarTask(
     }
 
     fun clear() {
-        if (!runnable.isCancelled) {
+        try {
             runnable.cancel()
-        }
+        } catch (e: IllegalStateException) {}
 
         dropTask(player, this)
     }

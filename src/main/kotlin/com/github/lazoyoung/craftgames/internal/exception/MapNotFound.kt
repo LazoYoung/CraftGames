@@ -1,3 +1,6 @@
 package com.github.lazoyoung.craftgames.internal.exception
 
-class MapNotFound(override val message: String?) : Exception()
+class MapNotFound : Exception {
+    constructor() : super("World is not loaded yet.")
+    constructor(message: String) : super(message)
+}

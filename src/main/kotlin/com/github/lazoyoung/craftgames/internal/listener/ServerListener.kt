@@ -1,11 +1,14 @@
 package com.github.lazoyoung.craftgames.internal.listener
 
+import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.game.player.Spectator
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
@@ -96,20 +99,34 @@ class ServerListener : Listener {
         if (game.phase != Game.Phase.PLAYING)
             return
 
-        // Trigger DeathEvent
+        // Death Trigger
         val playerModule = Module.getPlayerModule(game)
-        val gameModule = Module.getGameModule(game)
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.get()
         event.isCancelled = true
 
         // React to the trigger result
         Bukkit.getScheduler().runTask(Main.instance, Runnable {
             if (triggerResult == true) {
-                gameModule.respawn(gamePlayer)
+                playerModule.respawn(gamePlayer)
             } else {
                 playerModule.eliminate(player)
             }
         })
+    }
+
+    @EventHandler
+    fun onSpectate(event: PlayerStartSpectatingEntityEvent) {
+        val playerData = PlayerData.get(event.player)
+                ?: return
+        val entity = event.newSpectatorTarget
+
+        if (playerData is Spectator
+                && entity is Player
+                && PlayerData.get(entity) is GamePlayer)
+            return
+
+        ActionbarTask(event.player, text = *arrayOf("&cTarget is out of this game."))
+        event.isCancelled = true
     }
 
 }

@@ -1,7 +1,10 @@
 package com.github.lazoyoung.craftgames.game.module
 
 import com.destroystokyo.paper.Title
+import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
@@ -14,6 +17,7 @@ import com.github.lazoyoung.craftgames.game.player.Spectator
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
+import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
@@ -32,6 +36,30 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     internal val killTriggers = HashMap<UUID, Consumer<LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Supplier<Boolean>>()
     private val script = game.resource.script
+
+    override fun getLivingPlayers(): List<Player> {
+        return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
+    }
+
+    override fun getDeadPlayers(): List<Player> {
+        return game.getPlayers().filter { PlayerData.get(it) is Spectator }
+    }
+
+    override fun isOnline(player: Player): Boolean {
+        return game.getPlayers().contains(player)
+    }
+
+    override fun eliminate(player: Player) {
+        val gamePlayer = PlayerData.get(player.uniqueId) as? GamePlayer
+                ?: throw IllegalArgumentException("Player ${player.name} is not online.")
+        val title = ComponentBuilder("YOU DIED").color(ChatColor.RED).create()
+        val subTitle = ComponentBuilder("Type ").color(ChatColor.GRAY)
+                .append("/leave").color(ChatColor.WHITE).bold(true).append(" to exit.", RESET_FORMAT).color(ChatColor.GRAY).create()
+
+        player.gameMode = GameMode.SPECTATOR
+        player.sendTitle(Title(title, subTitle, 20, 80, 20))
+        gamePlayer.toSpectator()
+    }
 
     override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {
         val name = killer.name
@@ -77,30 +105,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             script.getLogger()?.println("A death trigger is bound to ${player.name}.")
             script.getLogger()?.println("Respawn for ${player.name}: $respawn")
         }
-    }
-
-    override fun getLivingPlayers(): List<Player> {
-        return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
-    }
-
-    override fun getDeadPlayers(): List<Player> {
-        return game.getPlayers().filter { PlayerData.get(it) is Spectator }
-    }
-
-    override fun isOnline(player: Player): Boolean {
-        return game.getPlayers().contains(player)
-    }
-
-    override fun eliminate(player: Player) {
-        val gamePlayer = PlayerData.get(player.uniqueId) as? GamePlayer
-                ?: throw IllegalArgumentException("Player ${player.name} is not online.")
-        val title = ComponentBuilder("YOU DIED").color(ChatColor.RED).create()
-        val subTitle = ComponentBuilder("Type ").color(ChatColor.GRAY)
-                .append("/leave").color(ChatColor.WHITE).bold(true).append(" to exit.", RESET_FORMAT).color(ChatColor.GRAY).create()
-
-        player.gameMode = GameMode.SPECTATOR
-        player.sendTitle(Title(title, subTitle, 20, 80, 20))
-        gamePlayer.toSpectator()
     }
 
     override fun setRespawnTimer(player: Player, timer: Timer) {
@@ -149,6 +153,38 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             // Apply kit
             Module.getItemModule(game).applyKit(player)
         }
+    }
+
+    internal fun respawn(gamePlayer: GamePlayer) {
+        val gameModule = Module.getGameModule(game)
+        val player = gamePlayer.player
+        val plugin = Main.instance
+        val scheduler = Bukkit.getScheduler()
+        val timer = respawnTimer[player.uniqueId] ?: Timer(TimeUnit.SECOND, 5)
+        var actionBarTask = ActionbarTask(
+                player, Timer(TimeUnit.TICK, 30), true,
+                "&eYou will respawn in a moment.",
+                "&e&lYou will respawn in a moment."
+        )
+
+        restore(gamePlayer.player)
+        player.gameMode = GameMode.SPECTATOR
+        actionBarTask.start()
+
+        scheduler.runTaskLater(plugin, Runnable {
+            if (!Module.getPlayerModule(game).isOnline(player))
+                return@Runnable
+
+            // Rollback to spawnpoint with default GameMode
+            gameModule.teleportSpawn(gamePlayer)
+            actionBarTask.clear()
+            actionBarTask = ActionbarTask(player, text = *arrayOf("&a&lRESPAWN"))
+            player.isInvulnerable = true
+
+            scheduler.runTaskLater(plugin, Runnable {
+                player.isInvulnerable = false
+            }, 50L)
+        }, timer.toTick())
     }
 
 }

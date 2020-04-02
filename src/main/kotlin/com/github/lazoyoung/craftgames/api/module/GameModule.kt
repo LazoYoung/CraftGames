@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.Timer
 import org.bukkit.GameMode
+import org.bukkit.GameRule
 import org.bukkit.entity.Player
 import org.bukkit.scoreboard.Team
 
@@ -15,7 +16,11 @@ interface GameModule {
 
     fun setCanJoinAfterStart(boolean: Boolean)
 
-    fun setDefaultGameMode(mode: GameMode)
+    fun setGameMode(mode: GameMode)
+
+    fun <T> setGameRule(rule: GameRule<T>, value: T)
+
+    fun setPVP(pvp: Boolean)
 
     /**
      * Broadcast [message] to everyone in this game.
