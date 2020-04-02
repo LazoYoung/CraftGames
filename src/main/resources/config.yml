@@ -11,6 +11,10 @@ schematic-throttle: 10000
 # The prefix of generated world's directory name.
 world-label: game
 
+# Invincible duration (in ticks) applied to a respawning player.
+spawn:
+  invincible: 60
+
 # Specification for every games.
 # The root folder is equivalent to: plugins/CraftGames/
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell

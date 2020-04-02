@@ -18,7 +18,10 @@ import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
-import org.bukkit.*
+import org.bukkit.Bukkit
+import org.bukkit.GameMode
+import org.bukkit.Location
+import org.bukkit.NamespacedKey
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
@@ -33,8 +36,8 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal var canJoinAfterStart = false
     internal var minPlayer = 1
     internal var maxPlayer = 10
-    private var timer: Long = Timer(TimeUnit.MINUTE, 3).toSecond()
-    private var timerLength = timer
+    private var timer = Timer(TimeUnit.MINUTE, 3)
+    private var fullTime = timer
 
     /* Service handling bossbar and timer */
     private var serviceTask: BukkitRunnable? = null
@@ -47,12 +50,12 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             .color(ChatColor.RED).create().first() as TextComponent
 
     override fun getTimer(): Timer {
-        return Timer(TimeUnit.TICK, timer)
+        return timer
     }
 
     override fun setTimer(timer: Timer) {
-        this.timerLength = timer.toSecond()
-        this.timer = timer.toSecond()
+        this.fullTime = timer
+        this.timer = timer
     }
 
     override fun setPlayerCapacity(min: Int, max: Int) {
@@ -66,12 +69,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setGameMode(mode: GameMode) {
         this.defaultGameMode = mode
-    }
-
-    override fun <T> setGameRule(rule: GameRule<T>, value: T) {
-        val world = game.map.world ?: throw MapNotFound()
-
-        world.setGameRule(rule, value)
     }
 
     override fun setPVP(pvp: Boolean) {
@@ -158,12 +155,23 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             }
         }
 
+        fun protect() {
+            val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
+
+            player.isInvulnerable = true
+            scheduler.runTaskLater(plugin, Runnable {
+                player.isInvulnerable = false
+            }, Timer(TimeUnit.TICK, gracePeriod).toTick())
+        }
+
         if (asyncCallback == null) {
             player.teleport(location)
+            protect()
         } else {
             scheduler.runTaskAsynchronously(plugin, Runnable {
                 player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
                         .thenAccept(asyncCallback::accept)
+                        .thenAccept { protect() }
                         .exceptionally { it.printStackTrace(); return@exceptionally null }
             })
         }
@@ -185,9 +193,11 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         serviceTask = object : BukkitRunnable() {
             override fun run() {
                 val livingPlayers = playerModule.getLivingPlayers()
-                val format = Timer(TimeUnit.SECOND, timer).format(false)
+
+                // FIXME timer is 0 after a game ends.
+                val format = timer.format(false)
                 val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
-                val progress = timer.toDouble() / timerLength
+                val progress = timer.toSecond().toDouble() / fullTime.toSecond()
 
                 when {
                     progress < 0.1 -> {
@@ -218,10 +228,14 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                         finishGame(player, timer)
                     }
                     this.cancel()
-                } else if (livingPlayers.isEmpty() || timer-- < 1) {
-                    drawGame(Timer(TimeUnit.SECOND, 5))
-                    this.cancel()
-                    return
+                } else {
+                    timer.subtract(TimeUnit.SECOND, 1)
+
+                    if (livingPlayers.isEmpty() || timer.toSecond() < 1) {
+                        drawGame(Timer(TimeUnit.SECOND, 5))
+                        this.cancel()
+                        return
+                    }
                 }
             }
         }
