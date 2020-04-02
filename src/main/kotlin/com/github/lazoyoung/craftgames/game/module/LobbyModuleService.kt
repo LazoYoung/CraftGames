@@ -1,18 +1,19 @@
 package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.TimeUnit
+import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.module.LobbyModule
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.api.module.LobbyModule
-import com.github.lazoyoung.craftgames.api.TimeUnit
-import com.github.lazoyoung.craftgames.api.Timer
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
+import org.bukkit.Difficulty
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
@@ -76,8 +77,12 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     }
 
     internal fun join(player: Player) {
-        val world = game.map.world!!
         val c = tag?.getCaptures(game.map.id)?.random() as SpawnCapture?
+        val plugin = Main.instance
+        val min = Module.getGameModule(game).minPlayer
+        val count = Module.getPlayerModule(game).getLivingPlayers().size
+        val world = game.resource.lobbyMap.world
+                ?: throw MapNotFound("Lobby world is not loaded!")
 
         if (c != null) {
             player.teleport(Location(world, c.x, c.y, c.z, c.yaw, c.pitch))
@@ -85,10 +90,6 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
             player.teleport(world.spawnLocation)
             player.sendMessage(notFound)
         }
-
-        val plugin = Main.instance
-        val min = Module.getGameModule(game).minPlayer
-        val count = Module.getPlayerModule(game).getLivingPlayers().size
 
         // Start timer if minimum player has reached.
         if (!ticking && count >= min) {
@@ -104,18 +105,26 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
         votes.clear()
     }
 
+    internal fun start() {
+        val world = game.resource.lobbyMap.world
+                ?: throw MapNotFound("Lobby world is not loaded!")
+
+        world.pvp = false
+        world.difficulty = Difficulty.PEACEFUL
+    }
+
     private fun startTimer() {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
                 if (--timer <= 0) {
                     val playerCount = Module.getPlayerModule(game).getLivingPlayers().size
-                    val min = Module.getGameModule(game).minPlayer
-                    val list = LinkedList(votes.entries)
+                    val minimum = Module.getGameModule(game).minPlayer
+                    val voteList = LinkedList(votes.entries)
 
-                    if (playerCount < min) {
+                    if (playerCount < minimum) {
                         Module.getGameModule(game).broadcast("&eNot enough players to start! Waiting for more...")
                     } else {
-                        Collections.sort(list, Comparator { o1, o2 ->
+                        Collections.sort(voteList, Comparator { o1, o2 ->
                             val comp = (o1.value - o2.value) * -1
 
                             return@Comparator if (comp != 0) {
@@ -126,7 +135,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
                         })
 
                         try {
-                            val entry = list.firstOrNull()
+                            val entry = voteList.firstOrNull()
 
                             if (entry != null) {
                                 // This entry has received top votes.
