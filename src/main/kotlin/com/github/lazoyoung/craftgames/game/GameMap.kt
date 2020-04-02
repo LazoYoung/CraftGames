@@ -10,10 +10,7 @@ import org.bukkit.WorldCreator
 import org.bukkit.WorldType
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
+import java.nio.file.*
 import java.util.function.Consumer
 
 class GameMap internal constructor(
@@ -149,40 +146,56 @@ class GameMap internal constructor(
 
         // Copy world files to container
         scheduler.runTaskAsynchronously(plugin, Runnable {
-            if (Files.isDirectory(repository)) {
-                try {
-                    val source = Files.move(
-                            repository, repository.resolveSibling(worldName),
-                            StandardCopyOption.REPLACE_EXISTING
-                    )
-                    val outcome = container.resolve(worldName)
+            when {
+                Files.isDirectory(repository) -> {
+                    try {
+                        val renamed = repository.resolveSibling(worldName)
+                        val source = Files.move(
+                                repository, renamed,
+                                StandardCopyOption.REPLACE_EXISTING
+                        )
+                        val outcome = container.resolve(worldName)
 
-                    FileUtil.cloneFileTree(source, container)
-                    // Deal with Bukkit as it doesn't like to have replicated worlds.
-                    outcome.toFile().resolve("uid.dat").delete()
-                    scheduler.runTask(plugin, Runnable {
-                        loadWorld()
-                    })
-                } catch (e: IllegalArgumentException) {
-                    if (e.message?.startsWith("source", true) == true) {
-                        Main.logger.config("World folder \'$repository\' is missing for ${game.name}. Generating a blank world...")
-                    } else {
+                        FileUtil.cloneFileTree(source, container)
+
+                        // Deal with Bukkit as it doesn't like to have replicated worlds.
+                        outcome.toFile().resolve("uid.dat").delete()
+
+                        scheduler.runTask(plugin, Runnable {
+                            Files.move(
+                                    renamed, repository,
+                                    StandardCopyOption.ATOMIC_MOVE
+                            )
+                            loadWorld()
+                        })
+                    } catch (e: IllegalArgumentException) {
+                        if (e.message?.startsWith("source", true) == true) {
+                            Main.logger.warning("World folder \'$repository\' inside ${game.name} is missing. Generating blank world...")
+                        } else {
+                            game.forceStop(error = true)
+                            throw RuntimeException("$container doesn't seem to be the world container.", e)
+                        }
+                    } catch (e: SecurityException) {
                         game.forceStop(error = true)
-                        throw RuntimeException("$container doesn't seem to be the world container.", e)
+                        throw RuntimeException("Unable to access map file ($id) for ${game.name}.", e)
+                    } catch (e: IOException) {
+                        game.forceStop(error = true)
+                        throw RuntimeException("Failed to install map file ($id) for ${game.name}.", e)
+                    } catch (e: UnsupportedOperationException) {
+                        game.forceStop(error = true)
+                        throw RuntimeException(e)
+                    } catch (e: AtomicMoveNotSupportedException) {
+                        game.forceStop(error = true)
+                        throw RuntimeException(e)
                     }
-                } catch (e: SecurityException) {
-                    game.forceStop(error = true)
-                    throw RuntimeException("Unable to access map file ($id) for ${game.name}.", e)
-                } catch (e: IOException) {
-                    game.forceStop(error = true)
-                    throw RuntimeException("Failed to install map file ($id) for ${game.name}.", e)
-                } catch (e: UnsupportedOperationException) {
-                    game.forceStop(error = true)
-                    throw RuntimeException(e)
                 }
-            } else if (container.toFile().listFiles()?.firstOrNull { it.name == worldName } != null) {
-                game.forceStop(error = true)
-                throw FaultyConfiguration("There's an existing map with the same name: $worldName")
+                container.toFile().listFiles()?.firstOrNull { it.name == worldName } != null -> {
+                    game.forceStop(error = true)
+                    throw FaultyConfiguration("There's an existing map with the same name: $worldName")
+                }
+                else -> {
+                    loadWorld()
+                }
             }
         })
     }
