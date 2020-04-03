@@ -15,6 +15,8 @@ interface GameModule {
 
     fun setCanJoinAfterStart(boolean: Boolean)
 
+    fun setCanRespawn(boolean: Boolean)
+
     fun setGameMode(mode: GameMode)
 
     fun setPVP(pvp: Boolean)

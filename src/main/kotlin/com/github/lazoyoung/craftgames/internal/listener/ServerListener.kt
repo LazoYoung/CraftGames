@@ -100,6 +100,7 @@ class ServerListener : Listener {
             return
 
         // Death Trigger
+        val canRespawn = Module.getGameModule(game).canRespawn
         val playerModule = Module.getPlayerModule(game)
         val triggerResult = playerModule.deathTriggers[player.uniqueId]?.get()
 
@@ -108,7 +109,10 @@ class ServerListener : Listener {
 
         // React to the trigger result
         Bukkit.getScheduler().runTask(Main.instance, Runnable {
-            if (triggerResult == true) {
+            if (!gamePlayer.isOnline())
+                return@Runnable
+
+            if ((canRespawn && triggerResult != false) || triggerResult == true) {
                 playerModule.respawn(gamePlayer)
             } else {
                 playerModule.eliminate(player)

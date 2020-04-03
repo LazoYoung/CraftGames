@@ -71,7 +71,6 @@ class TeamModuleService(private val game: Game) : TeamModule {
         val assignee = set.drop(drops)
 
         assignee.forEach { assignPlayer(it, team) }
-        script.getLogger()?.println("${assignee.size} out of ${set.size} are assigned to ${team.name}")
     }
 
     override fun setSpawn(team: Team, spawnTag: String) {

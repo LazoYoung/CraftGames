@@ -9,6 +9,8 @@ open class PlayerData(
         val player: Player,
         val game: Game
 ) {
+    private var online = true
+
     companion object {
         internal val registry = HashMap<UUID, PlayerData>()
 
@@ -25,7 +27,12 @@ open class PlayerData(
         game.leave(this)
     }
 
+    fun isOnline(): Boolean {
+        return online
+    }
+
     internal fun unregister() {
+        online = false
         registry.remove(player.uniqueId)
     }
 }

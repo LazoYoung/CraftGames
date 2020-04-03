@@ -34,6 +34,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     internal var defaultGameMode = GameMode.ADVENTURE
     internal var canJoinAfterStart = false
+    internal var canRespawn = false
     internal var minPlayer = 1
     internal var maxPlayer = 10
     private var timer = Timer(TimeUnit.MINUTE, 3)
@@ -65,6 +66,10 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setCanJoinAfterStart(boolean: Boolean) {
         this.canJoinAfterStart = boolean
+    }
+
+    override fun setCanRespawn(boolean: Boolean) {
+        this.canRespawn = boolean
     }
 
     override fun setGameMode(mode: GameMode) {
@@ -119,7 +124,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
      * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
     fun teleportSpawn(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
-        val world = game.map.world!!
+        val world = game.map.world ?: throw MapNotFound()
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val player = playerData.player
