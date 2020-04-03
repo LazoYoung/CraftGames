@@ -44,6 +44,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     /** Key: AreaName(Tag), Value: Trigger function **/
     internal val triggers = HashMap<String, Consumer<Player>>()
     private val script = game.resource.script
+    private val spawnIndex = HashMap<String, Int>()
 
     override fun getMapID(): String {
         return game.map.id
@@ -211,8 +212,15 @@ class WorldModuleService(private val game: Game) : WorldModule {
                 player.sendMessage(notFound)
                 log?.println("Spawn tag \'${tag.name}\' is not captured in: $mapID")
             } else {
-                val c = captures.random() as SpawnCapture
+                var index = spawnIndex[tag.name]?.plus(1) ?: 0
+                val c = captures[index] as SpawnCapture
                 location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
+
+                if (++index >= captures.size) {
+                    spawnIndex.remove(tag.name)
+                } else {
+                    spawnIndex[tag.name] = index
+                }
             }
         }
 

@@ -156,7 +156,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
-        val gameModule = Module.getGameModule(game)
+        val worldModule = Module.getWorldModule(game)
         val player = gamePlayer.player
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
@@ -177,7 +177,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
             // Rollback to spawnpoint with default GameMode
             restore(gamePlayer.player)
-            gameModule.teleportSpawn(gamePlayer)
+            worldModule.teleportSpawn(gamePlayer)
             actionBarTask.clear()
             actionBarTask = ActionbarTask(player, text = *arrayOf("&a&lRESPAWN"))
 
