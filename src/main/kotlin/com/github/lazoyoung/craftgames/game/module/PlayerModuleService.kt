@@ -116,7 +116,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
 
         when (type) {
-            PlayerType.PERSONAL -> personal = tag
+            PlayerType.PLAYER -> personal = tag
             PlayerType.EDITOR -> editor = tag
             PlayerType.SPECTATOR -> spectator = tag
         }

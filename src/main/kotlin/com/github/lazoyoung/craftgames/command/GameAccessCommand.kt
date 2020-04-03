@@ -29,7 +29,7 @@ class GameAccessCommand : CommandBase {
                     val game = Game.find(null, false).firstOrNull { it.canJoin() }
 
                     if (game != null) {
-                        game.join(sender)
+                        game.joinPlayer(sender)
                     } else {
                         val gameReg = Game.getGameNames()
 
@@ -37,7 +37,7 @@ class GameAccessCommand : CommandBase {
                             sender.sendMessage("There's no game available.")
                         } else try {
                             Game.openNew(gameReg.random(), editMode = false, mapID = null, consumer = Consumer {
-                                it.join(sender)
+                                it.joinPlayer(sender)
                             })
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -52,10 +52,10 @@ class GameAccessCommand : CommandBase {
 
                     if (game == null) {
                         Game.openNew(args[0], editMode = false, mapID = null, consumer = Consumer{
-                            it.join(sender)
+                            it.joinPlayer(sender)
                         })
                     } else {
-                        game.join(sender)
+                        game.joinPlayer(sender)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -68,7 +68,7 @@ class GameAccessCommand : CommandBase {
 
                 when {
                     player is GameEditor -> {
-                        player.saveAndLeave()
+                        player.saveAndClose()
                     }
                     player != null -> {
                         player.leaveGame()

@@ -4,10 +4,8 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.api.MessageTask
-import com.github.lazoyoung.craftgames.event.GameFinishEvent
-import com.github.lazoyoung.craftgames.event.GameInitEvent
-import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
-import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
+import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
@@ -281,13 +279,13 @@ class Game(
         return getRejectCause() == null
     }
 
-    fun join(player: Player) {
+    fun joinPlayer(player: Player) {
         if (canJoin()) {
-            val event = PlayerJoinGameEvent(this, player)
+            val event = PlayerJoinGameEvent(this, player, PlayerType.PLAYER)
+            val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.PLAYER)
             val uid = player.uniqueId
             val playerData: GamePlayer
 
-            // Fire an event.
             Bukkit.getPluginManager().callEvent(event)
 
             if (event.isCancelled) {
@@ -322,6 +320,8 @@ class Game(
                         text = *arrayOf("&aWelcome to &f$name&a!", "&aThis game was started a while ago.")
                 ).start()
             }
+
+            Bukkit.getPluginManager().callEvent(postEvent)
         } else {
             val text = when (getRejectCause()) {
                 JoinRejection.TERMINATING -> "The game is terminating."
@@ -335,9 +335,23 @@ class Game(
         }
     }
 
-    fun startSpectate(player: Player) {
+    fun joinSpectator(player: Player) {
         val uid = player.uniqueId
-        val playerData = Spectator.register(player, this)
+        val playerData: Spectator
+        val event = PlayerJoinGameEvent(this, player, PlayerType.SPECTATOR)
+        val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.SPECTATOR)
+
+        Bukkit.getPluginManager().callEvent(event)
+
+        if (event.isCancelled) {
+            player.sendMessage(
+                    *ComponentBuilder("Unable to join the game.")
+                            .color(ChatColor.YELLOW).create()
+            )
+            return
+        } else {
+            playerData = Spectator.register(player, this)
+        }
 
         when (phase) {
             Phase.LOBBY -> {
@@ -348,13 +362,17 @@ class Game(
             }
             else -> return
         }
+
         players.add(uid)
         player.sendMessage("You are now spectating $name.")
+        Bukkit.getPluginManager().callEvent(postEvent)
     }
 
-    fun joinEdit(gameEditor: GameEditor) {
+    fun joinEditor(gameEditor: GameEditor) {
         val player = gameEditor.player
         val uid = player.uniqueId
+        val event = PlayerJoinGameEvent(this, player, PlayerType.EDITOR)
+        val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.EDITOR)
         val text = if (players.size == 0) {
             "You are now editing '${map.id}\'."
         } else {
@@ -365,14 +383,21 @@ class Game(
             ) { it.displayName }
         }
 
-        if (!player.isOnGround) {
-            player.isFlying = true
-        }
+        Bukkit.getPluginManager().callEvent(event)
 
-        players.add(uid)
-        player.gameMode = GameMode.CREATIVE
-        player.sendMessage(text)
-        Module.getWorldModule(this).teleportSpawn(gameEditor, null)
+        if (!event.isCancelled) {
+            players.add(uid)
+            player.gameMode = GameMode.CREATIVE
+            player.sendMessage(text)
+            Module.getWorldModule(this).teleportSpawn(gameEditor, null)
+            Bukkit.getPluginManager().callEvent(postEvent)
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                if (player.location.add(0.0, -1.0, 0.0).block.isEmpty) {
+                    player.allowFlight = true
+                    player.isFlying = true
+                }
+            })
+        }
     }
 
     fun leave(playerData: PlayerData) {
@@ -380,9 +405,7 @@ class Game(
         val uid = player.uniqueId
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
         val lobby = Module.getLobbyModule(this)
-
-        // Fire an event.
-        Bukkit.getPluginManager().callEvent(PlayerLeaveGameEvent(this, player))
+        val event = PlayerLeaveGameEvent(this, player, playerData.getPlayerType())
 
         // Clear data
         MessageTask.clearAll(player)
@@ -410,6 +433,7 @@ class Game(
         }
 
         player.sendMessage("You left the game.")
+        Bukkit.getPluginManager().callEvent(event)
     }
 
     fun getPlayers(): List<Player> {

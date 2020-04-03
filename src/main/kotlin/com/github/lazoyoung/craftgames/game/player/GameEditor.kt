@@ -2,11 +2,10 @@ package com.github.lazoyoung.craftgames.game.player
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.api.TimeUnit
-import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
+import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -33,20 +32,12 @@ class GameEditor private constructor(
 
     val mapID = game.map.id
 
+    internal var mainActionbar: ActionbarTask? = null
     private var blockPrompt: Consumer<Block>? = null
     private var areaPrompt: BiConsumer<Block, Action>? = null
     private var block1: Block? = null
     private var block2: Block? = null
     private var dialogActionbar: ActionbarTask? = null
-    private val mainActionbar = ActionbarTask(
-            player = player,
-            period = Timer(TimeUnit.SECOND, 5),
-            repeat = true,
-            text = *arrayOf(
-                    "&b&lEDIT MODE &r&b(&e${game.map.id} &bin &e${game.name}&b)",
-                    "&aType &b/game save &r&ato save changes and exit."
-            )
-    ).start()
 
     companion object {
         /**
@@ -79,7 +70,7 @@ class GameEditor private constructor(
                         val instance = GameEditor(player, game)
 
                         registry[pid] = instance
-                        game.joinEdit(instance)
+                        game.joinEditor(instance)
                     })
                 } catch (e: FaultyConfiguration) {
                     throw FaultyConfiguration(e.localizedMessage, e)
@@ -88,7 +79,7 @@ class GameEditor private constructor(
                 val instance = GameEditor(player, present)
 
                 registry[pid] = instance
-                present.joinEdit(instance)
+                present.joinEditor(instance)
             }
         }
     }
@@ -149,15 +140,16 @@ class GameEditor private constructor(
     /**
      * @throws RuntimeException Thrown if it's unable to save map for some reason.
      */
-    fun saveAndLeave() {
+    fun saveAndClose() {
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val source = game.map.worldPath
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
+        val gameModule = Module.getGameModule(game)
 
-        game.leave(this)
-        mainActionbar.clear()
-        player.sendMessage("Saving files! Please wait...")
+        mainActionbar?.clear()
+        gameModule.broadcast("&e${player.displayName} closed the session.")
+        gameModule.broadcast("&eSaving files! Please wait...")
 
         // Save world
         try {
@@ -189,7 +181,7 @@ class GameEditor private constructor(
                 }
 
                 scheduler.runTask(plugin, Runnable {
-                    player.sendMessage("Changes are saved!")
+                    gameModule.broadcast("&aChanges are saved!")
 
                     // Inform to editor if incomplete tag were found.
                     CoordTag.getAll(game).forEach { tag ->

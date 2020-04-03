@@ -154,7 +154,7 @@ class GameCommand : CommandBase {
                 if (playerData !is GameEditor) {
                     sender.sendMessage("You must be in editor mode.")
                 } else {
-                    playerData.saveAndLeave()
+                    playerData.saveAndClose()
                 }
             }
             "kit" -> {

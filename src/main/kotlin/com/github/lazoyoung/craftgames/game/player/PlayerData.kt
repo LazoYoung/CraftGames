@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.game.player
 
+import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.entity.Player
 import java.util.*
@@ -29,6 +30,15 @@ open class PlayerData(
 
     fun isOnline(): Boolean {
         return online
+    }
+
+    fun getPlayerType(): PlayerType {
+        return when (this) {
+            is GamePlayer -> PlayerType.PLAYER
+            is Spectator -> PlayerType.SPECTATOR
+            is GameEditor -> PlayerType.EDITOR
+            else -> throw IllegalStateException("This PlayerData has unknown type.")
+        }
     }
 
     internal fun unregister() {

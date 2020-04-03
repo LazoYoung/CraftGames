@@ -23,7 +23,7 @@ class GameFinishEvent(
     }
 
     override fun getHandlers(): HandlerList {
-        return handlerList
+        return getHandlerList()
     }
 
     fun getWinners(): List<Player> {

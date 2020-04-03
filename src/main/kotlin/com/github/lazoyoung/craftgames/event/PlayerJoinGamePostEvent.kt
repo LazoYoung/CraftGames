@@ -5,11 +5,11 @@ import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.entity.Player
 import org.bukkit.event.HandlerList
 
-class PlayerLeaveGameEvent(
+class PlayerJoinGamePostEvent(
         game: Game,
         private val player: Player,
         private val playerType: PlayerType
-): GameEvent(game) {
+) : GameEvent(game) {
 
     companion object {
         private val handlerList = HandlerList()
@@ -25,10 +25,14 @@ class PlayerLeaveGameEvent(
     }
 
     fun getPlayer(): Player {
-        return this.player
+        return player
     }
 
     fun getPlayerType(): PlayerType {
-        return this.playerType
+        return playerType
+    }
+
+    fun isGameStarted(): Boolean {
+        return game.phase == Game.Phase.PLAYING
     }
 }
