@@ -116,9 +116,7 @@ class ScriptGroovy(private val file: File) : ScriptBase(file) {
         e.printStackTrace(error)
         error.close()
         Main.logger.severe("Failed to evaluate \'${file.name}\' script!")
-
-        // FIXME
-        Main.logger.severe("Stacktrace location: ${file.toPath()}")
+        Main.logger.severe("Stacktrace location: ${errorFile.toPath()}")
         return errorFile.toPath()
     }
 

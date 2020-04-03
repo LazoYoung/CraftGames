@@ -3,7 +3,7 @@ package com.github.lazoyoung.craftgames.api
 import java.text.DecimalFormat
 
 class Timer(
-        private val timeUnit: TimeUnit,
+        timeUnit: TimeUnit,
         time: Long
 ) {
     private var ticks: Long
