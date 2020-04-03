@@ -5,30 +5,20 @@ import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.event.GameFinishEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.player.GameEditor
-import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
-import com.github.lazoyoung.craftgames.game.player.Spectator
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
-import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
-import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
-import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
-import java.util.function.Consumer
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
@@ -46,9 +36,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     // Bossbar facility
     private val bossBarKey = NamespacedKey(Main.instance, "timer-${game.id}")
     internal val bossBar = Bukkit.createBossBar(bossBarKey, "TIME - 00:00:00", BarColor.WHITE, BarStyle.SOLID)
-
-    private val notFound = ComponentBuilder("Unable to locate spawnpoint!")
-            .color(ChatColor.RED).create().first() as TextComponent
 
     override fun getTimer(): Timer {
         return timer
@@ -117,80 +104,16 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
     }
 
-    /**
-     * Teleport [player][playerData] to the relevant spawnpoint
-     * matching with its [type][PlayerData].
-     *
-     * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
-     */
-    fun teleportSpawn(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
-        val world = game.map.world ?: throw MapNotFound()
-        val scheduler = Bukkit.getScheduler()
-        val plugin = Main.instance
-        val player = playerData.player
-        val playerModule = Module.getPlayerModule(game)
-        val tag = when (playerData) {
-            is GameEditor -> playerModule.editor
-            is Spectator -> playerModule.spectator
-            is GamePlayer -> {
-                Module.getTeamModule(game).getSpawn(player) ?: playerModule.personal
-            }
-            else -> null
-        }
-        val log = game.resource.script.getLogger()
-        val location: Location
-
-        if (tag == null) {
-            location = world.spawnLocation
-            location.y = world.getHighestBlockYAt(location).toDouble()
-            player.sendMessage(notFound)
-            log?.println("Spawn tag is not defined for ${player.name}.")
-        } else {
-            val mapID = game.map.id
-            val captures = tag.getCaptures(mapID)
-
-            if (captures.isEmpty()) {
-                location = world.spawnLocation
-                location.y = world.getHighestBlockYAt(location).toDouble()
-                player.sendMessage(notFound)
-                log?.println("Spawn tag \'${tag.name}\' is not captured in: $mapID")
-            } else {
-                val c = captures.random() as SpawnCapture
-                location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
-            }
-        }
-
-        fun protect() {
-            val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
-
-            player.isInvulnerable = true
-            scheduler.runTaskLater(plugin, Runnable {
-                player.isInvulnerable = false
-            }, Timer(TimeUnit.TICK, gracePeriod).toTick())
-        }
-
-        if (asyncCallback == null) {
-            player.teleport(location)
-            protect()
-        } else {
-            scheduler.runTaskAsynchronously(plugin, Runnable {
-                player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                        .thenAccept(asyncCallback::accept)
-                        .thenAccept { protect() }
-                        .exceptionally { it.printStackTrace(); return@exceptionally null }
-            })
-        }
-    }
-
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
+        val worldModule = Module.getWorldModule(game)
 
         // Fire event
         Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
-            teleportSpawn(p)
+            worldModule.teleportSpawn(p)
             playerModule.restore(p.player)
             bossBar.addPlayer(p.player)
         }
