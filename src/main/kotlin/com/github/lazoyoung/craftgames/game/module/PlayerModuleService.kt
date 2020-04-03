@@ -156,11 +156,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
-        val worldModule = Module.getWorldModule(game)
         val player = gamePlayer.player
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
-        val timer = respawnTimer[player.uniqueId] ?: Timer(TimeUnit.SECOND, 5)
+        val timer = respawnTimer[player.uniqueId] ?: Module.getGameModule(game).respawnTimer
         val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
         var actionBarTask = ActionbarTask(
                 player, Timer(TimeUnit.TICK, 30), true,
@@ -177,7 +176,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
             // Rollback to spawnpoint with default GameMode
             restore(gamePlayer.player)
-            worldModule.teleportSpawn(gamePlayer)
+            Module.getWorldModule(game).teleportSpawn(gamePlayer)
             actionBarTask.clear()
             actionBarTask = ActionbarTask(player, text = *arrayOf("&a&lRESPAWN"))
 

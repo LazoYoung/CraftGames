@@ -17,6 +17,8 @@ interface GameModule {
 
     fun setCanRespawn(boolean: Boolean)
 
+    fun setRespawnTimer(timer: Timer)
+
     fun setGameMode(mode: GameMode)
 
     fun setPVP(pvp: Boolean)

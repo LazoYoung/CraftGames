@@ -25,6 +25,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal var defaultGameMode = GameMode.ADVENTURE
     internal var canJoinAfterStart = false
     internal var canRespawn = false
+    internal var respawnTimer = Timer(TimeUnit.SECOND, 5)
     internal var minPlayer = 1
     internal var maxPlayer = 10
     private var timer = Timer(TimeUnit.MINUTE, 3)
@@ -57,6 +58,10 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setCanRespawn(boolean: Boolean) {
         this.canRespawn = boolean
+    }
+
+    override fun setRespawnTimer(timer: Timer) {
+        this.respawnTimer = timer
     }
 
     override fun setGameMode(mode: GameMode) {
