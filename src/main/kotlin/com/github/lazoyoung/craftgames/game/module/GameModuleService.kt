@@ -46,7 +46,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setTimer(timer: Timer) {
         this.fullTime = timer
-        this.timer = Timer(TimeUnit.TICK, timer.toTick())
+        this.timer = timer.clone()
     }
 
     override fun setPlayerCapacity(min: Int, max: Int) {

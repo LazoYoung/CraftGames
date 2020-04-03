@@ -3,8 +3,8 @@ package com.github.lazoyoung.craftgames.api
 import java.text.DecimalFormat
 
 class Timer(
-        timeUnit: TimeUnit,
-        time: Long
+        private val timeUnit: TimeUnit,
+        private val time: Long
 ) {
     private var ticks: Long
 
@@ -13,6 +13,10 @@ class Timer(
 
         if (ticks < 0)
             throw IllegalArgumentException("Negative time is not acceptable.")
+    }
+
+    fun clone(): Timer {
+        return Timer(timeUnit, time)
     }
 
     fun toTick(): Long {
@@ -31,8 +35,23 @@ class Timer(
         return toHour(TimeUnit.TICK, ticks)
     }
 
-    fun subtract(unit: TimeUnit, amount: Long) {
+    /**
+     * Subtract the [amount] of time from this [Timer].
+     *
+     * @return The result of this [Timer].
+     */
+    fun subtract(unit: TimeUnit, amount: Long): Timer {
         this.ticks -= toTick(unit, amount)
+        return this
+    }
+
+    /**
+     * Subtract the [amount] of time from this [Timer].
+     *
+     * @return The result of this [Timer].
+     */
+    fun subtract(amount: Timer): Timer {
+        return subtract(amount.timeUnit, amount.time)
     }
 
     /**

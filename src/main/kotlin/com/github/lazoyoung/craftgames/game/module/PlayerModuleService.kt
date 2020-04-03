@@ -22,6 +22,7 @@ import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
 import java.util.*
 import java.util.function.Consumer
 import java.util.function.Supplier
@@ -159,32 +160,43 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val player = gamePlayer.player
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
-        val timer = respawnTimer[player.uniqueId] ?: Module.getGameModule(game).respawnTimer
-        val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
-        var actionBarTask = ActionbarTask(
-                player, Timer(TimeUnit.TICK, 30), true,
-                "&eYou will respawn in a moment.",
-                "&e&lYou will respawn in a moment."
-        )
+        val timer = respawnTimer[player.uniqueId]?.clone()
+                ?: Module.getGameModule(game).respawnTimer.clone()
+        val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L)
+                ?: 60L
 
         player.gameMode = GameMode.SPECTATOR
-        actionBarTask.start()
 
-        scheduler.runTaskLater(plugin, Runnable {
-            if (!Module.getPlayerModule(game).isOnline(player))
-                return@Runnable
+        object : BukkitRunnable() {
+            override fun run() {
+                if (!Module.getPlayerModule(game).isOnline(player)) {
+                    this.cancel()
+                    return
+                }
 
-            // Rollback to spawnpoint with default GameMode
-            restore(gamePlayer.player)
-            Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
-            actionBarTask.clear()
-            actionBarTask = ActionbarTask(player, text = *arrayOf("&a&lRESPAWN"))
+                val frame = Timer(TimeUnit.SECOND, 1)
+                val format = timer.format(true)
 
-            player.isInvulnerable = true
-            scheduler.runTaskLater(plugin, Runnable {
-                player.isInvulnerable = false
-            }, Timer(TimeUnit.TICK, gracePeriod).toTick())
-        }, timer.toTick())
+                ActionbarTask(player, period = frame, text = *arrayOf("&eRespawning in $format."))
+                        .start()
+
+                if (timer.subtract(frame).toSecond() < 0L) {
+                    // Rollback to spawnpoint with default GameMode
+                    restore(gamePlayer.player)
+                    Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
+                    ActionbarTask(player, period = frame, text = *arrayOf("&9&l> &a&lRESPAWN &9&l<"))
+                            .start()
+
+                    // Damage protection
+                    player.isInvulnerable = true
+                    scheduler.runTaskLater(plugin, Runnable {
+                        player.isInvulnerable = false
+                    }, Timer(TimeUnit.TICK, gracePeriod).toTick())
+
+                    this.cancel()
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 20L)
     }
 
 }
