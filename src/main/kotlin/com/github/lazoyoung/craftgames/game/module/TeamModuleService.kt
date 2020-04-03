@@ -1,9 +1,9 @@
 package com.github.lazoyoung.craftgames.game.module
 
+import com.github.lazoyoung.craftgames.api.module.TeamModule
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.api.module.TeamModule
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
@@ -62,14 +62,16 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     override fun assignPlayers(ratio: Float, team: Team) {
-        if (ratio < 0 || ratio > 1)
+        if (ratio < 0f || ratio > 1f)
             throw IllegalArgumentException("Ratio out of range: $ratio")
 
         val set = Module.getPlayerModule(game).getLivingPlayers()
                 .filter { scoreboard.getEntryTeam(it.name) == null }.shuffled()
-        val drops = (set.size * (1 - ratio)).roundToInt()
+        val drops = (set.size * (1f - ratio)).roundToInt()
+        val assignee = set.drop(drops)
 
-        set.drop(drops).forEach { assignPlayer(it, team) }
+        assignee.forEach { assignPlayer(it, team) }
+        script.getLogger()?.println("${assignee.size} out of ${set.size} are assigned to ${team.name}")
     }
 
     override fun setSpawn(team: Team, spawnTag: String) {

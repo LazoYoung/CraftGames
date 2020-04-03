@@ -21,7 +21,7 @@ class KitCommand : CommandBase {
                 val game = pdata.game
 
                 when {
-                    !(Module.getItemModule(game).allowKit) -> {
+                    !(Module.getItemModule(game).canSelectKit(sender)) -> {
                         sender.sendMessage("You can't do this now.")
                     }
                     args.isEmpty() -> {

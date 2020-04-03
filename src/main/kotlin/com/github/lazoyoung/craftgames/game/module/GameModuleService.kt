@@ -139,7 +139,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             location = world.spawnLocation
             location.y = world.getHighestBlockYAt(location).toDouble()
             player.sendMessage(notFound)
-            log?.println("Spawn tag \'$tag\' is not defined.")
+            log?.println("Spawn tag is not defined for ${player.name}.")
         } else {
             val mapID = game.map.id
             val captures = tag.getCaptures(mapID)

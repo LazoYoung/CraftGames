@@ -95,6 +95,7 @@ class Module internal constructor(val game: Game) {
 
         try {
             when (game.phase) {
+                Game.Phase.GENERATING -> {}
                 Game.Phase.LOBBY -> {
                     lobbyModule.start()
                 }

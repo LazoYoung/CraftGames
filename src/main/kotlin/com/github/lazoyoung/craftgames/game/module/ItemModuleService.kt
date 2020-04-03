@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
@@ -24,6 +25,7 @@ import java.util.*
 class ItemModuleService(private val game: Game) : ItemModule {
 
     internal var allowKit = true
+    internal var allowKitRespawn = false
     private val resource = game.resource
     private val script = resource.script
     private val kitSel = HashMap<UUID, ByteArray>()
@@ -45,11 +47,8 @@ class ItemModuleService(private val game: Game) : ItemModule {
     }
 
     override fun allowKit(respawn: Boolean) {
-        allowKit = when (game.phase) {
-            Game.Phase.LOBBY -> true
-            Game.Phase.PLAYING -> respawn
-            Game.Phase.SUSPEND -> false
-        }
+        allowKit = true
+        allowKitRespawn = respawn
     }
 
     override fun setDefaultKit(name: String?) {
@@ -195,5 +194,13 @@ class ItemModuleService(private val game: Game) : ItemModule {
         }
 
         script.getLogger()?.println("Spawned $counter items across all ${ctag.name} captures.")
+    }
+
+    internal fun canSelectKit(player: Player): Boolean {
+        return when (game.phase) {
+            Game.Phase.LOBBY -> allowKit
+            Game.Phase.PLAYING -> allowKitRespawn && player.gameMode == GameMode.SPECTATOR
+            else -> false
+        }
     }
 }

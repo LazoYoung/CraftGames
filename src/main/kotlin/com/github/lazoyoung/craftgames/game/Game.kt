@@ -36,12 +36,12 @@ class Game(
         /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class Phase { LOBBY, PLAYING, SUSPEND }
+    enum class Phase { GENERATING, LOBBY, PLAYING, SUSPEND }
 
-    enum class JoinRejection { FULL, IN_GAME, TERMINATING }
+    enum class JoinRejection { FULL, IN_GAME, GENERATING, TERMINATING }
 
     /** The state of game progress **/
-    lateinit var phase: Phase
+    var phase = Phase.GENERATING
 
     /** All kind of modules **/
     val module = Module(this)
@@ -263,7 +263,9 @@ class Game(
     fun getRejectCause(): JoinRejection? {
         val service = Module.getGameModule(this)
 
-        return if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
+        return if (phase == Phase.GENERATING) {
+            JoinRejection.GENERATING
+        } else if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
             JoinRejection.IN_GAME
         } else if (players.count() >= service.maxPlayer) {
             JoinRejection.FULL
@@ -324,6 +326,7 @@ class Game(
                 JoinRejection.TERMINATING -> "The game is terminating."
                 JoinRejection.FULL -> "The game is full."
                 JoinRejection.IN_GAME -> "The game has already started."
+                JoinRejection.GENERATING -> "The game is still loading."
                 else -> "Unable to join the game."
             }
 

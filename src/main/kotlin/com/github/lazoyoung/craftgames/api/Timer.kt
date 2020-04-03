@@ -4,38 +4,35 @@ import java.text.DecimalFormat
 
 class Timer(
         private val timeUnit: TimeUnit,
-        private var time: Long
+        time: Long
 ) {
+    private var ticks: Long
+
     init {
-        if (time < 0)
+        ticks = toTick(timeUnit, time)
+
+        if (ticks < 0)
             throw IllegalArgumentException("Negative time is not acceptable.")
     }
 
     fun toTick(): Long {
-        return toTick(timeUnit, time)
+        return toTick(TimeUnit.TICK, ticks)
     }
 
     fun toSecond(): Long {
-        return toSecond(timeUnit, time)
+        return toSecond(TimeUnit.TICK, ticks)
     }
 
     fun toMinute(): Long {
-        return toMinute(timeUnit, time)
+        return toMinute(TimeUnit.TICK, ticks)
     }
 
     fun toHour(): Long {
-        return toHour(timeUnit, time)
+        return toHour(TimeUnit.TICK, ticks)
     }
 
     fun subtract(unit: TimeUnit, amount: Long) {
-        val subtract = when (timeUnit) {
-            TimeUnit.HOUR -> toHour(unit, amount)
-            TimeUnit.MINUTE -> toMinute(unit, amount)
-            TimeUnit.SECOND -> toSecond(unit, amount)
-            TimeUnit.TICK -> toTick(unit, amount)
-        }
-
-        this.time -= subtract
+        this.ticks -= toTick(unit, amount)
     }
 
     /**
@@ -48,31 +45,31 @@ class Timer(
     fun format(verbose: Boolean): String {
         val hourUnit = 60*60
         val minUnit = 60
-        var min = 0
-        var sec = toTick().toInt() / 20
+        var min = 0L
+        var sec = toSecond()
         val text = StringBuilder()
 
         if (sec > hourUnit) {
-            val hour = toHour().toInt()
+            val hour = toHour(TimeUnit.SECOND, sec)
             sec -= hour * hourUnit
 
             if (!verbose) {
                 text.append(DecimalFormat("00").format(hour)).append(':')
-            } else if (hour > 1) {
+            } else if (hour > 1L) {
                 text.append("$hour hours ")
-            } else if (hour == 1) {
+            } else if (hour == 1L) {
                 text.append("$hour hour ")
             }
         }
 
         if (sec > minUnit) {
-            min = toMinute().toInt()
+            min = toMinute(TimeUnit.SECOND, sec)
             sec -= min * minUnit
 
             if (verbose) {
-                if (min > 1) {
+                if (min > 1L) {
                     text.append("$min minutes ")
-                } else if (min == 1) {
+                } else if (min == 1L) {
                     text.append("$min minute ")
                 }
             }
@@ -81,9 +78,9 @@ class Timer(
         if (!verbose) {
             val dec = DecimalFormat("00")
             text.append(dec.format(min)).append(":").append(dec.format(sec))
-        } else if (sec > 1) {
+        } else if (sec > 1L) {
             text.append("$sec seconds")
-        } else if (sec == 1) {
+        } else if (sec == 1L) {
             text.append("$sec second")
         } else {
             text.removeSuffix(" ")

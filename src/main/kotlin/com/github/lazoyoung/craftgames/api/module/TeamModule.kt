@@ -37,7 +37,7 @@ interface TeamModule {
      * A set of players are drawn by [ratio], excluding those who have a team.
      * The selected players will be assigned to the [team].
      *
-     * @param ratio The proportion among the players who don't have a team yet.
+     * @param ratio The proportion among the players who don't have a team yet. (0.0 to 1.0)
      * @param team The team where selected players should be assigned to.
      */
     fun assignPlayers(ratio: Float, team: Team)
