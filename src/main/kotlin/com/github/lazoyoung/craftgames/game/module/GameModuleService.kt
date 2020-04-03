@@ -29,7 +29,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal var minPlayer = 1
     internal var maxPlayer = 10
     private var timer = Timer(TimeUnit.MINUTE, 3)
-    private var fullTime = timer
+    private var fullTime = Timer(TimeUnit.MINUTE, 3)
 
     /* Service handling bossbar and timer */
     private var serviceTask: BukkitRunnable? = null
@@ -44,7 +44,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setTimer(timer: Timer) {
         this.fullTime = timer
-        this.timer = timer
+        this.timer = Timer(TimeUnit.TICK, timer.toTick())
     }
 
     override fun setPlayerCapacity(min: Int, max: Int) {
