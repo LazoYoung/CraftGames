@@ -418,7 +418,11 @@ class CoordtagCommand : CommandBase {
                 "create" -> if (args.size == 3) {
                     return getCompletions(args[2], "block", "area", "spawn")
                 }
-                "capture", "remove" -> return when (args.size) {
+                "capture" -> return when (args.size) {
+                    2 -> getCompletions(args[1], *CoordTag.getAll(pdata.game).map { it.name }.toTypedArray())
+                    else -> mutableListOf()
+                }
+                "remove" -> return when (args.size) {
                     2 -> getCompletions(args[1], *CoordTag.getAll(pdata.game).map { it.name }.toTypedArray())
                     3 -> {
                         val arr = CoordTag.get(pdata.game, args[1])

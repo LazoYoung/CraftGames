@@ -8,6 +8,7 @@ import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.event.GameFinishEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.chat.TextComponent
@@ -19,6 +20,7 @@ import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
+import java.util.function.Consumer
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
@@ -112,16 +114,22 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
+        var index = 0
 
         // Fire event
         Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
-            worldModule.teleportSpawn(p)
+            if (p is GamePlayer) {
+                worldModule.teleportSpawn(p, index++, Consumer<Boolean> {})
+            } else {
+                worldModule.teleportSpawn(p, null, Consumer<Boolean> {})
+            }
             playerModule.restore(p.player)
             bossBar.addPlayer(p.player)
         }
+
 
         serviceTask = object : BukkitRunnable() {
             override fun run() {

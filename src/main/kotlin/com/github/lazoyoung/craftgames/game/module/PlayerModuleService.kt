@@ -32,9 +32,9 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     internal var personal: CoordTag? = null
     internal var editor: CoordTag? = null
     internal var spectator: CoordTag? = null
-    internal var respawnTimer = HashMap<UUID, Timer>()
     internal val killTriggers = HashMap<UUID, Consumer<LivingEntity>>()
     internal val deathTriggers = HashMap<UUID, Supplier<Boolean>>()
+    private var respawnTimer = HashMap<UUID, Timer>()
     private val script = game.resource.script
 
     override fun getLivingPlayers(): List<Player> {
@@ -176,7 +176,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
             // Rollback to spawnpoint with default GameMode
             restore(gamePlayer.player)
-            Module.getWorldModule(game).teleportSpawn(gamePlayer)
+            Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
             actionBarTask.clear()
             actionBarTask = ActionbarTask(player, text = *arrayOf("&a&lRESPAWN"))
 

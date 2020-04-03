@@ -313,7 +313,7 @@ class Game(
                 ).start()
             } else if (phase == Phase.PLAYING) {
                 Module.getPlayerModule(this).restore(player)
-                Module.getWorldModule(this).teleportSpawn(playerData)
+                Module.getWorldModule(this).teleportSpawn(playerData, null)
                 player.sendMessage("You joined the ongoing game: $name")
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
                 ActionbarTask(
@@ -343,7 +343,7 @@ class Game(
                 Module.getLobbyModule(this).join(player)
             }
             Phase.PLAYING -> {
-                Module.getWorldModule(this).teleportSpawn(playerData)
+                Module.getWorldModule(this).teleportSpawn(playerData, null)
             }
             else -> return
         }
@@ -356,7 +356,7 @@ class Game(
         val uid = player.uniqueId
 
         resource.saveToDisk(true)
-        Module.getWorldModule(this).teleportSpawn(playerData)
+        Module.getWorldModule(this).teleportSpawn(playerData, null)
         players.add(uid)
         player.gameMode = GameMode.CREATIVE
         player.sendMessage("You are editing \'${map.id}\' in $name.")

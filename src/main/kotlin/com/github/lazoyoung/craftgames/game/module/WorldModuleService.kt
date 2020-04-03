@@ -44,7 +44,6 @@ class WorldModuleService(private val game: Game) : WorldModule {
     /** Key: AreaName(Tag), Value: Trigger function **/
     internal val triggers = HashMap<String, Consumer<Player>>()
     private val script = game.resource.script
-    private val spawnIndex = HashMap<String, Int>()
 
     override fun getMapID(): String {
         return game.map.id
@@ -176,9 +175,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
      * Teleport [player][playerData] to the relevant spawnpoint
      * matching with its [type][PlayerData].
      *
+     * @param index Index of the spawnpoint capture. (Optional)
      * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
-    fun teleportSpawn(playerData: PlayerData, asyncCallback: Consumer<Boolean>? = null) {
+    fun teleportSpawn(playerData: PlayerData, index: Int?, asyncCallback: Consumer<Boolean>? = null) {
         val world = game.map.world ?: throw MapNotFound()
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
@@ -212,15 +212,13 @@ class WorldModuleService(private val game: Game) : WorldModule {
                 player.sendMessage(notFound)
                 log?.println("Spawn tag \'${tag.name}\' is not captured in: $mapID")
             } else {
-                var index = spawnIndex[tag.name]?.plus(1) ?: 0
-                val c = captures[index] as SpawnCapture
-                location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
-
-                if (++index >= captures.size) {
-                    spawnIndex.remove(tag.name)
+                val c = if (index != null) {
+                    captures[index % captures.size] as SpawnCapture
                 } else {
-                    spawnIndex[tag.name] = index
+                    captures.random() as SpawnCapture
                 }
+
+                location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
             }
         }
 
@@ -240,7 +238,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
             scheduler.runTaskAsynchronously(plugin, Runnable {
                 player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
                         .thenAccept(asyncCallback::accept)
-                        .thenAccept { protect() }
+                        .thenRun { protect() }
                         .exceptionally { it.printStackTrace(); return@exceptionally null }
             })
         }
