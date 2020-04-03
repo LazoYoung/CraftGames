@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -121,13 +121,6 @@ class GameCommand : CommandBase {
 
                 if (sender !is Player) {
                     sender.sendMessage("This cannot be done from console.")
-                    return true
-                }
-
-                val present = Game.find(args[1], true).firstOrNull()
-
-                if (present != null && present.map.id == args[2]) {
-                    sender.sendMessage("That map is being edited by someone else.")
                     return true
                 }
 

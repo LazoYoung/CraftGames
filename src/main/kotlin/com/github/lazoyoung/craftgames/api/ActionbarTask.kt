@@ -19,6 +19,11 @@ class ActionbarTask(
     private val taskPeriod = 10L
     private val runnable: BukkitRunnable
 
+    constructor(
+            player: Player,
+            text: String
+    ): this(player, repeat = false, text = *arrayOf(text))
+
     init {
         /**
          *  Each text-line is repeated this amount of times

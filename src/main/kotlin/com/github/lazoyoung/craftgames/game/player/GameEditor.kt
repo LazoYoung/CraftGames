@@ -46,11 +46,7 @@ class GameEditor private constructor(
                     "&b&lEDIT MODE &r&b(&e${game.map.id} &bin &e${game.name}&b)",
                     "&aType &b/game save &r&ato save changes and exit."
             )
-    )
-
-    init {
-        mainActionbar.start()
-    }
+    ).start()
 
     companion object {
         /**
@@ -62,32 +58,37 @@ class GameEditor private constructor(
          * @throws GameNotFound
          * @throws MapNotFound
          * @throws FaultyConfiguration
-         * @throws RuntimeException
+         * @throws RuntimeException is thrown if [player] is already in editor mode.
          */
         fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
-            val report = TextComponent()
             var mapSel: String? = mapID
-            report.color = ChatColor.RED
 
             if (registry.containsKey(pid)) {
-                report.text = "Unexpected error: Concurrent GameEditor entries."
-                player.sendMessage(report)
-                Main.logger.warning(report.toPlainText())
-                return
+                throw RuntimeException("Unexpected error: concurrent entries inside a registry.")
             }
 
             if (mapID == GameResource(gameName).lobbyMap.id)
                 mapSel = null
 
-            try {
-                Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
-                    val instance = GameEditor(player, game)
-                    registry[pid] = instance
-                    game.startEdit(instance)
-                })
-            } catch (e: FaultyConfiguration) {
-                throw FaultyConfiguration(e.localizedMessage, e)
+            val present = Game.find(gameName, true).firstOrNull { mapID == it.map.id }
+
+            if (present == null) {
+                try {
+                    Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
+                        val instance = GameEditor(player, game)
+
+                        registry[pid] = instance
+                        game.joinEdit(instance)
+                    })
+                } catch (e: FaultyConfiguration) {
+                    throw FaultyConfiguration(e.localizedMessage, e)
+                }
+            } else {
+                val instance = GameEditor(player, present)
+
+                registry[pid] = instance
+                present.joinEdit(instance)
             }
         }
     }

@@ -34,7 +34,7 @@ class KitCommand : CommandBase {
                         try {
                             val module = Module.getItemModule(game)
                             module.selectKit(name, sender)
-                            ActionbarTask(sender, text = *arrayOf("&aSelected kit: $name"))
+                            ActionbarTask(sender, "&aSelected kit: &f$name").start()
                         } catch (e: IllegalArgumentException) {
                             sender.sendMessage("That kit does not exist!")
                         }

@@ -9,6 +9,7 @@ import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent
 import com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent
 import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
@@ -351,15 +352,27 @@ class Game(
         player.sendMessage("You are now spectating $name.")
     }
 
-    fun startEdit(playerData: PlayerData) {
-        val player = playerData.player
+    fun joinEdit(gameEditor: GameEditor) {
+        val player = gameEditor.player
         val uid = player.uniqueId
+        val text = if (players.size == 0) {
+            "You are now editing '${map.id}\'."
+        } else {
+            getPlayers().joinToString(
+                    prefix = "You are now editing '${map.id}\' with ",
+                    postfix = ".",
+                    limit = 5
+            ) { it.displayName }
+        }
 
-        resource.saveToDisk(true)
-        Module.getWorldModule(this).teleportSpawn(playerData, null)
+        if (!player.isOnGround) {
+            player.isFlying = true
+        }
+
         players.add(uid)
         player.gameMode = GameMode.CREATIVE
-        player.sendMessage("You are editing \'${map.id}\' in $name.")
+        player.sendMessage(text)
+        Module.getWorldModule(this).teleportSpawn(gameEditor, null)
     }
 
     fun leave(playerData: PlayerData) {

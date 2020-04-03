@@ -189,8 +189,7 @@ class CoordtagCommand : CommandBase {
                             val capture = captures.random()
 
                             sender.teleport(capture.toLocation(sender.world))
-                            ActionbarTask(sender, text = *arrayOf("&9Teleported to $tagName/${capture.index}"))
-                                    .start()
+                            ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
                         }
                         else -> {
                             val capture = captures.firstOrNull {
@@ -273,8 +272,7 @@ class CoordtagCommand : CommandBase {
                     }
                     else -> {
                         CoordTag.create(game.resource, game.map.id, mode, args[1])
-                        ActionbarTask(sender, text = *arrayOf("Tag ${args[1]} has been created."))
-                                .start()
+                        ActionbarTask(sender, "Tag ${args[1]} has been created.").start()
                     }
                 }
             }
@@ -291,10 +289,8 @@ class CoordtagCommand : CommandBase {
                     else when (tag.mode) {
                         TagMode.SPAWN -> {
                             val loc = sender.location
-                            SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID)
-                                    .add(tag)
-                            ActionbarTask(sender, text = *arrayOf("&aCaptured a spawnpoint."))
-                                    .start()
+                            SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID).add(tag)
+                            ActionbarTask(sender, "&aCaptured a spawnpoint.").start()
                         }
                         TagMode.BLOCK -> {
                             val dialog = ActionbarTask(
@@ -302,10 +298,8 @@ class CoordtagCommand : CommandBase {
                             ).start()
 
                             pdata.requestBlockPrompt(Consumer {
-                                BlockCapture(it.x, it.y, it.z, pdata.mapID)
-                                        .add(tag)
-                                ActionbarTask(sender, text = *arrayOf("&aCaptured a block."))
-                                        .start()
+                                BlockCapture(it.x, it.y, it.z, pdata.mapID).add(tag)
+                                ActionbarTask(sender, "&aCaptured a block.").start()
                                 dialog.clear()
                             })
                         }
@@ -315,10 +309,8 @@ class CoordtagCommand : CommandBase {
                             ).start()
 
                             pdata.requestAreaPrompt(BiConsumer { b1, b2 ->
-                                AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID)
-                                        .add(tag)
-                                ActionbarTask(sender, text = *arrayOf("&aCaptured an area."))
-                                        .start()
+                                AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID).add(tag)
+                                ActionbarTask(sender, "&aCaptured an area.").start()
                                 dialog.clear()
                             })
                         }
@@ -339,15 +331,13 @@ class CoordtagCommand : CommandBase {
                     sender.sendMessage("[CoordTag] ${args[1]} does not exist.")
                 } else if (args.size == 2) {
                     tag.remove()
-                    ActionbarTask(sender, text = *arrayOf("&aTag '$tagName' has been removed."))
-                            .start()
+                    ActionbarTask(sender, "&aTag '$tagName' has been removed.").start()
                 } else {
                     val capture = tag.getCaptures(pdata.mapID).firstOrNull { it.index == args[2].toIntOrNull() }
 
                     if (capture != null) {
                         tag.removeCapture(capture)
-                        ActionbarTask(sender, text = *arrayOf("&aCapture '$tagName/${capture.index}' has been removed."))
-                                .start()
+                        ActionbarTask(sender, "&aCapture '$tagName/${capture.index}' has been removed.").start()
                     } else {
                         sender.sendMessage("[CoordTag] Unknown capture index: ${args[2]}")
                     }
