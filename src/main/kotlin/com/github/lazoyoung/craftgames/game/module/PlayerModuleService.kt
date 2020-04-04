@@ -161,7 +161,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val scheduler = Bukkit.getScheduler()
         val timer = respawnTimer[player.uniqueId]?.clone()
                 ?: Module.getGameModule(game).respawnTimer.clone()
-        val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L)
+        val gracePeriod = Main.getConfig()?.getLong("spawn-invincible", 60L)
                 ?: 60L
 
         player.gameMode = GameMode.SPECTATOR

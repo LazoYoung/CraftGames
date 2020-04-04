@@ -12,8 +12,16 @@ schematic-throttle: 10000
 world-label: game
 
 # Invincible duration (in ticks) applied to a respawning player.
-spawn:
-  invincible: 60
+spawn-invincible: 60
+
+# Default fallback location when leaving game.
+#exit-fallback:
+#  world: world
+#  x: 0.0
+#  y: 70.0
+#  z: 0.0
+#  yaw: 0.0
+#  pitch: 0.0
 
 # Specification for every games.
 # The root folder is equivalent to: plugins/CraftGames/

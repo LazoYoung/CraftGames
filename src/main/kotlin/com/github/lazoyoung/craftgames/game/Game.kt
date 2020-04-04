@@ -19,6 +19,8 @@ import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
+import org.bukkit.Location
+import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
@@ -421,10 +423,32 @@ class Game(
         if (lobby.exitLoc != null) {
             player.teleport(lobby.exitLoc!!, cause)
         } else {
-            val world = Bukkit.getWorlds().filter { it.name != map.worldName }.random()
-            val loc = world.spawnLocation
+            val fallback = Main.getConfig()?.getConfigurationSection("exit-fallback")
+            val fWorld = fallback?.getString("world")
+            var world: World? = null
+            val loc: Location
 
-            loc.y = world.getHighestBlockYAt(world.spawnLocation).toDouble()
+            if (fWorld != null) {
+                world = Bukkit.getWorld(fWorld)
+            }
+
+            if (world != null && fallback != null) {
+                val fX = fallback.getDouble("x")
+                val fY = fallback.getDouble("y")
+                val fZ = fallback.getDouble("z")
+                val fYaw = fallback.getDouble("yaw").toFloat()
+                val fPitch = fallback.getDouble("pitch").toFloat()
+
+                loc = Location(world, fX, fY, fZ, fYaw, fPitch)
+            } else {
+                world = Bukkit.getWorlds().filter { it.name != map.worldName }.random()
+                loc = world.spawnLocation
+            }
+
+            if (!loc.add(0.0, 1.0, 0.0).block.isPassable) {
+                loc.y = world!!.getHighestBlockYAt(loc).toDouble()
+            }
+
             player.teleport(loc, cause)
         }
 
