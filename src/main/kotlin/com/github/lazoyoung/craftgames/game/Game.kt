@@ -285,17 +285,19 @@ class Game(
             val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.PLAYER)
             val uid = player.uniqueId
             val playerData: GamePlayer
+            val warning = ComponentBuilder("Unable to join the game.").color(ChatColor.YELLOW).create()
 
             Bukkit.getPluginManager().callEvent(event)
 
             if (event.isCancelled) {
-                player.sendMessage(
-                        *ComponentBuilder("Unable to join the game.")
-                                .color(ChatColor.YELLOW).create()
-                )
+                player.sendMessage(*warning)
                 return
-            } else {
+            } else try {
                 playerData = GamePlayer.register(player, this)
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                player.sendMessage(*warning)
+                return
             }
 
             // TODO Restore Module: Config parse exception must be handled if World is not present.
@@ -340,17 +342,19 @@ class Game(
         val playerData: Spectator
         val event = PlayerJoinGameEvent(this, player, PlayerType.SPECTATOR)
         val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.SPECTATOR)
+        val warning = ComponentBuilder("Unable to join the game.").color(ChatColor.YELLOW).create()
 
         Bukkit.getPluginManager().callEvent(event)
 
         if (event.isCancelled) {
-            player.sendMessage(
-                    *ComponentBuilder("Unable to join the game.")
-                            .color(ChatColor.YELLOW).create()
-            )
+            player.sendMessage(*warning)
             return
-        } else {
+        } else try {
             playerData = Spectator.register(player, this)
+        } catch (e: RuntimeException) {
+            e.printStackTrace()
+            player.sendMessage(*warning)
+            return
         }
 
         when (phase) {
@@ -369,7 +373,7 @@ class Game(
     }
 
     fun joinEditor(gameEditor: GameEditor) {
-        val player = gameEditor.player
+        val player = gameEditor.getPlayer()
         val uid = player.uniqueId
         val event = PlayerJoinGameEvent(this, player, PlayerType.EDITOR)
         val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.EDITOR)
@@ -400,8 +404,8 @@ class Game(
         }
     }
 
-    fun leave(playerData: PlayerData) {
-        val player = playerData.player
+    internal fun leave(playerData: PlayerData) {
+        val player = playerData.getPlayer()
         val uid = player.uniqueId
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
         val lobby = Module.getLobbyModule(this)
@@ -446,7 +450,7 @@ class Game(
      * @param async Asynchronously destruct the map if true.
      */
     internal fun close(async: Boolean = true) {
-        players.mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
+        getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
         resource.saveToDisk(editMode)
         updatePhase(Phase.SUSPEND)
 

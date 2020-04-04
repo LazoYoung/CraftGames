@@ -51,7 +51,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun eliminate(player: Player) {
-        val gamePlayer = PlayerData.get(player.uniqueId) as? GamePlayer
+        val gamePlayer = PlayerData.get(player) as? GamePlayer
                 ?: throw IllegalArgumentException("Player ${player.name} is not online.")
         val title = ComponentBuilder("YOU DIED").color(ChatColor.RED).create()
         val subTitle = ComponentBuilder("Type ").color(ChatColor.GRAY)
@@ -149,7 +149,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
         if (leave) {
             player.inventory.clear()
-            // TODO Restore inventory
         } else {
             // Apply kit
             Module.getItemModule(game).applyKit(player)
@@ -157,7 +156,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
-        val player = gamePlayer.player
+        val player = gamePlayer.getPlayer()
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
         val timer = respawnTimer[player.uniqueId]?.clone()
@@ -182,7 +181,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
                 if (timer.subtract(frame).toSecond() < 0L) {
                     // Rollback to spawnpoint with default GameMode
-                    restore(gamePlayer.player)
+                    restore(player)
                     Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
                     ActionbarTask(player, period = frame, text = *arrayOf("&9&l> &a&lRESPAWN &9&l<"))
                             .start()

@@ -18,7 +18,7 @@ class KitCommand : CommandBase {
 
         when (val pdata = PlayerData.get(sender)) {
             is GamePlayer -> {
-                val game = pdata.game
+                val game = pdata.getGame()
 
                 when {
                     !(Module.getItemModule(game).canSelectKit(sender)) -> {
@@ -55,10 +55,13 @@ class KitCommand : CommandBase {
 
         if (args.size == 1) {
             val playerData = PlayerData.get(sender as Player)
-            val kitList = playerData?.game?.resource?.kitData?.keys
 
-            if (kitList?.isEmpty() == false) {
-                return getCompletions(args[0], *kitList.toTypedArray())
+            if (playerData?.isOnline() == true) {
+                val kitList = playerData.getGame().resource.kitData.keys
+
+                if (kitList.isNotEmpty()) {
+                    return getCompletions(args[0], *kitList.toTypedArray())
+                }
             }
         }
 

@@ -89,12 +89,11 @@ class GameListener : Listener {
     }
 
     private fun updateEditors(game: Game) {
-        val coopList = game.players
-                .map { PlayerData.get(it) }
+        val coopList = game.getPlayers().map { PlayerData.get(it) }
                 .filterIsInstance(GameEditor::class.java).shuffled()
 
         coopList.forEach { editor ->
-            val memberList = coopList.filterNot { it.player == editor.player }
+            val memberList = coopList.filterNot { it.getPlayer() == editor.getPlayer() }
 
             var text = arrayOf(
                     "&b&lEDIT MODE &r&b(&e${editor.mapID} &bin &e${game.name}&b)",
@@ -105,13 +104,13 @@ class GameListener : Listener {
                 text = text.plus(memberList.joinToString(
                         prefix = "&aCooperator: &r",
                         limit = 3,
-                        transform = { it.player.displayName }
+                        transform = { it.getPlayer().displayName }
                 ))
             }
 
             editor.mainActionbar?.clear()
             editor.mainActionbar = ActionbarTask(
-                    player = editor.player,
+                    player = editor.getPlayer(),
                     repeat = true,
                     text = *text
             ).start()

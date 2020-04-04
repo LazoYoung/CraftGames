@@ -120,18 +120,18 @@ class CoordtagCommand : CommandBase {
             return true
         }
 
+        if (pdata?.isOnline() != true) {
+            sender.sendMessage(
+                    *ComponentBuilder("[CoordTag] You must be in a game.")
+                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to join.").color(ChatColor.GOLD).create()))
+                            .event(ClickEvent(SUGGEST_CMD, "/join ")).create()
+            )
+            return true
+        }
+
         when (args[0].toLowerCase()) {
             "list" -> {
                 var lastOption: String? = null
-
-                if (pdata == null) {
-                    sender.sendMessage(
-                            *ComponentBuilder("[CoordTag] You must be in a game.")
-                                    .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to join.").color(ChatColor.GOLD).create()))
-                                    .event(ClickEvent(SUGGEST_CMD, "/join ")).create()
-                    )
-                    return true
-                }
 
                 if (args.size == 1) {
                     showCaptureList(pdata)
@@ -161,7 +161,7 @@ class CoordtagCommand : CommandBase {
                 if (args.size < 2)
                     return false
 
-                if (pdata == null) {
+                if (!pdata.isOnline()) {
                     sender.sendMessage(
                             *ComponentBuilder("[CoordTag] You must be in a game.")
                                     .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to join.").color(ChatColor.GOLD).create()))
@@ -170,8 +170,9 @@ class CoordtagCommand : CommandBase {
                     return true
                 }
 
-                val tag = CoordTag.getAll(pdata.game).firstOrNull { it.name == args[1] }
-                val captures = tag?.getCaptures(pdata.game.map.id)
+                val game = pdata.getGame()
+                val tag = CoordTag.getAll(game).firstOrNull { it.name == args[1] }
+                val captures = tag?.getCaptures(game.map.id)
                 val tagName = tag?.name
 
                 if (tag == null) {
@@ -257,7 +258,7 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 val mode: TagMode
-                val game = pdata.game
+                val game = pdata.getGame()
 
                 try {
                     mode = TagMode.valueOf(args[2].toUpperCase())
@@ -281,7 +282,7 @@ class CoordtagCommand : CommandBase {
                     return false
 
                 try {
-                    val tag = CoordTag.getAll(pdata.game).firstOrNull { it.name == args[1] }
+                    val tag = CoordTag.getAll(pdata.getGame()).firstOrNull { it.name == args[1] }
 
                     if (tag == null) {
                         sender.sendMessage("[CoordTag] That tag does not exist.")
@@ -324,7 +325,7 @@ class CoordtagCommand : CommandBase {
                 if (args.size < 2)
                     return false
 
-                val tag = CoordTag.get(pdata.game, args[1])
+                val tag = CoordTag.get(pdata.getGame(), args[1])
                 val tagName = tag?.name
 
                 if (tag == null) {
@@ -357,7 +358,9 @@ class CoordtagCommand : CommandBase {
 
         val pdata = PlayerData.get(sender as? Player)
 
-        if (pdata != null) {
+        if (pdata?.isOnline() == true) {
+            val game = pdata.getGame()
+
             when (args[0].toLowerCase()) {
                 "help" -> return getCompletions(args[1], "1", "2", "3")
                 "list" -> {
@@ -366,11 +369,11 @@ class CoordtagCommand : CommandBase {
                         1 -> return when (args[args.size - 2].toLowerCase()) {
                             "-mode" -> getCompletions(args[args.size - 1], "block", "area", "spawn")
                             "-tag" -> {
-                                val mode = modeSel[pdata.player.uniqueId]
-                                val map = mapSel[pdata.player.uniqueId]
+                                val mode = modeSel[pdata.getPlayer().uniqueId]
+                                val map = mapSel[pdata.getPlayer().uniqueId]
                                 getCompletions(
                                         query = args[args.size - 1],
-                                        args = *CoordTag.getAll(pdata.game)
+                                        args = *CoordTag.getAll(game)
                                                 .filter {
                                                     mode == null || mode == it.mode
                                                             && it.getCaptures(map).isNotEmpty()
@@ -378,7 +381,7 @@ class CoordtagCommand : CommandBase {
                                                 .map { it.name }.toTypedArray())
                             }
                             "-map" -> {
-                                Game.getMapNames(pdata.game.name).toMutableList()
+                                Game.getMapNames(game.name).toMutableList()
                             }
                             else -> mutableListOf()
                         }
@@ -388,12 +391,12 @@ class CoordtagCommand : CommandBase {
                 "display", "tp" -> return when (args.size) {
                     2 -> getCompletions(
                             query = args[1],
-                            args = *CoordTag.getAll(pdata.game).filter { it.getCaptures(pdata.game.map.id).isNotEmpty() }
+                            args = *CoordTag.getAll(game).filter { it.getCaptures(game.map.id).isNotEmpty() }
                                     .map { it.name }.toTypedArray())
                     3 -> getCompletions(
                             query = args[2],
-                            args = *CoordTag.get(pdata.game, args[1])
-                                    ?.getCaptures(pdata.game.map.id)
+                            args = *CoordTag.get(game, args[1])
+                                    ?.getCaptures(game.map.id)
                                     ?.map { it.index.toString() }
                                     ?.toTypedArray() ?: emptyArray()
                     )
@@ -409,13 +412,13 @@ class CoordtagCommand : CommandBase {
                     return getCompletions(args[2], "block", "area", "spawn")
                 }
                 "capture" -> return when (args.size) {
-                    2 -> getCompletions(args[1], *CoordTag.getAll(pdata.game).map { it.name }.toTypedArray())
+                    2 -> getCompletions(args[1], *CoordTag.getAll(game).map { it.name }.toTypedArray())
                     else -> mutableListOf()
                 }
                 "remove" -> return when (args.size) {
-                    2 -> getCompletions(args[1], *CoordTag.getAll(pdata.game).map { it.name }.toTypedArray())
+                    2 -> getCompletions(args[1], *CoordTag.getAll(game).map { it.name }.toTypedArray())
                     3 -> {
-                        val arr = CoordTag.get(pdata.game, args[1])
+                        val arr = CoordTag.get(game, args[1])
                                 ?.getCaptures(pdata.mapID)
                                 ?.mapNotNull { it.index?.toString() }
                                 ?.toTypedArray()
@@ -430,7 +433,8 @@ class CoordtagCommand : CommandBase {
     }
 
     private fun showCaptureList(playerData: PlayerData) {
-        val player = playerData.player
+        val player = playerData.getPlayer()
+        val game = playerData.getGame()
         val modeSel = modeSel[player.uniqueId]
         val tagSel = tagSel[player.uniqueId]
         val mapSel = mapSel[player.uniqueId]
@@ -445,14 +449,14 @@ class CoordtagCommand : CommandBase {
         val tags = ArrayList<CoordTag>()
 
         if (tagSel.isNullOrEmpty()) {
-            CoordTag.getAll(playerData.game).forEach {
+            CoordTag.getAll(game).forEach {
                 if (modeSel == null || modeSel == it.mode) {
                     tags.add(it)
                 }
             }
         } else {
             // Insert specific tag only. Disregard modeSel
-            CoordTag.get(playerData.game, tagSel)?.let { tags.add(it) }
+            CoordTag.get(game, tagSel)?.let { tags.add(it) }
         }
 
         if (tagSel == null) {
@@ -476,7 +480,7 @@ class CoordtagCommand : CommandBase {
                 val i = capture.index
                 val text: TextComponent
                 val mapID = capture.mapID
-                val thisMapID = playerData.game.map.id
+                val thisMapID = game.map.id
 
                 when (capture) {
                     is SpawnCapture -> {
@@ -524,7 +528,7 @@ class CoordtagCommand : CommandBase {
     }
 
     private fun reset(playerData: PlayerData) {
-        val player = playerData.player
+        val player = playerData.getPlayer()
 
         mapSel.remove(player.uniqueId)
         modeSel.remove(player.uniqueId)
@@ -533,21 +537,22 @@ class CoordtagCommand : CommandBase {
     }
 
     private fun selectMap(playerData: PlayerData, id: String) {
-        val player = playerData.player
+        val player = playerData.getPlayer()
+        val game = playerData.getGame()
 
-        if (Game.getMapNames(playerData.game.name).contains(id)) {
-            mapSel[playerData.player.uniqueId] = id
+        if (Game.getMapNames(game.name).contains(id)) {
+            mapSel[player.uniqueId] = id
             player.sendMessage("[CoordTag] Selected the map: $id")
         } else {
-            player.sendMessage("[CoordTag] Map $id is not found in ${playerData.game.id}!")
+            player.sendMessage("[CoordTag] Map $id is not found in ${game.id}!")
         }
     }
 
     private fun selectTag(playerData: PlayerData, name: String) {
-        val player = playerData.player
+        val player = playerData.getPlayer()
 
-        if (CoordTag.get(playerData.game, name) != null) {
-            tagSel[playerData.player.uniqueId] = name
+        if (CoordTag.get(playerData.getGame(), name) != null) {
+            tagSel[player.uniqueId] = name
             player.sendMessage("[CoordTag] Selected the tag: $name")
         } else {
             player.sendMessage("[CoordTag] Tag does not exist! You should create one: /ctag create <name>")
@@ -555,10 +560,10 @@ class CoordtagCommand : CommandBase {
     }
 
     private fun selectMode(playerData: PlayerData, label: String) {
-        val player = playerData.player
+        val player = playerData.getPlayer()
 
         try {
-            modeSel[playerData.player.uniqueId] = TagMode.valueOf(label.toUpperCase())
+            modeSel[player.uniqueId] = TagMode.valueOf(label.toUpperCase())
             player.sendMessage("[CoordTag] Selected the mode: ${label.toUpperCase()}")
         } catch (e: IllegalArgumentException) {
             player.sendMessage("[CoordTag] Illegal flag: -select ${label.toUpperCase()}")

@@ -120,14 +120,14 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
-        game.players.mapNotNull { PlayerData.get(it) }.forEach { p ->
+        game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
             if (p is GamePlayer) {
                 worldModule.teleportSpawn(p, index++, Consumer<Boolean> {})
             } else {
                 worldModule.teleportSpawn(p, null, Consumer<Boolean> {})
             }
-            playerModule.restore(p.player)
-            bossBar.addPlayer(p.player)
+            playerModule.restore(p.getPlayer())
+            bossBar.addPlayer(p.getPlayer())
         }
 
 

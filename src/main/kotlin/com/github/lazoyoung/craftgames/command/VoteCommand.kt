@@ -35,8 +35,8 @@ class VoteCommand : CommandBase {
             TODO("Vote menu is not implemented")
 
         try {
-            val player = pdata.player
-            val lobby = Module.getLobbyModule(pdata.game)
+            val player = pdata.getPlayer()
+            val lobby = Module.getLobbyModule(pdata.getGame())
             val text = if (lobby.voteMap(player, mapName = args[0])) {
                 "&aYou voted for ${args[0]}!"
             } else {
@@ -54,10 +54,10 @@ class VoteCommand : CommandBase {
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
         val pData = PlayerData.get(sender as Player)
 
-        if (pData != null && args.size == 1)
+        if (pData?.isOnline() == true && args.size == 1)
             return getCompletions(
                     query = args[0],
-                    args = *Game.getMapNames(pData.game.name, false).toTypedArray()
+                    args = *Game.getMapNames(pData.getGame().name, false).toTypedArray()
             )
 
         return mutableListOf()

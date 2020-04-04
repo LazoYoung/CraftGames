@@ -19,6 +19,7 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldInitEvent
@@ -31,7 +32,7 @@ class ServerListener : Listener {
         val pdata = PlayerData.get(player) ?: return
 
         if (pdata is GamePlayer && player.gameMode != GameMode.SPECTATOR) {
-            val worldModule = Module.getWorldModule(pdata.game)
+            val worldModule = Module.getWorldModule(pdata.getGame())
 
             worldModule.getAreaNameAt(event.to)?.let {
                 worldModule.triggers[it]?.accept(player)
@@ -69,23 +70,34 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
-    fun onPlayerQuit(event: PlayerQuitEvent) {
+    @EventHandler
+    fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
 
-        PlayerData.get(player)?.leaveGame()
+        try {
+            PlayerData.getOffline(player)?.restore()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Main.logger.severe("Failed to read data for ${player.name}")
+        }
+    }
+
+    @EventHandler
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        PlayerData.get(event.player)?.leaveGame()
     }
 
     @EventHandler
     fun onPlayerKill(event: EntityDeathEvent) {
         val entity = event.entity
         val gamePlayer = (entity as? Player)?.killer
-                ?.let { PlayerData.get(it.uniqueId) } as? GamePlayer
+                ?.let { PlayerData.get(it) } as? GamePlayer
                 ?: return
-        val player = gamePlayer.player
-        val service = Module.getPlayerModule(gamePlayer.game)
+        val player = gamePlayer.getPlayer()
+        val game = gamePlayer.getGame()
+        val service = Module.getPlayerModule(game)
 
-        if (gamePlayer.game.phase == Game.Phase.PLAYING) {
+        if (game.phase == Game.Phase.PLAYING) {
             service.killTriggers[player.uniqueId]?.accept(entity)
         }
     }
@@ -94,7 +106,7 @@ class ServerListener : Listener {
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
         val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
-        val game = gamePlayer.game
+        val game = gamePlayer.getGame()
 
         if (game.phase != Game.Phase.PLAYING)
             return

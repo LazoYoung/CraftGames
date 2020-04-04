@@ -54,14 +54,16 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                when (val player = PlayerData.get(sender)) {
-                    null -> {
+                val player = PlayerData.get(sender)
+
+                when {
+                    player?.isOnline() != true -> {
                         sender.sendMessage("You're not in game.")
                     }
-                    is GameEditor -> {
+                    player is GameEditor -> {
                         sender.sendMessage("You must leave editor mode.")
                     }
-                    else -> {
+                    player is GamePlayer || player is Spectator -> {
                         val mapID = if (args.size > 1) {
                             args[1]
                         } else {
@@ -69,7 +71,7 @@ class GameCommand : CommandBase {
                         }
 
                         try {
-                            player.game.start(mapID, result = Consumer {
+                            player.getGame().start(mapID, result = Consumer {
                                 sender.sendMessage("You have forced to start the game.")
                             })
                         } catch (e: Exception) {
@@ -93,8 +95,8 @@ class GameCommand : CommandBase {
                         args.size > 1 -> {
                             Game.findByID(args[1].toInt())
                         }
-                        playerData != null -> {
-                            playerData.game
+                        playerData?.isOnline() == true -> {
+                            playerData.getGame()
                         }
                         else -> return if (sender is Player) {
                             sender.sendMessage("You're not in a game.")
@@ -171,7 +173,7 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                game = playerData.game
+                game = playerData.getGame()
 
                 if (args.size < 2)
                     return false
@@ -242,9 +244,15 @@ class GameCommand : CommandBase {
         when (args[0].toLowerCase()) {
             "start" -> {
                 return if (args.size == 2) {
-                    PlayerData.get(sender as Player)?.let {
-                        getCompletions(args[1], *Game.getMapNames(it.game.name).toTypedArray())
-                    } ?: mutableListOf()
+                    val playerData = PlayerData.get(sender as Player)
+                    if (playerData?.isOnline() == true) {
+                        getCompletions(
+                                query = args[1],
+                                args = *Game.getMapNames(playerData.getGame().name).toTypedArray()
+                        )
+                    } else {
+                        mutableListOf()
+                    }
                 } else {
                     mutableListOf()
                 }
@@ -271,9 +279,16 @@ class GameCommand : CommandBase {
                         if (args[2].equals("list", true)) {
                             mutableListOf()
                         } else {
-                            PlayerData.get(sender as Player)?.let {
-                                getCompletions(args[2], *it.game.resource.kitData.keys.toTypedArray())
-                            } ?: mutableListOf()
+                            val playerData = PlayerData.get(sender as Player)
+
+                            if (playerData?.isOnline() == true) {
+                                getCompletions(
+                                        query = args[2],
+                                        args = *playerData.getGame().resource.kitData.keys.toTypedArray()
+                                )
+                            } else {
+                                mutableListOf()
+                            }
                         }
                     }
                     else -> mutableListOf()

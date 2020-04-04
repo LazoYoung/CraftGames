@@ -120,11 +120,13 @@ class Module internal constructor(val game: Game) {
     }
 
     internal fun ejectPlayer(playerData: PlayerData) {
-        if (playerData.game != this.game)
+        if (playerData.getGame() != this.game)
             return
 
-        playerModule.restore(playerData.player, leave = true)
-        gameModule.bossBar.removePlayer(playerData.player)
+        val player = playerData.getPlayer()
+
+        playerModule.restore(player, leave = true)
+        gameModule.bossBar.removePlayer(player)
     }
 
 }

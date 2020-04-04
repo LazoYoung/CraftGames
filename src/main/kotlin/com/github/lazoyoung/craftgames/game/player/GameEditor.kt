@@ -27,7 +27,7 @@ import java.util.function.Consumer
 
 class GameEditor private constructor(
         player: Player,
-        game: Game
+        private val game: Game
 ): PlayerData(player, game) {
 
     val mapID = game.map.id
@@ -49,14 +49,15 @@ class GameEditor private constructor(
          * @throws GameNotFound
          * @throws MapNotFound
          * @throws FaultyConfiguration
-         * @throws RuntimeException is thrown if [player] is already in editor mode.
+         * @throws RuntimeException is raised if plugin fails to write player's data.
          */
         fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
             var mapSel: String? = mapID
 
             if (registry.containsKey(pid)) {
-                throw RuntimeException("Unexpected error: concurrent entries inside a registry.")
+                player.sendMessage("\u00A7cYou're already in editor mode.")
+                return
             }
 
             if (mapID == GameResource(gameName).lobbyMap.id)
@@ -65,16 +66,12 @@ class GameEditor private constructor(
             val present = Game.find(gameName, true).firstOrNull { mapID == it.map.id }
 
             if (present == null) {
-                try {
-                    Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
-                        val instance = GameEditor(player, game)
+                Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
+                    val instance = GameEditor(player, game)
 
-                        registry[pid] = instance
-                        game.joinEditor(instance)
-                    })
-                } catch (e: FaultyConfiguration) {
-                    throw FaultyConfiguration(e.localizedMessage, e)
-                }
+                    registry[pid] = instance
+                    game.joinEditor(instance)
+                })
             } else {
                 val instance = GameEditor(player, present)
 
@@ -82,6 +79,13 @@ class GameEditor private constructor(
                 present.joinEditor(instance)
             }
         }
+    }
+
+    /**
+     * Returns the [Game] this editor belongs to.
+     */
+    override fun getGame(): Game {
+        return game
     }
 
     internal fun requestBlockPrompt(consumer: Consumer<Block>) {
@@ -106,14 +110,14 @@ class GameEditor private constructor(
             when {
                 block1 == null -> {
                     dialogActionbar = ActionbarTask(
-                            player = player,
+                            player = getPlayer(),
                             repeat = true,
                             text = *arrayOf("&eCapture another block with &6Left click&e!")
                     ).start()
                 }
                 block2 == null -> {
                     dialogActionbar = ActionbarTask(
-                            player = player,
+                            player = getPlayer(),
                             repeat = true,
                             text = *arrayOf("&eCapture another block with &6Right click&e!")
                     ).start()
@@ -146,6 +150,7 @@ class GameEditor private constructor(
         val source = game.map.worldPath
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
         val gameModule = Module.getGameModule(game)
+        val player = getPlayer()
 
         mainActionbar?.clear()
         gameModule.broadcast("&e${player.displayName} closed the session.")

@@ -182,7 +182,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val world = game.map.world ?: throw MapNotFound()
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
-        val player = playerData.player
+        val player = playerData.getPlayer()
         val playerModule = Module.getPlayerModule(game)
         val tag = when (playerData) {
             is GameEditor -> playerModule.editor

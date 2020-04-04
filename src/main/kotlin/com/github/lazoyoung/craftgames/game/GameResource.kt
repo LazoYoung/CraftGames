@@ -32,17 +32,17 @@ class GameResource(val gameName: String) {
 
     internal val kitData = HashMap<String, ByteArray>()
 
-    internal val kitFiles = HashMap<String, File>()
+    private val kitFiles = HashMap<String, File>()
+
+    private val kitRoot: Path
 
     /** CoordTags configuration across all maps. **/
     internal val tagConfig: YamlConfiguration
 
+    private val tagFile: File
+
     /** The root folder among all the resources in this game **/
     internal val root: Path
-
-    private val kitRoot: Path
-
-    private val tagFile: File
 
     init {
         /*
@@ -52,22 +52,27 @@ class GameResource(val gameName: String) {
         val layoutFile: File
         val layoutConfig: YamlConfiguration
         val layoutPathStr = Main.getConfig()?.getString("games.$gameName.layout")
-                ?: throw GameNotFound("Game \'$gameName\' is not defined in config.yml")
+                ?: throw GameNotFound("Game layout is not defined in config.yml")
         layoutFile = Main.instance.dataFolder.resolve(layoutPathStr)
 
+        if (layoutPathStr.startsWith('_')) {
+            throw FaultyConfiguration("Layout path has illegal character: $layoutPathStr (Underscore)")
+        }
+
         try {
-            if (!layoutFile.isFile)
-                throw FaultyConfiguration("Game \'$gameName\' does not have layout.yml")
+            if (!layoutFile.isFile) {
+                throw FaultyConfiguration("layout.yml for $gameName is missing.")
+            }
 
             fileReader = FileUtil.getBufferedReader(layoutFile)
             root = layoutFile.parentFile.toPath()
             layoutConfig = YamlConfiguration.loadConfiguration(fileReader)
         } catch (e: IOException) {
-            throw FaultyConfiguration("Unable to read ${layoutFile.toPath()} for $gameName. Is it missing?", e)
+            throw FaultyConfiguration("Unable to read ${layoutFile.toPath()}.", e)
         } catch (e: IllegalArgumentException) {
             throw FaultyConfiguration("File is empty: ${layoutFile.toPath()}")
         } catch (e: InvalidPathException) {
-            throw RuntimeException("Failed to resolve resource path.", e)
+            throw RuntimeException("Failed to resolve layout path.", e)
         } finally {
             try {
                 fileReader?.close()

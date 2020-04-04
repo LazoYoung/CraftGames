@@ -84,7 +84,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     override fun applyKit(player: Player) {
         val byteArr = kitSel[player.uniqueId] ?: defaultKit
         val inv = player.inventory
-        var data: BukkitObjectInputStream? = null
+        var wrapper: BukkitObjectInputStream? = null
 
         // Clear Inventory and PotionEffects
         player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
@@ -95,19 +95,19 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
         try {
             val stream = ByteArrayInputStream(Base64.getDecoder().decode(byteArr))
-            data = BukkitObjectInputStream(stream)
-            val invSize = data.readInt()
+            wrapper = BukkitObjectInputStream(stream)
+            val invSize = wrapper.readInt()
 
             /* Read ItemStacks from InputStream */
             for (i in 0 until invSize) {
-                inv.setItem(i, data.readObject() as? ItemStack)
+                inv.setItem(i, wrapper.readObject() as? ItemStack)
             }
 
-            val effSize = data.readInt()
+            val effSize = wrapper.readInt()
 
             /* Read PotionEffects from InputStream */
             for (i in 0 until effSize) {
-                var potionEffect = data.readObject() as PotionEffect
+                var potionEffect = wrapper.readObject() as PotionEffect
 
                 potionEffect = potionEffect.withDuration(Int.MAX_VALUE)
                 player.addPotionEffect(potionEffect)
@@ -118,7 +118,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
             script.writeStackTrace(e)
         } finally {
             try {
-                data?.close()
+                wrapper?.close()
             } catch (e: IOException) {
                 e.printStackTrace()
                 script.writeStackTrace(e)
@@ -129,35 +129,35 @@ class ItemModuleService(private val game: Game) : ItemModule {
     override fun saveKit(name: String, player: Player) {
         val inv = player.inventory
         val effects = player.activePotionEffects
-        var data: BukkitObjectOutputStream? = null
+        val wrapper = ByteArrayOutputStream()
+        var stream: BukkitObjectOutputStream? = null
 
         try {
-            val stream = ByteArrayOutputStream()
-            data = BukkitObjectOutputStream(stream)
+            stream = BukkitObjectOutputStream(wrapper)
 
             /* Write ItemStacks to OutputStream */
-            data.writeInt(inv.size)
+            stream.writeInt(inv.size)
 
             for (i in 0 until inv.size) {
-                data.writeObject(inv.getItem(i))
+                stream.writeObject(inv.getItem(i))
             }
 
             /* Write PotionEffects to OutputStream */
-            data.writeInt(effects.size)
+            stream.writeInt(effects.size)
 
             for (effect in effects) {
-                data.writeObject(effect)
+                stream.writeObject(effect)
             }
 
-            val byteArr = Base64.getEncoder().encode(stream.toByteArray())
+            val byteArr = Base64.getEncoder().encode(wrapper.toByteArray())
             resource.kitData[name] = byteArr
         } catch (e: Exception) {
             e.printStackTrace()
             script.writeStackTrace(e)
-            data?.reset()
+            stream?.reset()
         } finally {
             try {
-                data?.close()
+                stream?.close()
             } catch (e: IOException) {
                 e.printStackTrace()
                 script.writeStackTrace(e)

@@ -23,6 +23,8 @@ import java.util.logging.Logger
 class Main : JavaPlugin(), CommandExecutor {
 
     companion object {
+        lateinit var pluginFolder: File
+            private set
         lateinit var dataFolder: File
             private set
         lateinit var instance: Main
@@ -36,7 +38,7 @@ class Main : JavaPlugin(), CommandExecutor {
             var config: FileConfiguration? = null
 
             try {
-                val file = dataFolder.resolve("config.yml")
+                val file = pluginFolder.resolve("config.yml")
                 val reader = FileUtil.getBufferedReader(file)
 
                 config = YamlConfiguration.loadConfiguration(reader)
@@ -94,7 +96,8 @@ class Main : JavaPlugin(), CommandExecutor {
     private fun loadConfig() {
         saveDefaultConfig()
         config.options().copyDefaults(true)
-        Main.dataFolder = dataFolder
+        pluginFolder = dataFolder
+        Main.dataFolder = pluginFolder.resolve("_data")
         charset = Charset.forName(config.getString("file-encoding") ?: "UTF-8")
     }
 
