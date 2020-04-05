@@ -12,12 +12,5 @@ where it covers all the functions and events available to be used in script.
 Also don't forget to check out the [official wiki](https://github.com/LazoYoung/CraftGames/wiki) for handy reference.
 
 ### Repository
-If you're a developer who want to integrate CraftGames, Maven repository is available for you!
-Replace `VERSION` with the latest one which can be found [here](https://github.com/LazoYoung/CraftGames/packages).
-```
-<dependency>  
-  <groupId>com.github.lazoyoung</groupId>  
-  <artifactId>CraftGames</artifactId>  
-  <version>VERSION</version>  
-</dependency>  
-```
+If you're a developer, you're allowed to integrate CraftGames into your own project.
+[Refer the wiki](https://github.com/LazoYoung/CraftGames/wiki/Dependency-Linkage) for in depth instruction.
