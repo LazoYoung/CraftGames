@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.api.module
 import com.github.lazoyoung.craftgames.api.Timer
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
+import org.bukkit.loot.LootTable
 import org.bukkit.scoreboard.Team
 
 interface GameModule {
@@ -22,6 +23,10 @@ interface GameModule {
     fun setGameMode(mode: GameMode)
 
     fun setPVP(pvp: Boolean)
+
+    fun setMoneyReward(player: Player, amount: Double)
+
+    fun setItemReward(player: Player, lootTable: LootTable)
 
     /**
      * Broadcast [message] to everyone in this game.

@@ -478,7 +478,7 @@ class Game(
         resource.saveToDisk(editMode)
         updatePhase(Phase.SUSPEND)
 
-        if (map.world != null) {
+        if (map.isGenerated) {
             map.destruct(async)
         }
         purge(this)

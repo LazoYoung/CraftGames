@@ -3,7 +3,7 @@ main: com.github.lazoyoung.craftgames.Main
 author: LazoYoung
 api-version: '1.15'
 version: $version
-softdepend: [ WorldEdit, MythicMobs ]
+softdepend: [ WorldEdit, MythicMobs, Vault, LootTableFix ]
 commands:
   join:
     description: Join a game.

@@ -10,6 +10,7 @@ import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
@@ -18,6 +19,7 @@ import org.bukkit.NamespacedKey
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
+import org.bukkit.loot.LootTable
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
 import java.util.function.Consumer
@@ -74,6 +76,31 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         val world = game.map.world ?: throw MapNotFound()
 
         world.pvp = pvp
+    }
+
+    override fun setMoneyReward(player: Player, amount: Double) {
+        if (Bukkit.getPluginManager().getPlugin("Vault") == null)
+            throw DependencyNotFound("Vault is required to reward money.")
+
+        val economy = Main.economy
+                ?: throw DependencyNotFound("Economy plugin is required to reward money.")
+        val playerData = PlayerData.get(player)
+                ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")
+        val format = economy.format(amount)
+
+        playerData.moneyReward = amount
+        game.resource.script.getLogger()?.println("Reward $format is assigned to ${player.name}.")
+    }
+
+    override fun setItemReward(player: Player, lootTable: LootTable) {
+        if (Main.lootTablePatch == null)
+            throw DependencyNotFound("LootTableFix plugin is required.")
+
+        val playerData = PlayerData.get(player)
+                ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")
+
+        playerData.itemReward = lootTable
+        game.resource.script.getLogger()?.println("Reward ${lootTable.key} is assigned to ${player.name}.")
     }
 
     override fun broadcast(message: String) {

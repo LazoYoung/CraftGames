@@ -8,8 +8,8 @@ buildscript {
 }
 
 plugins {
-    id "maven-publish"
     id "idea"
+    id "maven-publish"
     id "org.jetbrains.dokka" version "0.10.1"
     id "com.github.johnrengelman.shadow" version "5.2.0"
     id "org.jetbrains.kotlin.jvm" version "1.3.71"
@@ -22,22 +22,32 @@ repositories {
     jcenter()
     mavenLocal()
     mavenCentral()
+    maven { url 'https://jitpack.io' }
     maven { url "https://repo.jenkins-ci.org/releases/" }
     maven { url "https://papermc.io/repo/repository/maven-public/" }
     maven { url "https://maven.enginehub.org/repo/" }
     maven { url "https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-jsr223" }
+    maven {
+        name "github"
+        url "https://maven.pkg.github.com/LazoYoung/LootTableFix"
+        credentials {
+            username = getProperty("github.username") ?: "undefined"
+            password = getProperty("github.token") ?: "undefined"
+        }
+    }
 }
 
 dependencies {
+    // Dependency order is important!
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.codehaus.groovy:groovy-groovydoc:3.0.2"
     implementation "org.codehaus.groovy:groovy-groovysh:3.0.2"
     implementation "org.codehaus.groovy:groovy-jsr223:3.0.2"
     compileOnly "com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT"
-    compileOnly ("com.sk89q.worldedit:worldedit-bukkit:7.1.0") {
-        exclude(group: "org.bukkit", module: "bukkit")
-    }
-    compileOnly ("io.lumine.xikage:MythicMobs:4.9.0")
+    compileOnly "com.github.lazoyoung:LootTableFix:1.0.3"
+    compileOnly "com.sk89q.worldedit:worldedit-bukkit:7.1.0"
+    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    compileOnly "io.lumine.xikage:MythicMobs:4.9.0"
     compileOnly fileTree("libs")
 }
 
@@ -50,7 +60,17 @@ compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
+sourceSets {
+    main {
+        resources {
+            srcDir "src/main/resources"
+        }
+    }
+}
+
 processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
     filesNotMatching("Sample/**") {
         expand("version": version)
     }

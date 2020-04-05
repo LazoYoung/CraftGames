@@ -6,6 +6,8 @@ import com.github.lazoyoung.craftgames.internal.listener.GameListener
 import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
+import com.github.lazoyoung.loottablefix.LootTablePatch
+import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -28,6 +30,10 @@ class Main : JavaPlugin(), CommandExecutor {
         lateinit var dataFolder: File
             private set
         lateinit var instance: Main
+            private set
+        var economy: Economy? = null
+            private set
+        var lootTablePatch: LootTablePatch? = null
             private set
         lateinit var charset: Charset
             private set
@@ -64,9 +70,11 @@ class Main : JavaPlugin(), CommandExecutor {
         val kitExecutor = KitCommand()
         val manager = Bukkit.getPluginManager()
         val messenger = Bukkit.getMessenger()
+        val services = Bukkit.getServicesManager()
         instance = this
         Main.logger = logger
-
+        economy = services.getRegistration(Economy::class.java)?.provider
+        lootTablePatch = services.getRegistration(LootTablePatch::class.java)?.provider
 
         loadConfig()
         loadAsset()

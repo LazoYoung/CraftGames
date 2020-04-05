@@ -42,7 +42,7 @@ class GameMap internal constructor(
     /** Directory name of this world **/
     internal var worldName: String? = null
 
-    private var isGenerated = false
+    internal var isGenerated = false
 
     /**
      * Install a map from repository and generate it in asynchronous thread.
