@@ -7,6 +7,8 @@ import org.bukkit.loot.LootTable
 
 interface ItemModule {
 
+    fun spawnItem(tag: String, itemStack: ItemStack)
+
     fun getLootTable(key: NamespacedKey): LootTable?
 
     /**
@@ -43,7 +45,5 @@ interface ItemModule {
     fun applyKit(player: Player)
 
     fun saveKit(name: String, player: Player)
-
-    fun spawnItem(tag: String, itemStack: ItemStack)
 
 }

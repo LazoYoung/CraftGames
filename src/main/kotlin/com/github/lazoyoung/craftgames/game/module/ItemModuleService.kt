@@ -1,10 +1,12 @@
 package com.github.lazoyoung.craftgames.game.module
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.module.ItemModule
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -24,26 +26,65 @@ import java.util.*
 
 class ItemModuleService(private val game: Game) : ItemModule {
 
-    internal var allowKit = true
-    internal var allowKitRespawn = false
+    private var allowKit = true
+    private var allowKitRespawn = false
     private val resource = game.resource
     private val script = resource.script
     private val kitSel = HashMap<UUID, ByteArray>()
-    private var defaultKit: ByteArray? = resource.kitData.values.let {
-        if (it.isEmpty()) {
-            null
-        } else {
-            it.random()
+    private val kitSelName = HashMap<UUID, String>()
+    private var defaultKitName: String?
+    private var defaultKit: ByteArray?
+
+    init {
+        resource.kitData.keys.let {
+            if (it.isEmpty()) {
+                defaultKitName = null
+                defaultKit = null
+            } else {
+                val name = it.random()
+                defaultKitName = name
+                defaultKit = resource.kitData[name]
+            }
         }
     }
 
+    override fun spawnItem(tag: String, itemStack: ItemStack) {
+        val map = game.map
+        val world = map.world ?: throw MapNotFound()
+        val ctag = Module.getRelevantTag(game, tag, TagMode.SPAWN, TagMode.BLOCK)
+        var counter = 0
+
+        if (ctag.mode == TagMode.SPAWN) { // SpawnCapture
+            ctag.getCaptures(map.id).filterIsInstance(SpawnCapture::class.java).forEach {
+                world.dropItemNaturally(Location(world, it.x, it.y, it.z), itemStack)
+                counter++
+            }
+        } else { // BlockCapture
+            val blockList = ctag.getCaptures(map.id).filterIsInstance(BlockCapture::class.java).map {
+                Location(world, it.x.toDouble(), it.y.toDouble(), it.z.toDouble()).block
+            }
+
+            for (block in blockList) {
+                var b = block
+
+                while (!b.isEmpty) {
+                    b = world.getBlockAt(b.x, b.y + 1, b.z)
+                }
+
+                world.dropItemNaturally(b.location, itemStack)
+                counter++
+            }
+        }
+
+        script.getLogger()?.println("Spawned $counter items across all ${ctag.name} captures.")
+    }
+
     override fun getLootTable(key: NamespacedKey): LootTable? {
-        val table = Bukkit.getLootTable(key)
+        if (Main.lootTablePatch == null)
+            throw DependencyNotFound("LootTableFix plugin is required.")
 
-        if (table == null)
-            script.getLogger()?.println("Unable to locate LootTable: $key")
-
-        return table
+        return Bukkit.getLootTable(key)
+                ?: throw IllegalArgumentException("Unable to locate LootTable: $key")
     }
 
     override fun allowKit(respawn: Boolean) {
@@ -73,6 +114,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 kitSel.remove(uid)
             }
             resource.kitData.containsKey(name) -> {
+                kitSelName[uid] = name
                 kitSel[uid] = resource.kitData[name]!!
             }
             else -> {
@@ -82,16 +124,18 @@ class ItemModuleService(private val game: Game) : ItemModule {
     }
 
     override fun applyKit(player: Player) {
-        val byteArr = kitSel[player.uniqueId] ?: defaultKit
+        val uid = player.uniqueId
+        val kitName = kitSelName[uid] ?: defaultKitName
+        val byteArr = kitSel[uid] ?: defaultKit
         val inv = player.inventory
         var wrapper: BukkitObjectInputStream? = null
+
+        if (kitName == null || byteArr == null)
+            return
 
         // Clear Inventory and PotionEffects
         player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
         inv.clear()
-
-        if (byteArr == null)
-            return
 
         try {
             val stream = ByteArrayInputStream(Base64.getDecoder().decode(byteArr))
@@ -103,6 +147,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 inv.setItem(i, wrapper.readObject() as? ItemStack)
             }
 
+            // FIXME EOF Exception can occur
             val effSize = wrapper.readInt()
 
             /* Read PotionEffects from InputStream */
@@ -115,7 +160,9 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
         } catch (e: Exception) {
             e.printStackTrace()
+            script.getLogger()?.println("Failed to apply kit: $kitName")
             script.writeStackTrace(e)
+            return
         } finally {
             try {
                 wrapper?.close()
@@ -124,6 +171,9 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 script.writeStackTrace(e)
             }
         }
+
+        player.updateInventory()
+        script.getLogger()?.println("Kit $kitName is applied to ${player.name}")
     }
 
     override fun saveKit(name: String, player: Player) {
@@ -163,37 +213,6 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 script.writeStackTrace(e)
             }
         }
-    }
-
-    override fun spawnItem(tag: String, itemStack: ItemStack) {
-        val map = game.map
-        val world = map.world ?: throw MapNotFound()
-        val ctag = Module.getRelevantTag(game, tag, TagMode.SPAWN, TagMode.BLOCK)
-        var counter = 0
-
-        if (ctag.mode == TagMode.SPAWN) { // SpawnCapture
-            ctag.getCaptures(map.id).filterIsInstance(SpawnCapture::class.java).forEach {
-                world.dropItemNaturally(Location(world, it.x, it.y, it.z), itemStack)
-                counter++
-            }
-        } else { // BlockCapture
-            val blockList = ctag.getCaptures(map.id).filterIsInstance(BlockCapture::class.java).map {
-                Location(world, it.x.toDouble(), it.y.toDouble(), it.z.toDouble()).block
-            }
-
-            for (block in blockList) {
-                var b = block
-
-                while (!b.isEmpty) {
-                    b = world.getBlockAt(b.x, b.y + 1, b.z)
-                }
-
-                world.dropItemNaturally(b.location, itemStack)
-                counter++
-            }
-        }
-
-        script.getLogger()?.println("Spawned $counter items across all ${ctag.name} captures.")
     }
 
     internal fun canSelectKit(player: Player): Boolean {

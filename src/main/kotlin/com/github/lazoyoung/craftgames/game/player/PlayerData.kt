@@ -6,6 +6,8 @@ import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.loot.LootContext
+import org.bukkit.loot.LootTable
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
@@ -17,6 +19,8 @@ import java.util.*
 import kotlin.collections.HashMap
 
 open class PlayerData {
+    internal var itemReward: LootTable? = null
+    internal var moneyReward: Double = 0.0
     private val player: Player
     private var game: Game?
     private val restoreFile: File
@@ -127,6 +131,18 @@ open class PlayerData {
         game?.let {
             it.leave(this)
             restore()
+
+            if (moneyReward > 0.0) {
+                Main.economy!!.depositPlayer(player, moneyReward)
+            }
+
+            if (itemReward != null) {
+                val context = LootContext.Builder(player.location).build()
+                val patch = Main.lootTablePatch!!
+
+                player.inventory.addItem(*patch.populateLoot(itemReward!!, context).toTypedArray())
+                player.updateInventory()
+            }
         }
     }
 
