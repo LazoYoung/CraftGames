@@ -138,26 +138,24 @@ class ItemModuleService(private val game: Game) : ItemModule {
         inv.clear()
 
         try {
+            // Decode from Base64
             val stream = ByteArrayInputStream(Base64.getDecoder().decode(byteArr))
             wrapper = BukkitObjectInputStream(stream)
-            val invSize = wrapper.readInt()
 
-            /* Read ItemStacks from InputStream */
+            /* Read inventory items */
+            val invSize = wrapper.readInt()
             for (i in 0 until invSize) {
                 inv.setItem(i, wrapper.readObject() as? ItemStack)
             }
 
-            // FIXME EOF Exception can occur
+            /* Read potion effects */
             val effSize = wrapper.readInt()
-
-            /* Read PotionEffects from InputStream */
             for (i in 0 until effSize) {
                 var potionEffect = wrapper.readObject() as PotionEffect
 
                 potionEffect = potionEffect.withDuration(Int.MAX_VALUE)
                 player.addPotionEffect(potionEffect)
             }
-
         } catch (e: Exception) {
             e.printStackTrace()
             script.getLogger()?.println("Failed to apply kit: $kitName")
@@ -185,20 +183,22 @@ class ItemModuleService(private val game: Game) : ItemModule {
         try {
             stream = BukkitObjectOutputStream(wrapper)
 
-            /* Write ItemStacks to OutputStream */
+            /* Write inventory items */
             stream.writeInt(inv.size)
-
             for (i in 0 until inv.size) {
                 stream.writeObject(inv.getItem(i))
             }
 
-            /* Write PotionEffects to OutputStream */
+            /* Write potion effects */
             stream.writeInt(effects.size)
-
             for (effect in effects) {
                 stream.writeObject(effect)
             }
 
+            // Flush to wrapper.
+            stream.flush()
+
+            // Encode to Base64
             val byteArr = Base64.getEncoder().encode(wrapper.toByteArray())
             resource.kitData[name] = byteArr
         } catch (e: Exception) {

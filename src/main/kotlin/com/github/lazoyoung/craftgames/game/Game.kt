@@ -302,7 +302,6 @@ class Game(
                 return
             }
 
-            // TODO Restore Module: Config parse exception must be handled if World is not present.
             resource.saveToDisk(false)
             players.add(uid)
 
