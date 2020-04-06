@@ -11,12 +11,12 @@ import com.github.lazoyoung.craftgames.command.RESET_FORMAT
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
-import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.LivingEntity
@@ -24,18 +24,15 @@ import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.*
 import java.util.function.Consumer
-import java.util.function.Supplier
 import kotlin.collections.HashMap
 
 class PlayerModuleService internal constructor(private val game: Game) : PlayerModule {
 
-    internal var personal: CoordTag? = null
-    internal var editor: CoordTag? = null
-    internal var spectator: CoordTag? = null
-    internal val killTriggers = HashMap<UUID, Consumer<LivingEntity>>()
-    internal val deathTriggers = HashMap<UUID, Supplier<Boolean>>()
-    private var respawnTimer = HashMap<UUID, Timer>()
-    private val script = game.resource.script
+    internal var respawnTimer = HashMap<UUID, Timer>()
+    private val personalSpawn = HashMap<UUID, CoordTag>()
+    private var playerSpawn: CoordTag? = null
+    private var editorSpawn: CoordTag? = null
+    private var spectatorSpawn: CoordTag? = null
 
     override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
@@ -61,72 +58,52 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         gamePlayer.toSpectator()
     }
 
-    override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {
-        val name = killer.name
-        val uid = killer.uniqueId
-
-        if (trigger == null) {
-            if (killTriggers.containsKey(uid)) {
-                killTriggers.remove(uid)
-                script.getLogger()?.println("A Kill trigger is un-bound from: $name")
-            }
-        } else {
-            killTriggers[uid] = Consumer { livingEntity ->
-                try {
-                    trigger.accept(livingEntity)
-                } catch (e: Exception) {
-                    script.writeStackTrace(e)
-                    script.getLogger()?.println("Error occurred in Kill trigger: $name")
-                }
-            }
-            script.getLogger()?.println("A kill trigger is bound to $name.")
-        }
-    }
-
-    override fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?) {
-        val name = player.name
-        val uid = player.uniqueId
-
-        if (trigger == null) {
-            if (deathTriggers.containsKey(uid)) {
-                deathTriggers.remove(uid)
-                script.getLogger()?.println("A Death trigger is un-bound from: $name")
-            }
-        } else {
-            deathTriggers[uid] = Supplier {
-                try {
-                    trigger.run()
-                } catch (e: Exception) {
-                    script.writeStackTrace(e)
-                    script.getLogger()?.println("Error occurred in Death trigger: ${player.name}")
-                }
-                respawn
-            }
-            script.getLogger()?.println("A death trigger is bound to ${player.name}.")
-            script.getLogger()?.println("Respawn for ${player.name}: $respawn")
-        }
-    }
-
+    @Deprecated("Replaced with GamePlayerDeathEvent.")
     override fun setRespawnTimer(player: Player, timer: Timer) {
         this.respawnTimer[player.uniqueId] = timer
     }
 
-    override fun setSpawn(type: PlayerType, spawnTag: String) {
+    override fun setSpawnpoint(type: PlayerType, spawnTag: String) {
         val tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
 
         when (type) {
-            PlayerType.PLAYER -> personal = tag
-            PlayerType.EDITOR -> editor = tag
-            PlayerType.SPECTATOR -> spectator = tag
+            PlayerType.PLAYER -> playerSpawn = tag
+            PlayerType.EDITOR -> editorSpawn = tag
+            PlayerType.SPECTATOR -> spectatorSpawn = tag
         }
     }
 
-    override fun setSpawn(type: String, spawnTag: String) {
-        setSpawn(PlayerType.valueOf(type), spawnTag)
+    override fun setSpawnpoint(type: String, spawnTag: String) {
+        setSpawnpoint(PlayerType.valueOf(type), spawnTag)
     }
 
-    override fun sendMessage(player: Player, message: String) {
-        player.sendMessage(*TextComponent.fromLegacyText(message.replace('&', '\u00A7')))
+    override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {}
+
+    override fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?) {}
+
+    override fun setSpawn(type: String, spawnTag: String) {
+        setSpawnpoint(type, spawnTag)
+    }
+
+    override fun sendMessage(player: Player, message: String) {}
+
+    fun setSpawnpoint(player: Player, tagName: String) {
+        personalSpawn[player.uniqueId] = Module.getRelevantTag(game, tagName, TagMode.SPAWN)
+    }
+
+    fun getSpawnpoint(playerData: PlayerData): CoordTag? {
+        val uid = playerData.getPlayer().uniqueId
+
+        return if (personalSpawn.containsKey(uid)) {
+            personalSpawn[uid]
+        } else when (playerData) {
+            is GameEditor -> editorSpawn
+            is Spectator -> spectatorSpawn
+            is GamePlayer -> {
+                Module.getTeamModule(game).getSpawn(playerData.getPlayer()) ?: playerSpawn
+            }
+            else -> null
+        }
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {

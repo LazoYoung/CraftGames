@@ -1,14 +1,14 @@
 package com.github.lazoyoung.craftgames.event
 
-import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.entity.Player
 import org.bukkit.event.HandlerList
 
-class PlayerJoinGamePostEvent(
+class GameAreaExitEvent(
         game: Game,
-        private val player: Player,
-        private val playerType: PlayerType
+        private val areaName: String,
+        private val player: Player
 ) : GameEvent(game) {
 
     companion object {
@@ -24,15 +24,18 @@ class PlayerJoinGamePostEvent(
         return getHandlerList()
     }
 
+    /**
+     * Get [CoordTag] name of this area.
+     */
+    fun getTagName(): String {
+        return areaName
+    }
+
+    /**
+     * Get [Player] who triggered this area.
+     */
     fun getPlayer(): Player {
         return player
     }
 
-    fun getPlayerType(): PlayerType {
-        return playerType
-    }
-
-    fun isGameStarted(): Boolean {
-        return game.phase == Game.Phase.PLAYING
-    }
 }

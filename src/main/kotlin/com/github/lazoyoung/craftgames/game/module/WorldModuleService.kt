@@ -9,10 +9,7 @@ import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.player.GameEditor
-import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
-import com.github.lazoyoung.craftgames.game.player.Spectator
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -50,26 +47,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         return getWorld().worldBorder
     }
 
-    override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {
-        if (!game.map.areaRegistry.containsKey(tag))
-                throw IllegalArgumentException("Area tag \'$tag\' does not exist.")
-
-        if (task == null) {
-            triggers.remove(tag)
-            script.getLogger()?.println("An Area trigger is un-bounded from tag: $tag")
-            return
-        }
-
-        triggers[tag] = Consumer<Player> {
-            try {
-                task.accept(it)
-            } catch (e: Exception) {
-                script.writeStackTrace(e)
-                script.getLogger()?.println("Error occurred in Area trigger: $tag")
-            }
-        }
-        script.getLogger()?.println("An Area trigger is bound to tag: $tag")
-    }
+    override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {}
 
     override fun setStormyWeather(storm: Boolean) {
         val world = getWorld()
@@ -196,17 +174,9 @@ class WorldModuleService(private val game: Game) : WorldModule {
     fun teleportSpawn(playerData: PlayerData, index: Int?, asyncCallback: Consumer<Boolean>? = null) {
         val world = getWorld()
         val scheduler = Bukkit.getScheduler()
-        val plugin = Main.instance
         val player = playerData.getPlayer()
         val playerModule = Module.getPlayerModule(game)
-        val tag = when (playerData) {
-            is GameEditor -> playerModule.editor
-            is Spectator -> playerModule.spectator
-            is GamePlayer -> {
-                Module.getTeamModule(game).getSpawn(player) ?: playerModule.personal
-            }
-            else -> null
-        }
+        val tag = playerModule.getSpawnpoint(playerData)
         val log = game.resource.script.getLogger()
         val location: Location
         val notFound = ComponentBuilder("Unable to locate spawnpoint!")
@@ -241,7 +211,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
             val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
 
             player.isInvulnerable = true
-            scheduler.runTaskLater(plugin, Runnable {
+            scheduler.runTaskLater(Main.instance, Runnable {
                 player.isInvulnerable = false
             }, Timer(TimeUnit.TICK, gracePeriod).toTick())
         }
@@ -250,7 +220,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
             player.teleport(location)
             protect()
         } else {
-            scheduler.runTaskAsynchronously(plugin, Runnable {
+            scheduler.runTaskAsynchronously(Main.instance, Runnable {
                 player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
                         .thenAccept(asyncCallback::accept)
                         .thenRun { protect() }

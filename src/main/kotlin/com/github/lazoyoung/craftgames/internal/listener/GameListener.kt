@@ -8,6 +8,7 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import org.bukkit.event.Cancellable
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -16,7 +17,7 @@ class GameListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameInit(event: GameInitEvent) {
-        val game = event.game
+        val game = event.getGame()
         val script = game.resource.script
 
         try {
@@ -24,67 +25,72 @@ class GameListener : Listener {
             Module.getScriptModule(game).events[EventType.GAME_INIT_EVENT]?.accept(event)
         } catch (e: Exception) {
             script.writeStackTrace(e)
+            game.close()
             event.isCancelled = true
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameStart(event: GameStartEvent) {
-        val game = event.game
+        relayToScript(event, EventType.GAME_START_EVENT)
+    }
 
-        try {
-            Module.getScriptModule(game).events[EventType.GAME_START_EVENT]?.accept(event)
-        } catch (e: Exception) {
-            game.resource.script.writeStackTrace(e)
-            game.forceStop(error = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onGameJoin(event: GameJoinEvent) {
+        relayToScript(event, EventType.GAME_JOIN_EVENT)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onGameJoinPost(event: GameJoinPostEvent) {
+        if (event.getPlayerType() == PlayerType.EDITOR) {
+            updateEditors(event.getGame())
         }
+
+        relayToScript(event, EventType.GAME_JOIN_POST_EVENT)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onGameLeave(event: GameLeaveEvent) {
+        relayToScript(event, EventType.GAME_LEAVE_EVENT)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameFinish(event: GameFinishEvent) {
-        val game = event.game
+        relayToScript(event, EventType.GAME_FINISH_EVENT)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onAreaEnter(event: GameAreaEnterEvent) {
+        relayToScript(event, EventType.AREA_ENTER_EVENT)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onAreaExit(event: GameAreaExitEvent) {
+        relayToScript(event, EventType.AREA_EXIT_EVENT)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerKill(event: GamePlayerKillEvent) {
+        relayToScript(event, EventType.PLAYER_KILL_EVENT)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerDeath(event: GamePlayerDeathEvent) {
+        relayToScript(event, EventType.PLAYER_DEATH_EVENT)
+    }
+
+    private fun <T : GameEvent> relayToScript(event: T, type: EventType) {
+        val game = event.getGame()
 
         try {
-            Module.getScriptModule(game).events[EventType.GAME_FINISH_EVENT]?.accept(event)
+            Module.getScriptModule(game).events[type]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
             game.close()
-        }
-    }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onPlayerJoinGame(event: PlayerJoinGameEvent) {
-        val game = event.game
-
-        try {
-            Module.getScriptModule(game).events[EventType.PLAYER_JOIN_GAME_EVENT]?.accept(event)
-        } catch (e: Exception) {
-            game.resource.script.writeStackTrace(e)
-            game.forceStop(error = true)
-            event.isCancelled = true
-        }
-    }
-
-    @EventHandler
-    fun onPlayerJoinedGame(event: PlayerJoinGamePostEvent) {
-        if (event.getPlayerType() == PlayerType.EDITOR) {
-            updateEditors(event.game)
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onPlayerLeaveGame(event: PlayerLeaveGameEvent) {
-        val game = event.game
-
-        if (event.getPlayerType() == PlayerType.EDITOR) {
-            updateEditors(game)
-        }
-
-        try {
-            Module.getScriptModule(game).events[EventType.PLAYER_LEAVE_GAME_EVENT]?.accept(event)
-        } catch (e: Exception) {
-            game.resource.script.writeStackTrace(e)
-            game.forceStop(error = true)
+            if (event is Cancellable) {
+                event.isCancelled = true
+            }
         }
     }
 

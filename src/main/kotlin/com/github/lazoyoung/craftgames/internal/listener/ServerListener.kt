@@ -2,6 +2,10 @@ package com.github.lazoyoung.craftgames.internal.listener
 
 import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.event.GameAreaEnterEvent
+import com.github.lazoyoung.craftgames.event.GameAreaExitEvent
+import com.github.lazoyoung.craftgames.event.GamePlayerDeathEvent
+import com.github.lazoyoung.craftgames.event.GamePlayerKillEvent
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
@@ -33,9 +37,22 @@ class ServerListener : Listener {
 
         if (pdata is GamePlayer && player.gameMode != GameMode.SPECTATOR) {
             val worldModule = Module.getWorldModule(pdata.getGame())
+            val from = worldModule.getAreaNameAt(event.from)
+            val to = worldModule.getAreaNameAt(event.to)
 
-            worldModule.getAreaNameAt(event.to)?.let {
-                worldModule.triggers[it]?.accept(player)
+            if (from == to)
+                return
+
+            if (from != null) {
+                Bukkit.getPluginManager().callEvent(
+                        GameAreaExitEvent(pdata.getGame(), from, player)
+                )
+            }
+
+            if (to != null) {
+                Bukkit.getPluginManager().callEvent(
+                        GameAreaEnterEvent(pdata.getGame(), to, player)
+                )
             }
         }
     }
@@ -88,17 +105,17 @@ class ServerListener : Listener {
     }
 
     @EventHandler
-    fun onPlayerKill(event: EntityDeathEvent) {
+    fun onEntityDeath(event: EntityDeathEvent) {
         val entity = event.entity
-        val gamePlayer = (entity as? Player)?.killer
+        val killer = (entity as? Player)?.killer
                 ?.let { PlayerData.get(it) } as? GamePlayer
                 ?: return
-        val player = gamePlayer.getPlayer()
-        val game = gamePlayer.getGame()
-        val service = Module.getPlayerModule(game)
+        val game = killer.getGame()
 
         if (game.phase == Game.Phase.PLAYING) {
-            service.killTriggers[player.uniqueId]?.accept(entity)
+            Bukkit.getPluginManager().callEvent(
+                    GamePlayerKillEvent(killer, event.entity, game)
+            )
         }
     }
 
@@ -111,25 +128,27 @@ class ServerListener : Listener {
         if (game.phase != Game.Phase.PLAYING)
             return
 
-        // Death Trigger
-        val canRespawn = Module.getGameModule(game).canRespawn
         val playerModule = Module.getPlayerModule(game)
-        val triggerResult = playerModule.deathTriggers[player.uniqueId]?.get()
+        val relayEvent = GamePlayerDeathEvent(gamePlayer, game)
 
-        player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
-        event.isCancelled = true
+        Bukkit.getPluginManager().callEvent(relayEvent)
 
-        // React to the trigger result
-        Bukkit.getScheduler().runTask(Main.instance, Runnable {
-            if (!gamePlayer.isOnline())
-                return@Runnable
+        if (!relayEvent.isCancelled) {
+            player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
+            event.isCancelled = true
 
-            if ((canRespawn && triggerResult != false) || triggerResult == true) {
-                playerModule.respawn(gamePlayer)
-            } else {
-                playerModule.eliminate(player)
-            }
-        })
+            // React to the trigger result
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                if (!gamePlayer.isOnline())
+                    return@Runnable
+
+                if (relayEvent.canRespawn()) {
+                    playerModule.respawn(gamePlayer)
+                } else {
+                    playerModule.eliminate(player)
+                }
+            })
+        }
     }
 
     @EventHandler

@@ -22,6 +22,7 @@ interface WorldModule {
      */
     fun getWorldBorder(): WorldBorder
 
+    @Deprecated("Replaced with GameAreaTriggerEvent", level = DeprecationLevel.ERROR)
     fun setAreaTrigger(tag: String, task: Consumer<Player>?)
 
     /**

@@ -283,8 +283,8 @@ class Game(
 
     fun joinPlayer(player: Player) {
         if (canJoin()) {
-            val event = PlayerJoinGameEvent(this, player, PlayerType.PLAYER)
-            val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.PLAYER)
+            val event = GameJoinEvent(this, player, PlayerType.PLAYER)
+            val postEvent = GameJoinPostEvent(this, player, PlayerType.PLAYER)
             val uid = player.uniqueId
             val playerData: GamePlayer
             val warning = ComponentBuilder("Unable to join the game.").color(ChatColor.YELLOW).create()
@@ -342,8 +342,8 @@ class Game(
     fun joinSpectator(player: Player) {
         val uid = player.uniqueId
         val playerData: Spectator
-        val event = PlayerJoinGameEvent(this, player, PlayerType.SPECTATOR)
-        val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.SPECTATOR)
+        val event = GameJoinEvent(this, player, PlayerType.SPECTATOR)
+        val postEvent = GameJoinPostEvent(this, player, PlayerType.SPECTATOR)
         val warning = ComponentBuilder("Unable to join the game.").color(ChatColor.YELLOW).create()
 
         Bukkit.getPluginManager().callEvent(event)
@@ -380,8 +380,8 @@ class Game(
     fun joinEditor(gameEditor: GameEditor) {
         val player = gameEditor.getPlayer()
         val uid = player.uniqueId
-        val event = PlayerJoinGameEvent(this, player, PlayerType.EDITOR)
-        val postEvent = PlayerJoinGamePostEvent(this, player, PlayerType.EDITOR)
+        val event = GameJoinEvent(this, player, PlayerType.EDITOR)
+        val postEvent = GameJoinPostEvent(this, player, PlayerType.EDITOR)
         val text = if (players.size == 0) {
             "You are now editing '${map.id}\'."
         } else {
@@ -415,7 +415,7 @@ class Game(
         val uid = player.uniqueId
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
         val lobby = Module.getLobbyModule(this)
-        val event = PlayerLeaveGameEvent(this, player, playerData.getPlayerType())
+        val event = GameLeaveEvent(this, player, playerData.getPlayerType())
 
         // Clear data
         MessageTask.clearAll(player)

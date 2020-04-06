@@ -5,7 +5,7 @@ import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.entity.Player
 import org.bukkit.event.HandlerList
 
-class PlayerLeaveGameEvent(
+class GameLeaveEvent(
         game: Game,
         private val player: Player,
         private val playerType: PlayerType

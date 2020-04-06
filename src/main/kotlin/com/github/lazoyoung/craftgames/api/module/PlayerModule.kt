@@ -26,6 +26,7 @@ interface PlayerModule {
      * @param trigger The trigger that you want to add.
      *   Pass null to this parameter if you want to remove the previous one.
      */
+    @Deprecated("Replaced with GamePlayerKillEvent", level = DeprecationLevel.ERROR)
     fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?)
 
     /**
@@ -36,12 +37,16 @@ interface PlayerModule {
      * @param trigger The trigger that you want to add.
      *   Pass null to this parameter if you want to remove the previous one.
      */
+    @Deprecated("Replaced with GamePlayerDeathEvent", level = DeprecationLevel.ERROR)
     fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?)
 
     fun setRespawnTimer(player: Player, timer: Timer)
 
-    fun setSpawn(type: PlayerType, spawnTag: String)
+    fun setSpawnpoint(type: PlayerType, spawnTag: String)
 
+    fun setSpawnpoint(type: String, spawnTag: String)
+
+    @Deprecated("Name has changed.", ReplaceWith("setSpawnpoint"))
     fun setSpawn(type: String, spawnTag: String)
 
     /**
@@ -49,6 +54,7 @@ interface PlayerModule {
      *
      * Consult wiki about [Formatting codes](https://minecraft.gamepedia.com/Formatting_codes).
      */
+    @Deprecated("Not useful.", level = DeprecationLevel.ERROR)
     fun sendMessage(player: Player, message: String)
 
 }

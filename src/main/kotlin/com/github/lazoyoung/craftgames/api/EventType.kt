@@ -1,30 +1,57 @@
 package com.github.lazoyoung.craftgames.api
 
-enum class EventType(val label: String) {
+import com.github.lazoyoung.craftgames.event.*
+
+enum class EventType(vararg val alias: String) {
     /**
-     * @see [com.github.lazoyoung.craftgames.event.GameInitEvent]
+     * @see [GameInitEvent]
      */
     GAME_INIT_EVENT("GameInitEvent"),
 
     /**
-     * @see [com.github.lazoyoung.craftgames.event.GameStartEvent]
+     * @see [GameStartEvent]
      */
     GAME_START_EVENT("GameStartEvent"),
 
     /**
-     * @see [com.github.lazoyoung.craftgames.event.GameFinishEvent]
+     * @see [GameJoinEvent]
+     */
+    GAME_JOIN_EVENT("GameJoinEvent", "PlayerJoinEvent"),
+
+    /**
+     * @see [GameJoinPostEvent]
+     */
+    GAME_JOIN_POST_EVENT("GameJoinPostEvent", "PlayerJoinPostEvent"),
+
+    /**
+     * @see [GameLeaveEvent]
+     */
+    GAME_LEAVE_EVENT("GameLeaveEvent", "PlayerLeaveEvent"),
+
+    /**
+     * @see [GameFinishEvent]
      */
     GAME_FINISH_EVENT("GameFinishEvent"),
 
     /**
-     * @see [com.github.lazoyoung.craftgames.event.PlayerJoinGameEvent]
+     * @see [GameAreaEnterEvent]
      */
-    PLAYER_JOIN_GAME_EVENT("PlayerJoinGameEvent"),
+    AREA_ENTER_EVENT("AreaEnterEvent", "GameAreaEnterEvent"),
 
     /**
-     * @see [com.github.lazoyoung.craftgames.event.PlayerLeaveGameEvent]
+     * @see [GameAreaExitEvent]
      */
-    PLAYER_LEAVE_GAME_EVENT("PlayerLeaveGameEvent");
+    AREA_EXIT_EVENT("AreaExitEvent", "GameAreaExitEvent"),
+
+    /**
+     * @see [GamePlayerKillEvent]
+     */
+    PLAYER_KILL_EVENT("PlayerKillEvent", "GamePlayerKillEvent"),
+
+    /**
+     * @see [GamePlayerDeathEvent]
+     */
+    PLAYER_DEATH_EVENT("PlayerDeathEvent", "GamePlayerDeathEvent");
 
     companion object {
         /**
@@ -34,10 +61,10 @@ enum class EventType(val label: String) {
          */
         fun forName(name: String): EventType {
             values().forEach {
-                if (it.name.equals(name, true)
-                        || it.label.equals(name, true))
+                if (it.name.equals(name, true) || it.alias.contains(name))
                     return it
             }
+
             throw IllegalArgumentException("EventType $name does not exist.")
         }
     }
