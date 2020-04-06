@@ -27,10 +27,7 @@ import com.sk89q.worldedit.session.ClipboardHolder
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
-import org.bukkit.Bukkit
-import org.bukkit.GameRule
-import org.bukkit.Location
-import org.bukkit.WorldBorder
+import org.bukkit.*
 import org.bukkit.block.Container
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
@@ -50,7 +47,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun getWorldBorder(): WorldBorder {
-        return game.map.world?.worldBorder ?: throw MapNotFound()
+        return getWorld().worldBorder
     }
 
     override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {
@@ -75,20 +72,38 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun setStormyWeather(storm: Boolean) {
-        val world = game.map.world ?: throw MapNotFound()
+        val world = getWorld()
 
         world.setStorm(storm)
         world.weatherDuration = Int.MAX_VALUE
     }
 
-    override fun <T> setGameRule(rule: GameRule<T>, value: T) {
-        val world = game.map.world ?: throw MapNotFound()
+    override fun getTime(absolute: Boolean): Long {
+        return if (absolute) {
+            getWorld().fullTime
+        } else {
+            getWorld().time
+        }
+    }
 
-        world.setGameRule(rule, value)
+    override fun addTime(time: Long) {
+        setTime(getTime(true) + time, true)
+    }
+
+    override fun setTime(time: Long, absolute: Boolean) {
+        if (absolute) {
+            getWorld().fullTime = time
+        } else {
+            getWorld().time = time
+        }
+    }
+
+    override fun <T> setGameRule(rule: GameRule<T>, value: T) {
+        getWorld().setGameRule(rule, value)
     }
 
     override fun fillContainers(tag: String, loot: LootTable) {
-        val world = game.map.world ?: throw MapNotFound()
+        val world = getWorld()
         val mapID = game.map.id
         val ctag = Module.getRelevantTag(game, tag, TagMode.BLOCK)
         val captures = ctag.getCaptures(mapID)
@@ -124,7 +139,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
         val filePath = game.resource.root.resolve(path)
         val file = filePath.toFile()
-        val world = game.map.world ?: throw MapNotFound()
+        val world = getWorld()
         val maxBlocks = Main.getConfig()?.getInt("schematic-throttle")
                 ?: throw FaultyConfiguration("schematic-throttle is not defined in config.yml")
         val format = ClipboardFormats.findByFile(file)
@@ -179,7 +194,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
      * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
     fun teleportSpawn(playerData: PlayerData, index: Int?, asyncCallback: Consumer<Boolean>? = null) {
-        val world = game.map.world ?: throw MapNotFound()
+        val world = getWorld()
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val player = playerData.getPlayer()
@@ -242,6 +257,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
                         .exceptionally { it.printStackTrace(); return@exceptionally null }
             })
         }
+    }
+
+    private fun getWorld(): World {
+        return game.map.world ?: throw MapNotFound()
     }
 
 }

@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.GameRule
+import org.bukkit.World
 import org.bukkit.WorldBorder
 import org.bukkit.entity.Player
 import org.bukkit.loot.LootTable
@@ -23,8 +24,37 @@ interface WorldModule {
 
     fun setAreaTrigger(tag: String, task: Consumer<Player>?)
 
+    /**
+     * Set world weather to [storm] or not.
+     */
     fun setStormyWeather(storm: Boolean)
 
+    /**
+     * Get world time.
+     *
+     * See [World.getTime] for relative time.
+     *
+     * See [World.getFullTime] for absolute time.
+     */
+    fun getTime(absolute: Boolean): Long
+
+    /**
+     * Add up the amount of [time] to this world.
+     */
+    fun addTime(time: Long)
+
+    /**
+     * Set world time.
+     *
+     * See [World.setTime] for relative time.
+     *
+     * See [World.setFullTime] for absolute time.
+     */
+    fun setTime(time: Long, absolute: Boolean)
+
+    /**
+     * Set world [GameRule].
+     */
     fun <T> setGameRule(rule: GameRule<T>, value: T)
 
     fun fillContainers(tag: String, loot: LootTable)
