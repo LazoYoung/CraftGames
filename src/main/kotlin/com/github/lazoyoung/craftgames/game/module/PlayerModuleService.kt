@@ -19,7 +19,6 @@ import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
-import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
@@ -130,31 +129,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         player.sendMessage(*TextComponent.fromLegacyText(message.replace('&', '\u00A7')))
     }
 
-    fun restore(player: Player, leave: Boolean = false) {
-        val maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)
-        val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
-        val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
-
-        // Reset player attribute
-        player.gameMode = Module.getGameModule(game).defaultGameMode
-        maxHealth?.defaultValue?.let { maxHealth.baseValue = it }
-        flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
-        walkSpeed?.defaultValue?.let { walkSpeed.baseValue = it }
-        player.foodLevel = 20
-        player.saturation = 5.0f
-        player.exhaustion = 0.0f
-
-        // Clear potion effects
-        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
-
-        if (leave) {
-            player.inventory.clear()
-        } else {
-            // Apply kit
-            Module.getItemModule(game).applyKit(player)
-        }
-    }
-
     internal fun respawn(gamePlayer: GamePlayer) {
         val player = gamePlayer.getPlayer()
         val plugin = Main.instance
@@ -164,6 +138,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val gracePeriod = Main.getConfig()?.getLong("spawn-invincible", 60L)
                 ?: 60L
 
+        gamePlayer.restore(false)
         player.gameMode = GameMode.SPECTATOR
 
         object : BukkitRunnable() {
@@ -180,8 +155,9 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                         .start()
 
                 if (timer.subtract(frame).toSecond() < 0L) {
-                    // Rollback to spawnpoint with default GameMode
-                    restore(player)
+                    // Rollback to spawnpoint and gear up
+                    gamePlayer.restore(false)
+                    Module.getItemModule(game).applyKit(player)
                     Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
                     ActionbarTask(player, period = frame, text = *arrayOf("&9&l> &a&lRESPAWN &9&l<"))
                             .start()

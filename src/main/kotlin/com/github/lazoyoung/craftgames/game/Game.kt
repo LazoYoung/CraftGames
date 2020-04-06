@@ -306,7 +306,7 @@ class Game(
             players.add(uid)
 
             if (phase == Phase.LOBBY) {
-                Module.getPlayerModule(this).restore(player)
+                playerData.restore(false)
                 Module.getLobbyModule(this).join(player)
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
                 ActionbarTask(
@@ -314,7 +314,8 @@ class Game(
                         text = *arrayOf("&aWelcome to &f$name&a!", "&aPlease wait until the game starts.")
                 ).start()
             } else if (phase == Phase.PLAYING) {
-                Module.getPlayerModule(this).restore(player)
+                playerData.restore(false)
+                Module.getItemModule(this).applyKit(player)
                 Module.getWorldModule(this).teleportSpawn(playerData, null)
                 player.sendMessage("You joined the ongoing game: $name")
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
@@ -368,8 +369,11 @@ class Game(
             else -> return
         }
 
-        players.add(uid)
+        playerData.restore(false)
+        player.gameMode = GameMode.SPECTATOR
         player.sendMessage("You are now spectating $name.")
+
+        players.add(uid)
         Bukkit.getPluginManager().callEvent(postEvent)
     }
 
@@ -392,6 +396,7 @@ class Game(
 
         if (!event.isCancelled) {
             players.add(uid)
+            gameEditor.restore(false)
             player.gameMode = GameMode.CREATIVE
             player.sendMessage(text)
             Module.getWorldModule(this).teleportSpawn(gameEditor, null)
@@ -417,7 +422,6 @@ class Game(
         ActionbarTask.clearAll(player)
         module.ejectPlayer(playerData)
         players.remove(uid)
-        playerData.unregister()
 
         if (lobby.exitLoc != null) {
             player.teleport(lobby.exitLoc!!, cause)

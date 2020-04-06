@@ -123,10 +123,7 @@ class Module internal constructor(val game: Game) {
         if (playerData.getGame() != this.game)
             return
 
-        val player = playerData.getPlayer()
-
-        playerModule.restore(player, leave = true)
-        gameModule.bossBar.removePlayer(player)
+        gameModule.bossBar.removePlayer(playerData.getPlayer())
     }
 
 }

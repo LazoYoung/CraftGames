@@ -75,7 +75,7 @@ class ServerListener : Listener {
         val player = event.player
 
         try {
-            PlayerData.getOffline(player)?.restore()
+            PlayerData.getOffline(player)?.restore(true)
         } catch (e: Exception) {
             e.printStackTrace()
             Main.logger.severe("Failed to read data for ${player.name}")

@@ -3,7 +3,9 @@ package com.github.lazoyoung.craftgames.game.player
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.module.Module
 import org.bukkit.GameMode
+import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootContext
@@ -130,7 +132,8 @@ open class PlayerData {
     fun leaveGame() {
         game?.let {
             it.leave(this)
-            restore()
+            restore(true)
+            unregister()
 
             if (moneyReward > 0.0) {
                 Main.economy!!.depositPlayer(player, moneyReward)
@@ -174,25 +177,47 @@ open class PlayerData {
         }
     }
 
-    fun restore() {
-        var index = 0
-        val inv = player.inventory
-        player.gameMode = restoreGameMode
+    fun restore(leave: Boolean) {
+        if (game == null)
+            throw IllegalStateException("Player ${player.name} is not in game.")
 
-        for (item in restoreInventorySlot) {
-            inv.setItem(index++, item)
-        }
+        val maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)
+        val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
+        val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
 
-        try {
-            Files.deleteIfExists(restoreFile.toPath())
-        } catch (e: IOException) {
-            e.printStackTrace()
-        } catch (e: SecurityException) {
-            e.printStackTrace()
+        // Reset player attribute
+        player.gameMode = Module.getGameModule(game!!).defaultGameMode
+        maxHealth?.defaultValue?.let { maxHealth.baseValue = it }
+        flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
+        walkSpeed?.defaultValue?.let { walkSpeed.baseValue = it }
+        player.foodLevel = 20
+        player.saturation = 5.0f
+        player.exhaustion = 0.0f
+
+        // Clear inventory & potion effects
+        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
+        player.inventory.clear()
+
+        if (leave) {
+            var index = 0
+            val inv = player.inventory
+            player.gameMode = restoreGameMode
+
+            for (item in restoreInventorySlot) {
+                inv.setItem(index++, item)
+            }
+
+            try {
+                Files.deleteIfExists(restoreFile.toPath())
+            } catch (e: IOException) {
+                e.printStackTrace()
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+            }
         }
     }
 
-    internal fun unregister() {
+    private fun unregister() {
         game = null
         registry.remove(player.uniqueId)
     }

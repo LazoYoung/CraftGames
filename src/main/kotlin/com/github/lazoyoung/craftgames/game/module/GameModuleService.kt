@@ -139,6 +139,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     internal fun start() {
+        val itemModule = Module.getItemModule(game)
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
         var index = 0
@@ -153,7 +154,8 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             } else {
                 worldModule.teleportSpawn(p, null, Consumer<Boolean> {})
             }
-            playerModule.restore(p.getPlayer())
+            p.restore(false)
+            itemModule.applyKit(p.getPlayer())
             bossBar.addPlayer(p.getPlayer())
         }
 
