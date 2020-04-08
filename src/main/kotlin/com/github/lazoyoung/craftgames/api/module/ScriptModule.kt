@@ -22,6 +22,8 @@ interface ScriptModule {
 
     fun detachEventMonitor(eventType: String)
 
+    fun setLogVerbosity(verbose: Boolean)
+
     fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask
 
     fun wait(delay: Timer, task: Runnable): BukkitTask

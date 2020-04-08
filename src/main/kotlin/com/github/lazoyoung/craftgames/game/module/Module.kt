@@ -5,7 +5,8 @@ import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.PlayerData
-import javax.script.Bindings
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.ClassNode
 
 class Module internal constructor(val game: Game) {
 
@@ -18,25 +19,37 @@ class Module internal constructor(val game: Game) {
     private val scriptModule = ScriptModuleService(game.resource)
     private val worldModule = WorldModuleService(game)
     private val itemModule = ItemModuleService(game)
-    private val bind: Bindings
     private var terminateSignal = false
 
     init {
-        bind = script.getBindings()
-        bind["GameModule"] = gameModule as GameModule
-        bind["TeamModule"] = teamModule as TeamModule
-        bind["LobbyModule"] = lobbyModule as LobbyModule
-        bind["PlayerModule"] = playerModule as PlayerModule
-        bind["MobModule"] = mobModule as MobModule
-        bind["ScriptModule"] = scriptModule as ScriptModule
-        bind["WorldModule"] = worldModule as WorldModule
-        bind["ItemModule"] = itemModule as ItemModule
+        script.bind("GameModule", gameModule as GameModule)
+        script.bind("TeamModule", teamModule as TeamModule)
+        script.bind("LobbyModule", lobbyModule as LobbyModule)
+        script.bind("PlayerModule", playerModule as PlayerModule)
+        script.bind("MobModule", mobModule as MobModule)
+        script.bind("ScriptModule", scriptModule as ScriptModule)
+        script.bind("WorldModule", worldModule as WorldModule)
+        script.bind("ItemModule", itemModule as ItemModule)
         script.startLogging()
         script.parse()
         CoordTag.reload(game.resource)
     }
 
     companion object {
+        internal fun getASTClassNode(arg: String): ClassNode? {
+            return when (arg) {
+                "GameModule" -> ClassHelper.make(GameModule::class.java)
+                "TeamModule" -> ClassHelper.make(TeamModule::class.java)
+                "LobbyModule" -> ClassHelper.make(LobbyModule::class.java)
+                "PlayerModule" -> ClassHelper.make(PlayerModule::class.java)
+                "MobModule" -> ClassHelper.make(MobModule::class.java)
+                "ScriptModule" -> ClassHelper.make(ScriptModule::class.java)
+                "WorldModule" -> ClassHelper.make(WorldModule::class.java)
+                "ItemModule" -> ClassHelper.make(ItemModule::class.java)
+                else -> null
+            }
+        }
+
         fun getGameModule(game: Game): GameModuleService {
             return game.module.gameModule
         }
@@ -108,8 +121,6 @@ class Module internal constructor(val game: Game) {
                     teamModule.terminate()
                     gameModule.terminate()
                     scriptModule.terminate()
-                    game.resource.script.closeIO()
-                    bind.clear()
                 }
             }
         } catch (e: Exception) {

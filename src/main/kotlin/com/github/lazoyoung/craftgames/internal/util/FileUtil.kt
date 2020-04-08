@@ -101,13 +101,5 @@ class FileUtil {
         fun getBufferedReader(file: File): BufferedReader {
             return BufferedReader(InputStreamReader(FileInputStream(file), Main.charset))
         }
-
-        /**
-         * Returns a buffered writer of [file]
-         * with the charset(encoder) defined in config.yml
-         */
-        fun getBufferedWriter(file: File, append: Boolean): BufferedWriter {
-            return BufferedWriter(OutputStreamWriter(FileOutputStream(file, append), Main.charset))
-        }
     }
 }

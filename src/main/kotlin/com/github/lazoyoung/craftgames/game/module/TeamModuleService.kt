@@ -46,12 +46,12 @@ class TeamModuleService(private val game: Game) : TeamModule {
         val legacy = scoreboard.getEntryTeam(name)
 
         if (legacy?.removeEntry(name) == true) {
-            script.getLogger()?.println("$name is removed from team ${legacy.name}.")
+            script.printDebug("$name is removed from team ${legacy.name}.")
         }
 
         team.addEntry(name)
         player.scoreboard = scoreboard
-        script.getLogger()?.println("$name is assigned to team ${team.name}.")
+        script.printDebug("$name is assigned to team ${team.name}.")
     }
 
     override fun assignPlayers(number: Int, team: Team) {
@@ -83,6 +83,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
 
     internal fun terminate() {
         spawnTag.clear()
+        scoreboard.teams.forEach(Team::unregister)
     }
 
 }

@@ -107,15 +107,18 @@ class ServerListener : Listener {
     @EventHandler
     fun onEntityDeath(event: EntityDeathEvent) {
         val entity = event.entity
-        val killer = (entity as? Player)?.killer
+        val killer = entity.killer
                 ?.let { PlayerData.get(it) } as? GamePlayer
                 ?: return
+        val player = killer.getPlayer()
         val game = killer.getGame()
+        val service = Module.getPlayerModule(game)
 
         if (game.phase == Game.Phase.PLAYING) {
             Bukkit.getPluginManager().callEvent(
-                    GamePlayerKillEvent(killer, event.entity, game)
+                    GamePlayerKillEvent(killer, entity, game)
             )
+            service.killTriggers[player.uniqueId]?.accept(entity)
         }
     }
 

@@ -11,7 +11,6 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
-import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
 import com.sk89q.worldedit.WorldEdit
@@ -107,7 +106,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
             state.inventory.clear()
             state.lootTable = loot
             state.update(true, false)
-            script.getLogger()?.println("Filled a container at $ident with ${loot.key}")
+            script.printDebug("Filled a container at $ident with ${loot.key}")
         }
     }
 
@@ -118,8 +117,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val filePath = game.resource.root.resolve(path)
         val file = filePath.toFile()
         val world = getWorld()
-        val maxBlocks = Main.getConfig()?.getInt("schematic-throttle")
-                ?: throw FaultyConfiguration("schematic-throttle is not defined in config.yml")
+        val maxBlocks = Main.getConfig()?.getInt("schematic-throttle", 10000) ?: 10000
         val format = ClipboardFormats.findByFile(file)
                 ?: throw IllegalArgumentException("Unable to resolve schematic file: $filePath")
         val ctag = CoordTag.get(game, tag)
@@ -134,7 +132,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
                     .getEditSession(BukkitAdapter.adapt(world), maxBlocks)
 
             ctag.getCaptures(game.map.id).filterIsInstance(BlockCapture::class.java).forEach { capture ->
-                script.getLogger()?.println("Started processing ${file.name} at ${ctag.name}/${capture.index}")
+                script.printDebug("Placing schematic ${file.name} at ${ctag.name}/${capture.index}")
 
                 try {
                     session.use {
@@ -143,12 +141,12 @@ class WorldModuleService(private val game: Game) : WorldModule {
                                 .to(BlockVector3.at(capture.x, capture.y, capture.z)).build()
 
                         Operations.complete(operation)
-                        script.getLogger()?.println("Schematic process complete.")
+                        script.printDebug("Schematic process complete.")
                     }
                 } catch (e: WorldEditException) {
                     e.printStackTrace()
                     script.writeStackTrace(e)
-                    script.getLogger()?.println("Schematic process failed!")
+                    script.print("Failed to place schematic ${file.name} at ${ctag.name}/${capture.index}!")
                 }
             }
         }
@@ -177,7 +175,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val player = playerData.getPlayer()
         val playerModule = Module.getPlayerModule(game)
         val tag = playerModule.getSpawnpoint(playerData)
-        val log = game.resource.script.getLogger()
+        val script = game.resource.script
         val location: Location
         val notFound = ComponentBuilder("Unable to locate spawnpoint!")
                 .color(ChatColor.RED).create().first() as TextComponent
@@ -186,7 +184,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
             location = world.spawnLocation
             location.y = world.getHighestBlockYAt(location).toDouble()
             player.sendMessage(notFound)
-            log?.println("Spawn tag is not defined for ${player.name}.")
+            script.print("Spawn tag is not defined for ${player.name}.")
         } else {
             val mapID = game.map.id
             val captures = tag.getCaptures(mapID)
@@ -195,7 +193,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
                 location = world.spawnLocation
                 location.y = world.getHighestBlockYAt(location).toDouble()
                 player.sendMessage(notFound)
-                log?.println("Spawn tag \'${tag.name}\' is not captured in: $mapID")
+                script.print("Spawn tag \'${tag.name}\' is not captured in: $mapID")
             } else {
                 val c = if (index != null) {
                     captures[index % captures.size] as SpawnCapture

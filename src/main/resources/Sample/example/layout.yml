@@ -13,11 +13,10 @@ maps:
     alias: Lobby for this game
     path: lobby
     lobby: true
-kits:
-  path: data/kits
+kit:
+  path: data/kit
 script:
-  file:
-    path: core.groovy
+  path: script
+  main: core.groovy
 coordinate-tags:
-  file:
-    path: data/coordinate-tags.yml
+  file: data/coordinate-tags.yml

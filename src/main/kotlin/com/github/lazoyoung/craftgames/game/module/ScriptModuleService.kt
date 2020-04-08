@@ -27,9 +27,9 @@ class ScriptModuleService internal constructor(
         val legacy = this.events.put(eventType, callback)
 
         if (legacy == null) {
-            script.getLogger()?.println("Attached an event monitor: $eventType")
+            script.printDebug("Attached an event monitor: $eventType")
         } else {
-            script.getLogger()?.println("Replaced an event monitor: $eventType")
+            script.printDebug("Replaced an event monitor: $eventType")
         }
     }
 
@@ -40,12 +40,16 @@ class ScriptModuleService internal constructor(
     override fun detachEventMonitor(eventType: EventType) {
         if (events.containsKey(eventType)) {
             events.remove(eventType)
-            script.getLogger()?.println("Detached an event monitor: $eventType")
+            script.printDebug("Detached an event monitor: $eventType")
         }
     }
 
     override fun detachEventMonitor(eventType: String) {
         detachEventMonitor(EventType.forName(eventType))
+    }
+
+    override fun setLogVerbosity(verbose: Boolean) {
+        script.debug = verbose
     }
 
     override fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask {
@@ -166,6 +170,7 @@ class ScriptModuleService internal constructor(
     }
 
     internal fun terminate() {
+        script.clear()
         events.clear()
         tasks.forEach(BukkitTask::cancel)
     }

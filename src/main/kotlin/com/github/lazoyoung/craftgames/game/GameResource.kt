@@ -85,15 +85,15 @@ class GameResource(val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
-         * Load CoordTags, location, and kit.
+         * Load CoordTags, and kit.
          */
-        val tagPath = layoutConfig.getString("coordinate-tags.file.path")
+        val tagPath = layoutConfig.getString("coordinate-tags.file")
                 ?: throw FaultyConfiguration("coordinate-tags.file.path is not defined in ${layoutFile.toPath()}.")
 
         tagFile = root.resolve(tagPath).toFile()
         tagFile.parentFile?.mkdirs()
 
-        val kitPath = layoutConfig.getString("kits.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
+        val kitPath = layoutConfig.getString("kit.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
 
         if (!tagFile.isFile && !tagFile.createNewFile())
             throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
@@ -189,19 +189,24 @@ class GameResource(val gameName: String) {
         /*
          * Load scripts from config
          */
-        val scriptPath = layoutConfig.getString("script.file.path")
+        val scriptPathStr = layoutConfig.getString("script.path")
                 ?: throw FaultyConfiguration("Script path is not defined in ${layoutFile.toPath()}")
-        val scriptFile = layoutFile.parentFile!!.resolve(scriptPath)
+        val scriptMainStr = layoutConfig.getString("script.main")
+                ?: throw FaultyConfiguration("Main script path is not defined in ${layoutFile.toPath()}")
+        val scriptPath = root.resolve(scriptPathStr)
+        val scriptMain = scriptPath.resolve(scriptMainStr).toFile()
 
         try {
-            if (!scriptFile.isFile)
-                throw FaultyConfiguration("Unable to locate the script: $scriptFile")
+            if (!Files.isDirectory(scriptPath))
+                throw FaultyConfiguration("This is not a directory: $scriptPath")
+            if (!scriptMain.isFile)
+                throw FaultyConfiguration("This is not a file: $scriptMain")
         } catch (e: SecurityException) {
-            throw RuntimeException("Unable to read script: $scriptFile", e)
+            throw RuntimeException("Unable to read script: $scriptPathStr", e)
         }
 
         try {
-            script = ScriptFactory.get(scriptFile)
+            script = ScriptFactory.get(scriptPath, scriptMain)
         } catch (e: ScriptEngineNotFound) {
             Main.logger.warning(e.localizedMessage)
         }

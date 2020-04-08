@@ -33,6 +33,8 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     private var playerSpawn: CoordTag? = null
     private var editorSpawn: CoordTag? = null
     private var spectatorSpawn: CoordTag? = null
+    internal val killTriggers = HashMap<UUID, Consumer<LivingEntity>>()
+    private val script = game.resource.script
 
     override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
@@ -77,7 +79,27 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         setSpawnpoint(PlayerType.valueOf(type), spawnTag)
     }
 
-    override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {}
+    override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {
+        val name = killer.name
+        val uid = killer.uniqueId
+
+        if (trigger == null) {
+            if (killTriggers.containsKey(uid)) {
+                killTriggers.remove(uid)
+                script.printDebug("A Kill trigger is un-bound from: $name")
+            }
+        } else {
+            killTriggers[uid] = Consumer { livingEntity ->
+                try {
+                    trigger.accept(livingEntity)
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    script.print("Error occurred in Kill trigger: $name")
+                }
+            }
+            script.printDebug("A kill trigger is bound to $name.")
+        }
+    }
 
     override fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?) {}
 

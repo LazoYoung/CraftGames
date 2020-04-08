@@ -76,7 +76,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
             }
         }
 
-        script.getLogger()?.println("Spawned $counter items across all ${ctag.name} captures.")
+        script.printDebug("Spawned $counter items across all ${ctag.name} captures.")
     }
 
     override fun getLootTable(key: NamespacedKey): LootTable? {
@@ -158,7 +158,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            script.getLogger()?.println("Failed to apply kit: $kitName")
+            script.print("Failed to apply kit: $kitName")
             script.writeStackTrace(e)
             return
         } finally {
@@ -171,7 +171,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
         }
 
         player.updateInventory()
-        script.getLogger()?.println("Kit $kitName is applied to ${player.name}")
+        script.printDebug("Kit $kitName is applied to ${player.name}")
     }
 
     override fun saveKit(name: String, player: Player) {

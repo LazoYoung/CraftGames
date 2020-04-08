@@ -51,7 +51,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             mobList.add(entity)
         }
 
-        game.resource.script.getLogger()?.println("Spawned ${mobList.size} $typeKey")
+        game.resource.script.print("Spawned ${mobList.size} $typeKey")
         return mobList
     }
 
@@ -90,7 +90,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             mobList.add(entity)
         }
 
-        game.resource.script.getLogger()?.println("Spawned ${mobList.size} $typeKey")
+        game.resource.script.print("Spawned ${mobList.size} $typeKey")
         return mobList
     }
 

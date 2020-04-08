@@ -2,17 +2,32 @@
 # https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
 file-encoding: UTF-8
 
+
 # Shall we install the game sample?
 install-sample: false
+
+
+# Script settings
+script:
+
+  # Available engines: Groovy, JSR223
+  engine: Groovy
+
+  # Verbose output to console for debugging
+  verbose: false
+
 
 # Limits the number of blocks in one schematic to be processed.
 schematic-throttle: 10000
 
+
 # The prefix of generated world's directory name.
 world-label: game
 
+
 # Invincible duration (in ticks) applied to a respawning player.
 spawn-invincible: 60
+
 
 # Default fallback location when leaving game.
 #exit-fallback:
@@ -22,6 +37,7 @@ spawn-invincible: 60
 #  z: 0.0
 #  yaw: 0.0
 #  pitch: 0.0
+
 
 # Specification for every games.
 # The root folder is equivalent to: plugins/CraftGames/

@@ -89,7 +89,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         val format = economy.format(amount)
 
         playerData.moneyReward = amount
-        game.resource.script.getLogger()?.println("Reward $format is assigned to ${player.name}.")
+        game.resource.script.printDebug("Reward $format is assigned to ${player.name}.")
     }
 
     override fun setItemReward(player: Player, lootTable: LootTable) {
@@ -100,7 +100,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                 ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")
 
         playerData.itemReward = lootTable
-        game.resource.script.getLogger()?.println("Reward ${lootTable.key} is assigned to ${player.name}.")
+        game.resource.script.printDebug("Reward ${lootTable.key} is assigned to ${player.name}.")
     }
 
     override fun broadcast(message: String) {
