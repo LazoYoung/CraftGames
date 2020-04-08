@@ -1,9 +1,16 @@
+# Build tool
 .gradle/**
-.idea/**
 build/**
 target/**
+
+# Legacy code
 src/legacy/**
 
+# IntelliJ IDEA
+.idea/**
 *.iml
 *.ipr
 *.iws
+
+# Patch files
+*.patch
