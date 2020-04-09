@@ -4,10 +4,10 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
+import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
-import org.bukkit.event.Event
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -19,11 +19,12 @@ import java.util.function.Consumer
 class ScriptModuleService internal constructor(
         private val resource: GameResource
 ) : ScriptModule {
-    internal val events = HashMap<EventType, Consumer<in Event>>()
+
+    internal val events = HashMap<EventType, Consumer<in GameEvent>>()
     private val script = resource.script
     private val tasks = ArrayList<BukkitTask>()
 
-    override fun attachEventMonitor(eventType: EventType, callback: Consumer<in Event>) {
+    override fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>) {
         val legacy = this.events.put(eventType, callback)
 
         if (legacy == null) {
@@ -33,7 +34,7 @@ class ScriptModuleService internal constructor(
         }
     }
 
-    override fun attachEventMonitor(eventType: String, callback: Consumer<in Event>) {
+    override fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>) {
         attachEventMonitor(EventType.forName(eventType), callback)
     }
 

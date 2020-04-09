@@ -34,6 +34,19 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
             call: MethodCall
     ): MutableList<MethodNode> {
         val nodeList = ArrayList<MethodNode>()
+        val closureExp = enclosingClosure?.closureExpression
+
+        if (closureExp?.isParameterSpecified == true) {
+            val receiverNodes = call.receiver.text.split('.')
+
+            for (arg in closureExp.parameters.map { it.name }) {
+                if (receiverNodes.contains(arg)
+                        || argumentList.map { it.text }.contains(arg)) {
+                    nodeList.add(makeDynamic(call, receiver))
+                    return nodeList
+                }
+            }
+        }
 
         loop@ for (methodNode in receiver.getMethods(name)) {
             if (methodNode.parameters.size != argumentTypes.size) {

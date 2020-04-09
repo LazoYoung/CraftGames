@@ -50,35 +50,35 @@ class Module internal constructor(val game: Game) {
             }
         }
 
-        fun getGameModule(game: Game): GameModuleService {
+        internal fun getGameModule(game: Game): GameModuleService {
             return game.module.gameModule
         }
 
-        fun getTeamModule(game: Game): TeamModuleService {
+        internal fun getTeamModule(game: Game): TeamModuleService {
             return game.module.teamModule
         }
 
-        fun getLobbyModule(game: Game): LobbyModuleService {
+        internal fun getLobbyModule(game: Game): LobbyModuleService {
             return game.module.lobbyModule
         }
 
-        fun getPlayerModule(game: Game): PlayerModuleService {
+        internal fun getPlayerModule(game: Game): PlayerModuleService {
             return game.module.playerModule
         }
 
-        fun getMobModule(game: Game): MobModuleService {
+        internal fun getMobModule(game: Game): MobModuleService {
             return game.module.mobModule
         }
 
-        fun getScriptModule(game: Game): ScriptModuleService {
+        internal fun getScriptModule(game: Game): ScriptModuleService {
             return game.module.scriptModule
         }
 
-        fun getWorldModule(game: Game): WorldModuleService {
+        internal fun getWorldModule(game: Game): WorldModuleService {
             return game.module.worldModule
         }
 
-        fun getItemModule(game: Game): ItemModuleService {
+        internal fun getItemModule(game: Game): ItemModuleService {
             return game.module.itemModule
         }
 

@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.event.GameEvent
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
 import org.bukkit.event.Event
@@ -14,9 +15,9 @@ import java.util.function.Consumer
 
 interface ScriptModule {
 
-    fun attachEventMonitor(eventType: EventType, callback: Consumer<in Event>)
+    fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>)
 
-    fun attachEventMonitor(eventType: String, callback: Consumer<in Event>)
+    fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>)
 
     fun detachEventMonitor(eventType: EventType)
 
