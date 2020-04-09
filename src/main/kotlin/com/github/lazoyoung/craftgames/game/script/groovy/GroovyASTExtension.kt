@@ -61,6 +61,9 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
                 val paramType = element.value.type
 
                 if (argType != paramType) {
+                    if (!argType.isResolved || !paramType.isResolved)
+                        continue@loop
+
                     try {
                         val argClazz = argType.typeClass
                         val paramClazz = paramType.typeClass
