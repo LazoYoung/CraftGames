@@ -125,32 +125,34 @@ class ServerListener : Listener {
     @EventHandler
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
-        val gamePlayer = PlayerData.get(player) as? GamePlayer ?: return
-        val game = gamePlayer.getGame()
+        val playerData = PlayerData.get(player) ?: return
+        val game = playerData.getGame()
 
-        if (game.phase != Game.Phase.PLAYING)
-            return
+        if (game.editMode) {
+            Module.getWorldModule(game).teleportSpawn(playerData, null)
+        }
+        else if (playerData is GamePlayer && game.phase == Game.Phase.PLAYING) {
+            val playerModule = Module.getPlayerModule(game)
+            val relayEvent = GamePlayerDeathEvent(playerData, game)
 
-        val playerModule = Module.getPlayerModule(game)
-        val relayEvent = GamePlayerDeathEvent(gamePlayer, game)
+            Bukkit.getPluginManager().callEvent(relayEvent)
 
-        Bukkit.getPluginManager().callEvent(relayEvent)
+            if (!relayEvent.isCancelled) {
+                player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
+                event.isCancelled = true
 
-        if (!relayEvent.isCancelled) {
-            player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
-            event.isCancelled = true
+                // React to the trigger result
+                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                    if (!playerData.isOnline())
+                        return@Runnable
 
-            // React to the trigger result
-            Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                if (!gamePlayer.isOnline())
-                    return@Runnable
-
-                if (relayEvent.canRespawn()) {
-                    playerModule.respawn(gamePlayer)
-                } else {
-                    playerModule.eliminate(player)
-                }
-            })
+                    if (relayEvent.canRespawn()) {
+                        playerModule.respawn(playerData)
+                    } else {
+                        playerModule.eliminate(player)
+                    }
+                })
+            }
         }
     }
 

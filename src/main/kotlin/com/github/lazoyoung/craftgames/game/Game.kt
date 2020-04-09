@@ -413,8 +413,6 @@ class Game(
     internal fun leave(playerData: PlayerData) {
         val player = playerData.getPlayer()
         val uid = player.uniqueId
-        val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
-        val lobby = Module.getLobbyModule(this)
         val event = GameLeaveEvent(this, player, playerData.getPlayerType())
 
         // Clear data
@@ -422,6 +420,15 @@ class Game(
         ActionbarTask.clearAll(player)
         module.ejectPlayer(playerData)
         players.remove(uid)
+
+        exit(player)
+        player.sendMessage("You left the game.")
+        Bukkit.getPluginManager().callEvent(event)
+    }
+
+    internal fun exit(player: Player) {
+        val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
+        val lobby = Module.getLobbyModule(this)
 
         if (lobby.exitLoc != null) {
             player.teleport(lobby.exitLoc!!, cause)
@@ -462,9 +469,6 @@ class Game(
                 }
             })
         }
-
-        player.sendMessage("You left the game.")
-        Bukkit.getPluginManager().callEvent(event)
     }
 
     fun getPlayers(): List<Player> {
