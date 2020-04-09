@@ -24,6 +24,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
     override fun createTeam(teamName: String, color: ChatColor): Team {
         val team = scoreboard.registerNewTeam(teamName)
 
+        team.color = color
         team.prefix = color.toString()
         team.suffix = ChatColor.RESET.toString()
         return team

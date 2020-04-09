@@ -40,7 +40,7 @@ class GameCommand : CommandBase {
                         .event(ClickEvent(SUGGEST_CMD, "/game kit "))
                     .append(PREV_NAV_END, RESET_FORMAT)
                     .append("- PAGE NAVIGATION -", RESET_FORMAT)
-                    .append(NEXT_NAV_END)
+                    .append(NEXT_NAV_END, RESET_FORMAT)
                     .append(BORDER_STRING, RESET_FORMAT)
                     .create()
             )
