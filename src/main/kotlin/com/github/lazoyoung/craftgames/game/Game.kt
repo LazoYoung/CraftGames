@@ -204,6 +204,7 @@ class Game(
      * @throws FaultyConfiguration is thrown if map configuration is not valid.
      */
     fun start(mapID: String?, votes: Int? = null, result: Consumer<Game>? = null) {
+        val gameModule = Module.getGameModule(this)
         val thisMap = if (mapID == null) {
             resource.getRandomMap()
         } else {
@@ -217,13 +218,13 @@ class Game(
         }
 
         thisMap.generate(this, Consumer {
-            getPlayers().forEach { player ->
-                if (votes == null) {
-                    player.sendMessage("${map.alias} is randomly chosen!")
-                } else {
-                    player.sendMessage("${map.alias} is chosen! It has received $votes vote(s).")
-                }
+            if (votes == null) {
+                gameModule.broadcast("${map.alias} is randomly chosen!")
+            } else {
+                gameModule.broadcast("${map.alias} is chosen! It has received $votes vote(s).")
             }
+
+            map.description.forEach(gameModule::broadcast)
             result?.accept(this)
             updatePhase(Phase.PLAYING)
         })
