@@ -1,13 +1,13 @@
 # Build tool
-.gradle/**
-build/**
-target/**
+.gradle/
+build/
+target/
 
 # Legacy code
-src/legacy/**
+src/legacy/
 
 # IntelliJ IDEA
-.idea/**
+.idea/
 *.iml
 *.ipr
 *.iws

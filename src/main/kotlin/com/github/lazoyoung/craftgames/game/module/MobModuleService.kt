@@ -7,7 +7,6 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import io.lumine.xikage.mythicmobs.MythicMobs
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
@@ -20,6 +19,8 @@ import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule {
 
+    private val script = game.resource.script
+
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
         val world = game.map.world ?: throw MapNotFound()
@@ -27,8 +28,9 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
 
-        if (capture.isEmpty())
+        if (capture.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
+        }
 
         capture.forEach {
             it as SpawnCapture
@@ -38,7 +40,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             val entity: Entity
 
             if (!entityType.isSpawnable) {
-                throw IllegalArgumentException("Unable to spawn entity: $typeKey")
+                throw RuntimeException("Entity is not spawn-able: $typeKey")
             }
 
             entity = world.spawnEntity(loc, entityType)
@@ -51,7 +53,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             mobList.add(entity)
         }
 
-        game.resource.script.print("Spawned ${mobList.size} $typeKey")
+        script.printDebug("Spawned ${mobList.size} $typeKey")
         return mobList
     }
 
@@ -63,23 +65,31 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
     }
 
     override fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob> {
-        if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null)
-            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
 
-        // TODO MythicMobs should be referred via Reflection to eliminate local dependency
+        if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null) {
+            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
+        }
+
+        val world = game.map.world ?: throw MapNotFound()
         val mapID = game.map.id
+
+        val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
+        val bukkitAPIHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
+        val mythicMobs = mythicMobsClass.getMethod("inst").invoke(null, null)
+        val bukkitAPIHelper = mythicMobsClass.getMethod("getAPIHelper").invoke(mythicMobs, null)
+        val spawnMethod = bukkitAPIHelperClass.getMethod("spawnMythicMob", String::class.java, Location::class.java, Int::class.java)
         val capture = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
 
-        if (capture.isEmpty())
+        if (capture.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
+        }
 
         capture.forEach {
             it as SpawnCapture
-            val loc = Location(game.map.world!!, it.x, it.y, it.z, it.yaw, it.pitch)
-            val mmAPI = MythicMobs.inst().apiHelper
-            val entity = mmAPI.spawnMythicMob(name, loc, level)
+            val loc = Location(world, it.x, it.y, it.z, it.yaw, it.pitch)
+            val entity = spawnMethod.invoke(bukkitAPIHelper, name, loc, level) as Entity
             typeKey = entity.type.key
 
             if (entity !is Mob) {
@@ -90,7 +100,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             mobList.add(entity)
         }
 
-        game.resource.script.print("Spawned ${mobList.size} $typeKey")
+        script.printDebug("Spawned ${mobList.size} $typeKey")
         return mobList
     }
 

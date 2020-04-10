@@ -273,7 +273,7 @@ class CoordtagCommand : CommandBase {
                     }
                     else -> {
                         CoordTag.create(game.resource, game.map.id, mode, args[1])
-                        ActionbarTask(sender, "Tag ${args[1]} has been created.").start()
+                        ActionbarTask(sender, "&6Tag &r${args[1]} &6has been created.").start()
                     }
                 }
             }
@@ -291,7 +291,7 @@ class CoordtagCommand : CommandBase {
                         TagMode.SPAWN -> {
                             val loc = sender.location
                             SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID).add(tag)
-                            ActionbarTask(sender, "&aCaptured a spawnpoint.").start()
+                            ActionbarTask(sender, "&6Captured a spawnpoint.").start()
                         }
                         TagMode.BLOCK -> {
                             val dialog = ActionbarTask(
@@ -300,7 +300,7 @@ class CoordtagCommand : CommandBase {
 
                             pdata.requestBlockPrompt(Consumer {
                                 BlockCapture(it.x, it.y, it.z, pdata.mapID).add(tag)
-                                ActionbarTask(sender, "&aCaptured a block.").start()
+                                ActionbarTask(sender, "&6Captured a block.").start()
                                 dialog.clear()
                             })
                         }
@@ -311,7 +311,7 @@ class CoordtagCommand : CommandBase {
 
                             pdata.requestAreaPrompt(BiConsumer { b1, b2 ->
                                 AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID).add(tag)
-                                ActionbarTask(sender, "&aCaptured an area.").start()
+                                ActionbarTask(sender, "&6Captured an area.").start()
                                 dialog.clear()
                             })
                         }
@@ -332,13 +332,13 @@ class CoordtagCommand : CommandBase {
                     sender.sendMessage("[CoordTag] ${args[1]} does not exist.")
                 } else if (args.size == 2) {
                     tag.remove()
-                    ActionbarTask(sender, "&aTag '$tagName' has been removed.").start()
+                    ActionbarTask(sender, "&6Tag &r$tagName &6has been removed.").start()
                 } else {
                     val capture = tag.getCaptures(pdata.mapID).firstOrNull { it.index == args[2].toIntOrNull() }
 
                     if (capture != null) {
                         tag.removeCapture(capture)
-                        ActionbarTask(sender, "&aCapture '$tagName/${capture.index}' has been removed.").start()
+                        ActionbarTask(sender, "&6Capture &r$tagName&6/&r${capture.index} &6has been removed.").start()
                     } else {
                         sender.sendMessage("[CoordTag] Unknown capture index: ${args[2]}")
                     }
