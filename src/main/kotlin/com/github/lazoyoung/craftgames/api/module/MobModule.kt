@@ -32,6 +32,7 @@ interface MobModule {
      * @param level The level of this MythicMob(s).
      * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Spawnpoint Tag.
      * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
+     * @throws RuntimeException is thrown if plugin fails to access MythicMobs API.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
     fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob>

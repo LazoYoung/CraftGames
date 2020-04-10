@@ -15,6 +15,8 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
 import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule {
@@ -72,32 +74,48 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
         val world = game.map.world ?: throw MapNotFound()
         val mapID = game.map.id
-
-        val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
-        val bukkitAPIHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
-        val mythicMobs = mythicMobsClass.getMethod("inst").invoke(null, null)
-        val bukkitAPIHelper = mythicMobsClass.getMethod("getAPIHelper").invoke(mythicMobs, null)
-        val spawnMethod = bukkitAPIHelperClass.getMethod("spawnMythicMob", String::class.java, Location::class.java, Int::class.java)
-        val capture = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
+        val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
+        val bukkitAPIHelper: Any
+        val spawnMethod: Method
 
-        if (capture.isEmpty()) {
+        try {
+            val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
+            val bukkitAPIHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
+            val mythicMobs = mythicMobsClass.getMethod("inst").invoke(null)
+            bukkitAPIHelper = mythicMobsClass.getMethod("getAPIHelper").invoke(mythicMobs)
+            spawnMethod = bukkitAPIHelperClass.getMethod("spawnMythicMob", String::class.java, Location::class.java, Int::class.java)
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
+
+        if (captures.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
         }
 
-        capture.forEach {
-            it as SpawnCapture
-            val loc = Location(world, it.x, it.y, it.z, it.yaw, it.pitch)
-            val entity = spawnMethod.invoke(bukkitAPIHelper, name, loc, level) as Entity
-            typeKey = entity.type.key
+        captures.forEach { capture ->
+            capture as SpawnCapture
+            val loc = Location(world, capture.x, capture.y, capture.z, capture.yaw, capture.pitch)
+            val entity: Entity
 
-            if (entity !is Mob) {
-                entity.remove()
-                throw IllegalArgumentException("This is not a Mob: $typeKey")
+            try {
+                entity = spawnMethod.invoke(bukkitAPIHelper, name, loc, level) as Entity
+                typeKey = entity.type.key
+
+                if (entity !is Mob) {
+                    entity.remove()
+                    throw IllegalArgumentException("This is not a Mob: $typeKey")
+                }
+
+                mobList.add(entity)
+            } catch (e: InvocationTargetException) {
+                (e.cause as? Exception)?.let {
+                    if (it::class.java.simpleName == "InvalidMobTypeException") {
+                        throw IllegalArgumentException("Unable to identify MythicMob: $name")
+                    }
+                }
             }
-
-            mobList.add(entity)
         }
 
         script.printDebug("Spawned ${mobList.size} $typeKey")

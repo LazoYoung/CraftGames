@@ -195,8 +195,6 @@ class Game(
     /**
      * Leave the lobby (if present) and start the game.
      *
-     * TODO Exclude players who ain't ready.
-     *
      * @param mapID Select which map to play.
      * @param result Consume the generated world.
      * @throws MapNotFound is thrown if map is not found.
