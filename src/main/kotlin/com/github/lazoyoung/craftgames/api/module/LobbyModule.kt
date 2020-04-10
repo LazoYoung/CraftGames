@@ -9,7 +9,29 @@ interface LobbyModule {
      *
      * @param spawnTag the coordinate tag which defines spawnpoint.
      */
+    @Deprecated("CoordTag is not relevant to define lobby spawnpoint.",
+            ReplaceWith("setSpawnpoint"), DeprecationLevel.ERROR)
     fun setSpawn(spawnTag: String)
+
+    /**
+     * Set spawnpoint for this lobby.
+     *
+     * @param x Coordinate in X-axis.
+     * @param y Coordinate in Y-axis.
+     * @param z Coordinate in Z-axis.
+     */
+    fun setSpawnpoint(x: Double, y: Double, z: Double)
+
+    /**
+     * Set spawnpoint for this lobby.
+     *
+     * @param x Coordinate in X-axis.
+     * @param y Coordinate in Y-axis.
+     * @param z Coordinate in Z-axis.
+     * @param yaw Yaw degree.
+     * @param pitch Pitch degree.
+     */
+    fun setSpawnpoint(x: Double, y: Double, z: Double, yaw: Float, pitch: Float)
 
     /**
      * Set timer for this lobby. The game starts when the timer runs out.

@@ -4,9 +4,6 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.LobbyModule
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.ChatColor
@@ -25,7 +22,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
 
     internal var exitLoc: Location? = null
     internal var exitServer: String? = null
-    private var tag: CoordTag? = null
+    private var loc: Location? = null
     private var constTimer = Timer(TimeUnit.SECOND, 30).toSecond()
     private var timer = constTimer
     private val voted = ArrayList<UUID>()
@@ -36,7 +33,15 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     private var serviceTask: BukkitRunnable? = null
 
     override fun setSpawn(spawnTag: String) {
-        tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
+        //tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
+    }
+
+    override fun setSpawnpoint(x: Double, y: Double, z: Double) {
+        loc = Location(null, x, y, z)
+    }
+
+    override fun setSpawnpoint(x: Double, y: Double, z: Double, yaw: Float, pitch: Float) {
+        loc = Location(null, x, y, z, yaw, pitch)
     }
 
     override fun setTimer(timer: Timer) {
@@ -77,15 +82,14 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     }
 
     internal fun join(player: Player) {
-        val c = tag?.getCaptures(game.map.id)?.random() as SpawnCapture?
         val plugin = Main.instance
         val min = Module.getGameModule(game).minPlayer
         val count = Module.getPlayerModule(game).getLivingPlayers().size
         val world = game.resource.lobbyMap.world
                 ?: throw MapNotFound("Lobby world is not loaded!")
 
-        if (c != null) {
-            player.teleport(Location(world, c.x, c.y, c.z, c.yaw, c.pitch))
+        if (loc != null) {
+            player.teleport(Location(world, loc!!.x, loc!!.y, loc!!.z, loc!!.yaw, loc!!.pitch))
         } else {
             player.teleport(world.spawnLocation)
             player.sendMessage(notFound)
