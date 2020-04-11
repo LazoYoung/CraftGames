@@ -188,7 +188,7 @@ class GameCommand : CommandBase {
                     "select", "test" -> {
                         if (args.size > 2) {
                             try {
-                                val name = args[2].toLowerCase()
+                                val name = args[2]
                                 Module.getItemModule(game).selectKit(name, sender)
                                 Module.getItemModule(game).applyKit(sender)
                                 sender.sendMessage("Applied kit: $name")
@@ -202,7 +202,7 @@ class GameCommand : CommandBase {
                     }
                     "create", "save" -> {
                         if (args.size > 2) {
-                            val name = args[2].toLowerCase()
+                            val name = args[2]
 
                             Module.getItemModule(game).saveKit(name, sender)
                             sender.sendMessage("Kit \'$name\' has been saved.")
@@ -214,7 +214,7 @@ class GameCommand : CommandBase {
                     "remove", "delete" -> {
                         if (args.size > 2) {
                             try {
-                                val name = args[2].toLowerCase()
+                                val name = args[2]
 
                                 game.resource.kitData.remove(name)
                                 sender.sendMessage("Removed kit: $name")
