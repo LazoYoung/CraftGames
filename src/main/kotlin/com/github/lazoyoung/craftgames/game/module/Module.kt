@@ -22,17 +22,22 @@ class Module internal constructor(val game: Game) {
     private var terminateSignal = false
 
     init {
-        script.bind("GameModule", gameModule as GameModule)
-        script.bind("TeamModule", teamModule as TeamModule)
-        script.bind("LobbyModule", lobbyModule as LobbyModule)
-        script.bind("PlayerModule", playerModule as PlayerModule)
-        script.bind("MobModule", mobModule as MobModule)
-        script.bind("ScriptModule", scriptModule as ScriptModule)
-        script.bind("WorldModule", worldModule as WorldModule)
-        script.bind("ItemModule", itemModule as ItemModule)
-        script.startLogging()
-        script.parse()
-        CoordTag.reload(game.resource)
+        try {
+            script.bind("GameModule", gameModule as GameModule)
+            script.bind("TeamModule", teamModule as TeamModule)
+            script.bind("LobbyModule", lobbyModule as LobbyModule)
+            script.bind("PlayerModule", playerModule as PlayerModule)
+            script.bind("MobModule", mobModule as MobModule)
+            script.bind("ScriptModule", scriptModule as ScriptModule)
+            script.bind("WorldModule", worldModule as WorldModule)
+            script.bind("ItemModule", itemModule as ItemModule)
+            script.startLogging()
+            script.parse()
+            CoordTag.reload(game.resource)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            game.forceStop(error = true)
+        }
     }
 
     companion object {

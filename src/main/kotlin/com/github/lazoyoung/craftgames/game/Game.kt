@@ -41,6 +41,9 @@ class Game(
 
     enum class JoinRejection { FULL, IN_GAME, GENERATING, TERMINATING }
 
+    /** List of players (regardless of PlayerState) **/
+    internal val players = ArrayList<UUID>()
+
     /** The state of game progress **/
     var phase = Phase.GENERATING
 
@@ -49,9 +52,6 @@ class Game(
 
     /** Map Handler **/
     var map = resource.lobbyMap
-
-    /** List of players (regardless of PlayerState) **/
-    internal val players = ArrayList<UUID>()
 
     companion object {
 

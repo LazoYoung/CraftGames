@@ -10,16 +10,27 @@ import groovy.util.GroovyScriptEngine
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import java.io.*
+import java.net.URI
 import java.nio.file.Path
 
 class ScriptGroovy(
         path: Path,
         mainFile: File
 ) : ScriptBase(path, mainFile, regex = "^${mainFile.name}$".toRegex()) {
+
+    companion object {
+        internal val registry = HashMap<URI, ScriptGroovy>()
+    }
+
     private var engine = GroovyScriptEngine(arrayOf(path.toUri().toURL()))
     private val bindings = Binding()
     private var script: Script? = null
     private var printWriter: PrintWriter? = null
+    private val uri: URI = mainFile.toURI()
+
+    init {
+        registry[uri] = this
+    }
 
     override fun bind(arg: String, obj: Any) {
         bindings.setVariable(arg, obj)
@@ -44,6 +55,7 @@ class ScriptGroovy(
 
     override fun print(message: String) {
         printWriter?.println(message)
+        printWriter?.flush()
     }
 
     override fun parse() {
@@ -73,5 +85,6 @@ class ScriptGroovy(
     override fun clear() {
         printWriter?.close()
         bindings.variables.clear()
+        registry.remove(uri)
     }
 }

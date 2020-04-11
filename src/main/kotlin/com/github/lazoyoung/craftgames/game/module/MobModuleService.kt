@@ -38,7 +38,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             it as SpawnCapture
             val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
             typeKey = entityType.key
-            val loc = Location(game.map.world!!, it.x, it.y, it.z, it.yaw, it.pitch)
+            val loc = Location(world, it.x, it.y, it.z, it.yaw, it.pitch)
             val entity: Entity
 
             if (!entityType.isSpawnable) {
