@@ -7,6 +7,8 @@ import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
+import org.bukkit.scoreboard.Objective
+import org.bukkit.scoreboard.Score
 import org.bukkit.scoreboard.Scoreboard
 import org.bukkit.scoreboard.Team
 import kotlin.math.roundToInt
@@ -40,6 +42,41 @@ class TeamModuleService(private val game: Game) : TeamModule {
 
     override fun getPlayers(team: Team): List<Player> {
         return team.entries.mapNotNull { Bukkit.getPlayer(it) }
+    }
+
+    override fun getFirstPlayerScore(objective: Objective): Score {
+        val players = Module.getPlayerModule(game).getLivingPlayers()
+        var topScore = objective.getScore(players.first().name)
+
+        players.forEach {
+            val score = objective.getScore(it.name)
+
+            if (score.score > topScore.score) {
+                topScore = score
+            }
+        }
+        return topScore
+    }
+
+    override fun getFirstTeam(objective: Objective): Team {
+        val teams = scoreboard.teams
+        var topTeam = teams.first()
+        var topScore = 0
+
+        if (teams.isEmpty()) {
+            throw IllegalStateException("No team is defined.")
+        }
+
+        teams.forEach {
+            val score = getPlayers(it).sumBy { p -> objective.getScore(p.name).score }
+
+            if (score > topScore) {
+                topScore = score
+                topTeam = it
+            }
+        }
+
+        return topTeam
     }
 
     override fun assignPlayer(player: Player, team: Team) {
@@ -84,6 +121,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
 
     internal fun terminate() {
         spawnTag.clear()
+        scoreboard.objectives.forEach(Objective::unregister)
         scoreboard.teams.forEach(Team::unregister)
     }
 

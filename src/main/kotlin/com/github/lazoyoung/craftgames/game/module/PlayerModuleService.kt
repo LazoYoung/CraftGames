@@ -147,8 +147,14 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                     return
                 }
 
+                val location = player.location
                 val frame = Timer(TimeUnit.SECOND, 1)
                 val format = timer.format(true)
+
+                if (location.y < -16.0) {
+                    location.y = -16.0
+                    player.teleport(location)
+                }
 
                 ActionbarTask(player, period = frame, text = *arrayOf("&eRespawning in $format."))
                         .start()

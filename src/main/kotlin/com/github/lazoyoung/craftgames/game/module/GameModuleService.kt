@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.event.GameFinishEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
+import com.github.lazoyoung.craftgames.event.GameTimeoutEvent
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
@@ -200,7 +201,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                     timer.subtract(TimeUnit.SECOND, 1)
 
                     if (livingPlayers.isEmpty() || timer.toSecond() < 1) {
-                        drawGame(Timer(TimeUnit.SECOND, 5))
+                        Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
                         this.cancel()
                         return
                     }

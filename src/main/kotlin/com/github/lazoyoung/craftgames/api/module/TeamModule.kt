@@ -2,6 +2,8 @@ package com.github.lazoyoung.craftgames.api.module
 
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
+import org.bukkit.scoreboard.Objective
+import org.bukkit.scoreboard.Score
 import org.bukkit.scoreboard.Scoreboard
 import org.bukkit.scoreboard.Team
 
@@ -16,6 +18,20 @@ interface TeamModule {
     fun getPlayerTeam(player: Player): Team?
 
     fun getPlayers(team: Team): List<Player>
+
+    /**
+     * Find which [Player] has the most [Score] compared to others.
+     *
+     * @param objective The objective of the scores to be compared.
+     */
+    fun getFirstPlayerScore(objective: Objective): Score
+
+    /**
+     * Find which [Team] has the most [Score] compared to others.
+     *
+     * @param objective The objective of the scores to be compared.
+     */
+    fun getFirstTeam(objective: Objective): Team
 
     /**
      * Assign [player] to [team].

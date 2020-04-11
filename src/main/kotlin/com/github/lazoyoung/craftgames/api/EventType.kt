@@ -29,6 +29,11 @@ enum class EventType (val clazz: Class<out GameEvent>) {
     GAME_LEAVE_EVENT(GameLeaveEvent::class.java),
 
     /**
+     * @see [GameTimeoutEvent]
+     */
+    GAME_TIMEOUT_EVENT(GameTimeoutEvent::class.java),
+
+    /**
      * @see [GameFinishEvent]
      */
     GAME_FINISH_EVENT(GameFinishEvent::class.java),
