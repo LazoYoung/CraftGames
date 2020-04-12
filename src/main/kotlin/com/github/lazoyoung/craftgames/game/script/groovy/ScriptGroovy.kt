@@ -59,6 +59,8 @@ class ScriptGroovy(
     }
 
     override fun parse() {
+        super.parse()
+
         val extensionClass = GroovyASTExtension::class.qualifiedName!!
         val transform = ASTTransformationCustomizer(CompileStatic::class.java)
         val imports = ImportCustomizer()

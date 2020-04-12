@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.game.script.jsr223
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.script.ScriptBase
-import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
 import java.io.*
 import java.nio.file.Path
@@ -15,7 +14,7 @@ class ScriptGroovyLegacy(
 ) : ScriptBase(path, mainFile, regex = "^Script\\d+\\.groovy$".toRegex()) {
     private val engine = GroovyScriptEngineFactory().scriptEngine
     private var script: CompiledScript? = null
-    private val reader = BufferedReader(FileUtil.getBufferedReader(mainFile))
+    private val reader = mainFile.bufferedReader(Main.charset)
     private var logger: PrintWriter? = null
     private val context = SimpleScriptContext()
     private val bindings: Bindings
@@ -45,6 +44,8 @@ class ScriptGroovyLegacy(
     }
 
     override fun parse() {
+        super.parse()
+
         script = (engine as Compilable).compile(reader)
     }
 

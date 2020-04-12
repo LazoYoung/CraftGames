@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.game.script
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.internal.exception.ScriptNotParsed
 import java.io.*
+import java.nio.file.Files
 import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -34,7 +35,25 @@ abstract class ScriptBase(
      *
      * If you want to use invokeFunction(), you must do parse() in advance!
      */
-    abstract fun parse()
+    open fun parse() {
+        val tmpPath = Files.createTempFile(mainFile.name, null)
+        val reader = mainFile.copyTo(tmpPath.toFile(), overwrite = true).bufferedReader(Main.charset)
+        val writer = mainFile.bufferedWriter(Main.charset)
+        var line = reader.readLine()
+
+        while (line != null) {
+            val replaced = line.replace(Regex("\\p{Cf}"), "")
+            line = reader.readLine()
+
+            writer.write(replaced)
+            writer.newLine()
+            writer.flush()
+        }
+
+        reader.close()
+        writer.close()
+        Files.delete(tmpPath)
+    }
 
     /**
      * Executes the script by the file passed to constructor.
