@@ -40,10 +40,29 @@ interface PlayerModule {
     @Deprecated("Replaced with GamePlayerDeathEvent", level = DeprecationLevel.ERROR)
     fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?)
 
+    @Deprecated("Replaced with GamePlayerDeathEvent.setRespawnTimer()", level = DeprecationLevel.ERROR)
     fun setRespawnTimer(player: Player, timer: Timer)
 
+    /**
+     * Set spawnpoint for certain [type][PlayerType] of players.
+     *
+     * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
+     *
+     * @param type Spawnpoint is exclusively set for the [PlayerType].
+     * @param spawnTag Name of the coordinate tag which captures spawnpoints.
+     * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
+     */
     fun setSpawnpoint(type: PlayerType, spawnTag: String)
 
+    /**
+     * Set spawnpoint for certain [type][PlayerType] of players.
+     *
+     * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
+     *
+     * @param type Spawnpoint is exclusively set for the [PlayerType] (represented by [String]).
+     * @param spawnTag Name of the coordinate tag which captures spawnpoints.
+     * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
+     */
     fun setSpawnpoint(type: String, spawnTag: String)
 
     @Deprecated("Name has changed.", ReplaceWith("setSpawnpoint"))

@@ -7,8 +7,19 @@ import org.bukkit.loot.LootTable
 
 interface ItemModule {
 
+    /**
+     * Spawn a floating item.
+     *
+     * @param tag Name of the coordinate tag designating the spawnpoint.
+     * @param itemStack [ItemStack] which represents attribute of the item.
+     */
     fun spawnItem(tag: String, itemStack: ItemStack)
 
+    /**
+     * Find [LootTable] by the [key][NamespacedKey].
+     *
+     * Custom LootTables can be added by installing datapacks in the server.
+     */
     fun getLootTable(key: NamespacedKey): LootTable?
 
     /**
@@ -44,6 +55,13 @@ interface ItemModule {
      */
     fun applyKit(player: Player)
 
+    /**
+     * Save kit with the given [name][String]. If there's an existing kit, this will overwrite it.
+     *
+     * The [Player]'s inventory and point effects are captured.
+     *
+     * @param name Name of the kit.
+     */
     fun saveKit(name: String, player: Player)
 
 }

@@ -60,7 +60,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         gamePlayer.toSpectator()
     }
 
-    @Deprecated("Replaced with GamePlayerDeathEvent.")
     override fun setRespawnTimer(player: Player, timer: Timer) {
         this.respawnTimer[player.uniqueId] = timer
     }

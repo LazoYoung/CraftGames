@@ -8,24 +8,57 @@ import org.bukkit.scoreboard.Team
 
 interface GameModule {
 
+    /**
+     * @return Remaining [time][Timer] for this game.
+     */
     fun getTimer(): Timer
 
+    /**
+     * Set remaining [time][Timer] for this game.
+     */
     fun setTimer(timer: Timer)
 
+    /**
+     * Set [minimum][min] and [maximum][max] number of player capacity.
+     */
     fun setPlayerCapacity(min: Int, max: Int)
 
+    /**
+     * After the game starts, you decide
+     * to allow or deny players from joining this game.
+     */
     fun setCanJoinAfterStart(boolean: Boolean)
 
+    /**
+     * Decide whether or not to give players the ability to respawn upon death.
+     */
     fun setCanRespawn(boolean: Boolean)
 
+    /**
+     * The amount of [time][Timer] players have to wait before they respawn.
+     */
     fun setRespawnTimer(timer: Timer)
 
+    /**
+     * Set default [GameMode].
+     */
     fun setGameMode(mode: GameMode)
 
+    /**
+     * Control the ability of players to attack each other.
+     */
     fun setPVP(pvp: Boolean)
 
+    /**
+     * Set [amount][Double] of money the [Player] will be rewarded at the end.
+     */
     fun setMoneyReward(player: Player, amount: Double)
 
+    /**
+     * Set [lootTable][LootTable] the [Player] will be rewarded at the end.
+     *
+     * Use [ItemModule.getLootTable] to get a loot table.
+     */
     fun setItemReward(player: Player, lootTable: LootTable)
 
     /**
