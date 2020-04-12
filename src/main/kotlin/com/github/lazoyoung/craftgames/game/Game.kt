@@ -37,7 +37,7 @@ class Game(
         /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class Phase { GENERATING, LOBBY, PLAYING, SUSPEND }
+    enum class Phase { INIT, GENERATING, LOBBY, PLAYING, SUSPEND }
 
     enum class JoinRejection { FULL, IN_GAME, GENERATING, TERMINATING }
 
@@ -45,7 +45,7 @@ class Game(
     internal val players = ArrayList<UUID>()
 
     /** The state of game progress **/
-    var phase = Phase.GENERATING
+    var phase = Phase.INIT
 
     /** All kind of modules **/
     val module = Module(this)
@@ -131,6 +131,7 @@ class Game(
                 game.forceStop(error = true)
                 throw RuntimeException("Game failed to init.")
             } else {
+                game.phase = Phase.GENERATING
                 assignID(game)
 
                 if (mapID == null) {
@@ -263,7 +264,7 @@ class Game(
     fun getRejectCause(): JoinRejection? {
         val service = Module.getGameModule(this)
 
-        return if (phase == Phase.GENERATING) {
+        return if (phase == Phase.INIT || phase == Phase.GENERATING) {
             JoinRejection.GENERATING
         } else if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
             JoinRejection.IN_GAME
@@ -482,11 +483,15 @@ class Game(
     internal fun close(async: Boolean = true) {
         getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
         resource.saveToDisk(editMode)
-        updatePhase(Phase.SUSPEND)
 
-        if (map.isGenerated) {
-            map.destruct(async)
+        if (phase != Phase.INIT) {
+            updatePhase(Phase.SUSPEND)
+
+            if (map.isGenerated) {
+                map.destruct(async)
+            }
         }
+
         purge(this)
     }
 

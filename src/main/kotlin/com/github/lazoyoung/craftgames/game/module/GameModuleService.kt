@@ -117,7 +117,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.TEAM_WIN, winner, winners))
 
         // Ceremony and close
-        broadcast("&6Congratulations, &r${winner.displayName} &6won the game!")
+        broadcast("&6Congratulations, &r${winner.color}${winner.displayName} &6won the game!")
         Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
     }
 

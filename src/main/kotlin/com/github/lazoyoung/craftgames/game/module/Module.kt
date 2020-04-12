@@ -35,7 +35,7 @@ class Module internal constructor(val game: Game) {
             script.parse()
             CoordTag.reload(game.resource)
         } catch (e: Exception) {
-            e.printStackTrace()
+            script.writeStackTrace(e)
             game.forceStop(error = true)
         }
     }
@@ -113,7 +113,7 @@ class Module internal constructor(val game: Game) {
 
         try {
             when (game.phase) {
-                Game.Phase.GENERATING -> {}
+                Game.Phase.INIT, Game.Phase.GENERATING -> {}
                 Game.Phase.LOBBY -> {
                     lobbyModule.start()
                 }

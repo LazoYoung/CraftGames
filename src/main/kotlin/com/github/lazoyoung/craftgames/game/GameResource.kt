@@ -10,7 +10,6 @@ import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
-import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.File
@@ -64,7 +63,7 @@ class GameResource(val gameName: String) {
                 throw FaultyConfiguration("layout.yml for $gameName is missing.")
             }
 
-            fileReader = FileUtil.getBufferedReader(layoutFile)
+            fileReader = layoutFile.bufferedReader(Main.charset)
             root = layoutFile.parentFile.toPath()
             layoutConfig = YamlConfiguration.loadConfiguration(fileReader)
         } catch (e: IOException) {

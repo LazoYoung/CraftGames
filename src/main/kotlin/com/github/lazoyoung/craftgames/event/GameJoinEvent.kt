@@ -7,7 +7,7 @@ import org.bukkit.event.Cancellable
 import org.bukkit.event.HandlerList
 
 /**
- * This event notifies that [player] has joined the [game].
+ * This event fires if a player joins game.
  */
 class GameJoinEvent(
         game: Game,

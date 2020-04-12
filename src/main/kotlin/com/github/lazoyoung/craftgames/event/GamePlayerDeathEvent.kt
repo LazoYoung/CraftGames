@@ -4,7 +4,6 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.module.PlayerModuleService
@@ -77,7 +76,7 @@ class GamePlayerDeathEvent(
      *
      * Defaults to [PlayerModule.setSpawnpoint]
      *
-     * @param tagName [CoordTag] name of the player's spawnpoint.
+     * @param tagName Name of the coordinate tag designating the spawnpoint.
      */
     fun setSpawnpoint(tagName: String) {
         return getPlayerModule().setSpawnpoint(getPlayer(), tagName)

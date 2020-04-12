@@ -6,7 +6,6 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.GameResource
-import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
@@ -153,7 +152,7 @@ class ScriptModuleService internal constructor(
             throw IllegalArgumentException("Illegal file format: $ext")
 
         try {
-            fileReader = FileUtil.getBufferedReader(file)
+            fileReader = file.bufferedReader(Main.charset)
             val config = YamlConfiguration.loadConfiguration(fileReader)
             consumer.accept(config)
             config.save(file)

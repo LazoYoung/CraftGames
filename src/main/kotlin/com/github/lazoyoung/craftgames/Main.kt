@@ -45,7 +45,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
             try {
                 val file = pluginFolder.resolve("config.yml")
-                val reader = FileUtil.getBufferedReader(file)
+                val reader = file.bufferedReader(charset)
 
                 config = YamlConfiguration.loadConfiguration(reader)
             } catch (e: Exception) {

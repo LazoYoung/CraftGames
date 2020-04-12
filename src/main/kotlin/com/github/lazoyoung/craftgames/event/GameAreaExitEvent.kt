@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.event
 
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.entity.Player
 import org.bukkit.event.HandlerList
@@ -25,14 +24,14 @@ class GameAreaExitEvent(
     }
 
     /**
-     * Get [CoordTag] name of this area.
+     * @return Name of the coordinate tag which designates this area.
      */
     fun getTagName(): String {
         return areaName
     }
 
     /**
-     * Get [Player] who triggered this area.
+     * @return The [Player] who triggered this area.
      */
     fun getPlayer(): Player {
         return player

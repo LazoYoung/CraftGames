@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.internal.util
 
 import com.github.lazoyoung.craftgames.Main
-import java.io.*
+import java.io.IOException
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.*
@@ -92,14 +92,6 @@ class FileUtil {
                     return FileVisitResult.CONTINUE
                 }
             })
-        }
-
-        /**
-         * Returns a buffered reader of [file]
-         * with the charset(encoder) defined in config.yml
-         */
-        fun getBufferedReader(file: File): BufferedReader {
-            return BufferedReader(InputStreamReader(FileInputStream(file), Main.charset))
         }
     }
 }
