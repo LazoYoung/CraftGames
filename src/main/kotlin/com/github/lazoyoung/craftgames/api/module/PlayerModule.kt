@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.api.Timer
+import org.bukkit.Location
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import java.util.function.Consumer
@@ -44,26 +45,56 @@ interface PlayerModule {
     fun setRespawnTimer(player: Player, timer: Timer)
 
     /**
-     * Set spawnpoint for certain [type][PlayerType] of players.
+     * Set spawnpoint for the players associated in certain [type][PlayerType].
      *
      * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
      *
-     * @param type Spawnpoint is exclusively set for the [PlayerType].
+     * @param type [PlayerType] (represented by [String]) classifies the players.
      * @param spawnTag Name of the coordinate tag which captures spawnpoints.
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
     fun setSpawnpoint(type: PlayerType, spawnTag: String)
 
     /**
-     * Set spawnpoint for certain [type][PlayerType] of players.
+     * Set spawnpoint for the players associated in certain [type][PlayerType].
      *
      * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
      *
-     * @param type Spawnpoint is exclusively set for the [PlayerType] (represented by [String]).
+     * @param type [PlayerType] (represented by [String]) classifies the players.
      * @param spawnTag Name of the coordinate tag which captures spawnpoints.
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
     fun setSpawnpoint(type: String, spawnTag: String)
+
+    /**
+     * Set new spawnpoint for individual player.
+     *
+     * Default spawnpoint will become ineffective for the player.
+     *
+     * @param player The target player.
+     * @param tagName Name of the coordinate tag which designates spawnpoint.
+     * @param index The capture index, which is randomly chosen if you to pass null.
+     */
+    fun overrideSpawnpoint(player: Player, tagName: String, index: Int?)
+
+    /**
+     * Set new spawnpoint for individual player.
+     *
+     * Default spawnpoint will become ineffective for the player.
+     *
+     * @param player The target player.
+     */
+    fun overrideSpawnpoint(player: Player, location: Location)
+
+    /**
+     * Reset individual spawnpoint back to default one.
+     *
+     * In other words, it discards the spawnpoint
+     * previously set for the player via [overrideSpawnpoint].
+     *
+     * @param player The target player.
+     */
+    fun resetSpawnpoint(player: Player)
 
     @Deprecated("Name has changed.", ReplaceWith("setSpawnpoint"))
     fun setSpawn(type: String, spawnTag: String)

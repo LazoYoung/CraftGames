@@ -5,7 +5,6 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
@@ -20,9 +19,6 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats
 import com.sk89q.worldedit.function.operation.Operations
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.session.ClipboardHolder
-import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.ComponentBuilder
-import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.*
 import org.bukkit.block.Container
 import org.bukkit.entity.Player
@@ -34,8 +30,6 @@ import java.util.function.Consumer
 
 class WorldModuleService(private val game: Game) : WorldModule {
 
-    /** Key: AreaName(Tag), Value: Trigger function **/
-    internal val triggers = HashMap<String, Consumer<Player>>()
     private val script = game.resource.script
 
     override fun getMapID(): String {
@@ -170,40 +164,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
      * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
     fun teleportSpawn(playerData: PlayerData, index: Int?, asyncCallback: Consumer<Boolean>? = null) {
-        val world = getWorld()
         val scheduler = Bukkit.getScheduler()
         val player = playerData.getPlayer()
         val playerModule = Module.getPlayerModule(game)
-        val tag = playerModule.getSpawnpoint(playerData)
-        val script = game.resource.script
-        val location: Location
-        val notFound = ComponentBuilder("Unable to locate spawnpoint!")
-                .color(ChatColor.RED).create().first() as TextComponent
-
-        if (tag == null) {
-            location = world.spawnLocation
-            location.y = world.getHighestBlockYAt(location).toDouble()
-            player.sendMessage(notFound)
-            script.print("Spawn tag is not defined for ${player.name}.")
-        } else {
-            val mapID = game.map.id
-            val captures = tag.getCaptures(mapID)
-
-            if (captures.isEmpty()) {
-                location = world.spawnLocation
-                location.y = world.getHighestBlockYAt(location).toDouble()
-                player.sendMessage(notFound)
-                script.print("Spawn tag \'${tag.name}\' is not captured in: $mapID")
-            } else {
-                val c = if (index != null) {
-                    captures[index % captures.size] as SpawnCapture
-                } else {
-                    captures.random() as SpawnCapture
-                }
-
-                location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
-            }
-        }
+        val location = playerModule.getSpawnpoint(playerData, index)
 
         fun protect() {
             val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L

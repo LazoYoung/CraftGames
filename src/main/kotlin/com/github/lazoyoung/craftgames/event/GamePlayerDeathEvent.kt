@@ -3,11 +3,11 @@ package com.github.lazoyoung.craftgames.event
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
-import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.module.PlayerModuleService
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import org.bukkit.Location
 import org.bukkit.event.Cancellable
 import org.bukkit.event.HandlerList
 
@@ -47,10 +47,10 @@ class GamePlayerDeathEvent(
     }
 
     /**
-     * @return The tag name of the player's spawnpoint.
+     * @return The the next spawnpoint of this player.
      */
-    fun getSpawnpoint(): String? {
-        return getPlayerModule().getSpawnpoint(getPlayerData())?.name
+    fun getSpawnpoint(): Location {
+        return getPlayerModule().getSpawnpoint(getPlayerData(), null)
     }
 
     /**
@@ -72,14 +72,19 @@ class GamePlayerDeathEvent(
     }
 
     /**
-     * Set the next spawnpoint of this player.
+     * Decide if player should respawn back to the location where he/she died last time.
      *
-     * Defaults to [PlayerModule.setSpawnpoint]
-     *
-     * @param tagName Name of the coordinate tag designating the spawnpoint.
+     * @param rewind If [rewind] is true, previous death location becomes the new spawnpoint.
+     * Otherwise, spawnpoint would be reset to default one.
      */
-    fun setSpawnpoint(tagName: String) {
-        return getPlayerModule().setSpawnpoint(getPlayer(), tagName)
+    fun setRewind(rewind: Boolean) {
+        val player = getPlayer()
+
+        if (rewind) {
+            getPlayerModule().overrideSpawnpoint(player, player.location.clone())
+        } else {
+            getPlayerModule().resetSpawnpoint(player)
+        }
     }
 
     /**

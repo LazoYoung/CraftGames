@@ -127,7 +127,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
         setSpawnpoint(team, spawnTag)
     }
 
-    internal fun getSpawn(player: Player): CoordTag? {
+    internal fun getSpawnpoint(player: Player): CoordTag? {
         return getPlayerTeam(player)?.let { spawnTag[it.name] }
     }
 

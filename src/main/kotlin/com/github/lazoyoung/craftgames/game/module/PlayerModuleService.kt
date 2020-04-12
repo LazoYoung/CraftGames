@@ -8,6 +8,7 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
+import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
@@ -15,10 +16,12 @@ import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
+import org.bukkit.Location
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
@@ -29,7 +32,7 @@ import kotlin.collections.HashMap
 class PlayerModuleService internal constructor(private val game: Game) : PlayerModule {
 
     internal var respawnTimer = HashMap<UUID, Timer>()
-    private val personalSpawn = HashMap<UUID, CoordTag>()
+    private val personalSpawn = HashMap<UUID, Location>()
     private var playerSpawn: CoordTag? = null
     private var editorSpawn: CoordTag? = null
     private var spectatorSpawn: CoordTag? = null
@@ -60,10 +63,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         gamePlayer.toSpectator()
     }
 
-    override fun setRespawnTimer(player: Player, timer: Timer) {
-        this.respawnTimer[player.uniqueId] = timer
-    }
-
     override fun setSpawnpoint(type: PlayerType, spawnTag: String) {
         val tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
 
@@ -76,6 +75,32 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
     override fun setSpawnpoint(type: String, spawnTag: String) {
         setSpawnpoint(PlayerType.valueOf(type), spawnTag)
+    }
+
+    override fun overrideSpawnpoint(player: Player, tagName: String, index: Int?) {
+        val tag = Module.getRelevantTag(game, tagName, TagMode.SPAWN)
+        val location = getSpawnpointByTag(tag, index)
+
+        overrideSpawnpoint(player, location)
+    }
+
+    override fun overrideSpawnpoint(player: Player, location: Location) {
+        val x = location.blockX
+        val y = location.blockY
+        val z = location.blockZ
+
+        personalSpawn[player.uniqueId] = location
+        script.printDebug("Spawnpoint ($x, $y, $z) is set for ${player.name}.")
+    }
+
+    override fun resetSpawnpoint(player: Player) {
+        if (personalSpawn.remove(player.uniqueId) != null) {
+            script.printDebug("Spawnpoint for ${player.name} is reset to default.")
+        }
+    }
+
+    override fun setRespawnTimer(player: Player, timer: Timer) {
+        this.respawnTimer[player.uniqueId] = timer
     }
 
     override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {
@@ -108,23 +133,33 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
     override fun sendMessage(player: Player, message: String) {}
 
-    fun setSpawnpoint(player: Player, tagName: String) {
-        personalSpawn[player.uniqueId] = Module.getRelevantTag(game, tagName, TagMode.SPAWN)
-    }
-
-    fun getSpawnpoint(playerData: PlayerData): CoordTag? {
+    fun getSpawnpoint(playerData: PlayerData, index: Int?): Location {
         val uid = playerData.getPlayer().uniqueId
-
-        return if (personalSpawn.containsKey(uid)) {
-            personalSpawn[uid]
-        } else when (playerData) {
+        val script = game.resource.script
+        val world = game.map.world ?: throw MapNotFound()
+        var location = personalSpawn[uid]
+        val tag = when (playerData) {
             is GameEditor -> editorSpawn
             is Spectator -> spectatorSpawn
             is GamePlayer -> {
-                Module.getTeamModule(game).getSpawn(playerData.getPlayer()) ?: playerSpawn
+                if (location == null) {
+                    Module.getTeamModule(game).getSpawnpoint(playerData.getPlayer()) ?: playerSpawn
+                } else {
+                    null
+                }
             }
             else -> null
         }
+
+        if (tag != null) {
+            location = getSpawnpointByTag(tag, index)
+        } else if (location == null) {
+            location = world.spawnLocation
+            location.y = world.getHighestBlockYAt(location).toDouble()
+            script.print("Spawn tag is not defined for ${playerData.getPlayer().name}!")
+        }
+
+        return location
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
@@ -176,6 +211,29 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L)
+    }
+
+    private fun getSpawnpointByTag(tag: CoordTag, index: Int?): Location {
+        val world = game.map.world ?: throw MapNotFound()
+        val mapID = game.map.id
+        val captures = tag.getCaptures(mapID)
+        val location: Location
+
+        if (captures.isEmpty()) {
+            location = world.spawnLocation
+            location.y = world.getHighestBlockYAt(location).toDouble()
+            script.print("Spawn tag \'${tag.name}\' is not captured in: $mapID")
+        } else {
+            val c = if (index != null) {
+                captures[index % captures.size] as SpawnCapture
+            } else {
+                captures.random() as SpawnCapture
+            }
+
+            location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
+        }
+
+        return location
     }
 
 }
