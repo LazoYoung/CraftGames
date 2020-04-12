@@ -58,7 +58,6 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
             }
 
             callback.addAnnotation(AnnotationNode(classNodeFor(CompileDynamic::class.java)))
-
             callback.putNodeMetaData(StaticTypesMarker.DYNAMIC_RESOLUTION, java.lang.Boolean.TRUE)
             call.arguments = ArgumentListExpression(eventType, callback)
             makeDynamic(call)
@@ -103,7 +102,6 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
 
         script?.printDebug("Resolving method: ${receiver.name}.$name${argumentList.text}")
 
-        // FIXME Methods with suffix \u200B
         loop@ for (methodNode in receiver.getMethods(name)) {
             if (methodNode.parameters.size != argumentTypes.size) {
                 continue

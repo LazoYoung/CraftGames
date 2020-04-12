@@ -53,15 +53,26 @@ interface TeamModule {
     fun getFirstPlayerScore(objective: Objective): Score
 
     /**
-     * Find which team has the most [Score] compared to others.
+     * Find which team(s) have the most [Score] compared to others.
      *
      * @param objective The objective of the scores to be compared.
-     * @return The top [Team].
+     * @return The top [Team]s.
      */
-    fun getTopTeam(objective: Objective): Team
+    fun getTopTeams(objective: Objective): List<Team>
 
     @Deprecated("Name changed.", ReplaceWith("getTopTeam"))
     fun getFirstTeam(objective: Objective): Team
+
+    /**
+     * Score table records the total score of each team.
+     *
+     * Each entry of this [Map] is a pair of objects: [Team] (key) and [score][Int] (value).
+     * Map entires are arranged into descending order, based on [score][Int].
+     * Thus, the team with the highest score is the first element.
+     *
+     * @return A [Map] storing each team's score.
+     */
+    fun getScoreTable(objective: Objective): Map<Team, Int>
 
     /**
      * Assign [player] to [team].

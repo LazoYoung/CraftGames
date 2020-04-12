@@ -67,6 +67,7 @@ class ScriptGroovy(
 
         transform.setAnnotationParameters(mapOf(Pair("extensions", extensionClass)))
         imports.addStarImports("com.github.lazoyoung.craftgames.api")
+        imports.addStarImports("com.github.lazoyoung.craftgames.event")
         engine.config.addCompilationCustomizers(imports)
         engine.config.addCompilationCustomizers(transform)
         script = engine.createScript(mainFile.name, bindings)

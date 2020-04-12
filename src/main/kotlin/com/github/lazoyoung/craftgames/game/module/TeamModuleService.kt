@@ -11,6 +11,9 @@ import org.bukkit.scoreboard.Objective
 import org.bukkit.scoreboard.Score
 import org.bukkit.scoreboard.Scoreboard
 import org.bukkit.scoreboard.Team
+import java.util.*
+import kotlin.Comparator
+import kotlin.collections.HashMap
 import kotlin.math.roundToInt
 
 class TeamModuleService(private val game: Game) : TeamModule {
@@ -62,9 +65,9 @@ class TeamModuleService(private val game: Game) : TeamModule {
         return getTopPlayerScore(objective)
     }
 
-    override fun getTopTeam(objective: Objective): Team {
+    override fun getTopTeams(objective: Objective): List<Team> {
         val teams = scoreboard.teams
-        var topTeam = teams.first()
+        val topTeams = arrayListOf(teams.first())
         var topScore = 0
 
         if (teams.isEmpty()) {
@@ -76,15 +79,43 @@ class TeamModuleService(private val game: Game) : TeamModule {
 
             if (score > topScore) {
                 topScore = score
-                topTeam = it
+                topTeams.clear()
+                topTeams.add(it)
+            } else if (score == topScore) {
+                topTeams.add(it)
             }
         }
 
-        return topTeam
+        return topTeams
+    }
+
+    override fun getScoreTable(objective: Objective): Map<Team, Int> {
+        val teams = scoreboard.teams
+        val table = HashMap<Team, Int>()
+        val orderedTable = HashMap<Team, Int>()
+        val linkedList = LinkedList(table.entries)
+
+        if (teams.isEmpty()) {
+            throw IllegalStateException("No team is defined.")
+        }
+
+        teams.forEach {
+            table[it] = getPlayers(it).sumBy { p -> objective.getScore(p.name).score }
+        }
+
+        Collections.sort(linkedList, Comparator { e1, e2 ->
+            return@Comparator (e1.value - e2.value)
+        })
+
+        linkedList.forEach {
+            orderedTable[it.key] = it.value
+        }
+
+        return orderedTable
     }
 
     override fun getFirstTeam(objective: Objective): Team {
-        return getTopTeam(objective)
+        return getTopTeams(objective).first()
     }
 
     override fun assignPlayer(player: Player, team: Team) {
