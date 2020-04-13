@@ -27,6 +27,8 @@ import java.util.function.Consumer
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
+    internal var keepInventory = false
+    internal var dropItems = false
     internal var defaultGameMode = GameMode.ADVENTURE
     internal var canJoinAfterStart = false
     internal var canRespawn = false
@@ -63,6 +65,15 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setCanRespawn(boolean: Boolean) {
         this.canRespawn = boolean
+    }
+
+    override fun setKeepInventory(keep: Boolean, drop: Boolean) {
+        if (keep && drop) {
+            throw IllegalArgumentException()
+        }
+
+        this.keepInventory = keep
+        this.dropItems = drop
     }
 
     override fun setRespawnTimer(timer: Timer) {
@@ -118,7 +129,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
         // Ceremony and close
         broadcast("&6Congratulations, &r${winner.color}${winner.displayName} &6won the game!")
-        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
+        game.close(timer = timer)
     }
 
     override fun finishGame(winner: Player, timer: Timer) {
@@ -127,20 +138,20 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
         // Ceremony and close
         broadcast("&6Congratulations, &r${winner.displayName} &6won the game!")
-        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
+        game.close(timer = timer)
     }
 
+    @Deprecated("This is for internal use.")
     override fun drawGame(timer: Timer) {
         // Fire event
         Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.DRAW, null, null))
 
         // Ceremony and close
         broadcast("&6Time out! The game ended in a draw...")
-        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable { game.close() }, timer.toTick())
+        game.close(timer = timer)
     }
 
     internal fun start() {
-        val itemModule = Module.getItemModule(game)
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
         var index = 0
@@ -151,12 +162,13 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         // Setup players
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
             if (p is GamePlayer) {
+                p.restore(respawn = true, leave = false)
                 worldModule.teleportSpawn(p, index++, Consumer<Boolean> {})
             } else {
+                p.restore(respawn = false, leave = false)
                 worldModule.teleportSpawn(p, null, Consumer<Boolean> {})
             }
-            p.restore(false)
-            itemModule.applyKit(p.getPlayer())
+
             bossBar.addPlayer(p.getPlayer())
         }
 

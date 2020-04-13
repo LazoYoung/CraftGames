@@ -113,20 +113,23 @@ class Module internal constructor(val game: Game) {
 
         try {
             when (game.phase) {
-                Game.Phase.INIT, Game.Phase.GENERATING -> {}
                 Game.Phase.LOBBY -> {
                     lobbyModule.start()
                 }
+
                 Game.Phase.PLAYING -> {
                     lobbyModule.terminate()
                     gameModule.start()
                 }
-                Game.Phase.SUSPEND -> {
+
+                Game.Phase.TERMINATE -> {
                     lobbyModule.terminate()
                     teamModule.terminate()
                     gameModule.terminate()
                     scriptModule.terminate()
                 }
+
+                else -> {}
             }
         } catch (e: Exception) {
             terminateSignal = true

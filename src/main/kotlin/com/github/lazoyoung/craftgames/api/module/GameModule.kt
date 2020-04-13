@@ -35,6 +35,15 @@ interface GameModule {
     fun setCanRespawn(boolean: Boolean)
 
     /**
+     * Decide if players' items should be kept upon death.
+     *
+     * @param keep Whether or not to keep items in inventory.
+     * @param drop Whether or not to drop items on ground.
+     * @throws IllegalArgumentException is thrown if [keep] and [drop] are both true.
+     */
+    fun setKeepInventory(keep: Boolean, drop: Boolean)
+
+    /**
      * The amount of [time][Timer] players have to wait before they respawn.
      */
     fun setRespawnTimer(timer: Timer)

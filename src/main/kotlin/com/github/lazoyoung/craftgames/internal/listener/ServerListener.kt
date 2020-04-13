@@ -30,7 +30,7 @@ import org.bukkit.event.world.WorldInitEvent
 
 class ServerListener : Listener {
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerMove(event: PlayerMoveEvent) {
         val player = event.player
         val pdata = PlayerData.get(player) ?: return
@@ -57,7 +57,7 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOWEST)
     fun onWorldLoad(event: WorldInitEvent) {
         for (game in Game.find()) {
             if (event.world.name == game.map.worldName) {
@@ -67,7 +67,7 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun onBlockClick(event: PlayerInteractEvent) {
         event.clickedBlock?.let {
             val pdata = PlayerData.get(event.player) ?: return
@@ -92,7 +92,7 @@ class ServerListener : Listener {
         val player = event.player
 
         try {
-            PlayerData.getOffline(player)?.restore(true)
+            PlayerData.getOffline(player)?.restore(respawn = false, leave = true)
         } catch (e: Exception) {
             e.printStackTrace()
             Main.logger.severe("Failed to read data for ${player.name}")
@@ -104,7 +104,7 @@ class ServerListener : Listener {
         PlayerData.get(event.player)?.leaveGame()
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onEntityDeath(event: EntityDeathEvent) {
         val entity = event.entity
         val killer = entity.killer
@@ -115,6 +115,7 @@ class ServerListener : Listener {
         val service = Module.getPlayerModule(game)
 
         if (game.phase == Game.Phase.PLAYING) {
+            // Call GamePlayerKillEvent
             Bukkit.getPluginManager().callEvent(
                     GamePlayerKillEvent(killer, entity, game)
             )
@@ -122,7 +123,7 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
         val playerData = PlayerData.get(player) ?: return
@@ -133,20 +134,34 @@ class ServerListener : Listener {
         }
         else if (playerData is GamePlayer && game.phase == Game.Phase.PLAYING) {
             val playerModule = Module.getPlayerModule(game)
-            val relayEvent = GamePlayerDeathEvent(playerData, game)
+            val relayEvent = GamePlayerDeathEvent(playerData, game, event)
 
+            // Call GamePlayerDeathEvent
             Bukkit.getPluginManager().callEvent(relayEvent)
+            event.isCancelled = relayEvent.isCancelled
 
-            if (!relayEvent.isCancelled) {
+            if (!event.isCancelled) {
+                val keep = relayEvent.keepInventory
+                val drop = relayEvent.dropItems
+                val deathMessage = event.deathMessage
+                event.keepInventory = keep
+                playerData.keepInventory = keep
                 player.health = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 20.0
-                event.isCancelled = true
 
-                // React to the trigger result
+                if (deathMessage != null) {
+                    event.deathMessage = null
+                    Module.getGameModule(game).broadcast(deathMessage)
+                }
+
+                if (keep || !drop) {
+                    event.drops.clear()
+                }
+
                 Bukkit.getScheduler().runTask(Main.instance, Runnable {
                     if (!playerData.isOnline())
                         return@Runnable
 
-                    if (relayEvent.canRespawn()) {
+                    if (relayEvent.canRespawn) {
                         playerModule.respawn(playerData)
                     } else {
                         playerModule.eliminate(player)
@@ -156,7 +171,7 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun onSpectateEntity(event: PlayerStartSpectatingEntityEvent) {
         val playerData = PlayerData.get(event.player)
                 ?: return

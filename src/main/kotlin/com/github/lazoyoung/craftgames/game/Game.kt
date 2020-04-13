@@ -1,10 +1,8 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.api.GameResult
-import com.github.lazoyoung.craftgames.api.MessageTask
-import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.api.*
+import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
@@ -37,7 +35,25 @@ class Game(
         /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class Phase { INIT, GENERATING, LOBBY, PLAYING, SUSPEND }
+    enum class Phase {
+        /** Game is being initialized. **/
+        INIT,
+
+        /** Map is being generated. **/
+        GENERATE,
+
+        /** Players are waiting for game to start. **/
+        LOBBY,
+
+        /** Game-play is in progress. **/
+        PLAYING,
+
+        /** Game has finished. Ceremony is in progress. **/
+        FINISH,
+
+        /** Game is being terminated. **/
+        TERMINATE
+    }
 
     enum class JoinRejection { FULL, IN_GAME, GENERATING, TERMINATING }
 
@@ -131,7 +147,7 @@ class Game(
                 game.forceStop(error = true)
                 throw RuntimeException("Game failed to init.")
             } else {
-                game.phase = Phase.GENERATING
+                game.phase = Phase.GENERATE
                 assignID(game)
 
                 if (mapID == null) {
@@ -264,13 +280,13 @@ class Game(
     fun getRejectCause(): JoinRejection? {
         val service = Module.getGameModule(this)
 
-        return if (phase == Phase.INIT || phase == Phase.GENERATING) {
+        return if (phase == Phase.INIT || phase == Phase.GENERATE) {
             JoinRejection.GENERATING
         } else if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
             JoinRejection.IN_GAME
         } else if (players.count() >= service.maxPlayer) {
             JoinRejection.FULL
-        } else if (phase == Phase.SUSPEND) {
+        } else if (phase == Phase.TERMINATE) {
             JoinRejection.TERMINATING
         } else {
             null
@@ -306,7 +322,7 @@ class Game(
             players.add(uid)
 
             if (phase == Phase.LOBBY) {
-                playerData.restore(false)
+                playerData.restore(respawn = false, leave = false)
                 Module.getLobbyModule(this).join(player)
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
                 ActionbarTask(
@@ -314,8 +330,7 @@ class Game(
                         text = *arrayOf("&aWelcome to &f$name&a!", "&aPlease wait until the game starts.")
                 ).start()
             } else if (phase == Phase.PLAYING) {
-                playerData.restore(false)
-                Module.getItemModule(this).applyKit(player)
+                playerData.restore(respawn = true, leave = false)
                 Module.getWorldModule(this).teleportSpawn(playerData, null)
                 player.sendMessage("You joined the ongoing game: $name")
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
@@ -369,7 +384,7 @@ class Game(
             else -> return
         }
 
-        playerData.restore(false)
+        playerData.restore(respawn = false, leave = false)
         player.gameMode = GameMode.SPECTATOR
         player.sendMessage("You are now spectating $name.")
 
@@ -396,7 +411,7 @@ class Game(
 
         if (!event.isCancelled) {
             players.add(uid)
-            gameEditor.restore(false)
+            gameEditor.restore(respawn = false, leave = false)
             player.gameMode = GameMode.CREATIVE
             player.sendMessage(text)
             Module.getWorldModule(this).teleportSpawn(gameEditor, null)
@@ -478,25 +493,34 @@ class Game(
     /**
      * Terminate the game.
      *
-     * @param async Asynchronously destruct the map if true.
+     * @param async Asynchronously destruct the current map.
+     * @param timer The amount of time to wait before termination.
      */
-    internal fun close(async: Boolean = true) {
-        getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
-        resource.saveToDisk(editMode)
-
+    internal fun close(async: Boolean = true, timer: Timer = Timer(TimeUnit.TICK, 0)) {
         if (phase != Phase.INIT) {
-            updatePhase(Phase.SUSPEND)
+            updatePhase(Phase.FINISH)
 
-            if (map.isGenerated) {
-                map.destruct(async)
-            }
+            Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+                updatePhase(Phase.TERMINATE)
+                getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
+                resource.saveToDisk(editMode)
+
+                if (map.isGenerated) {
+                    map.destruct(async)
+                }
+
+                purge(this)
+            }, timer.toTick())
+        } else {
+            getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
+            resource.saveToDisk(editMode)
+            purge(this)
         }
-
-        purge(this)
     }
 
     /**
-     * Update the GamePhase, resulting in the changes of World and Modules.
+     * Change [Phase] of this game,
+     * triggering modules and world to be changed.
      *
      * @param phase The new game phase
      */

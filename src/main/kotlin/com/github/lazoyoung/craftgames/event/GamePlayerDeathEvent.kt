@@ -8,15 +8,41 @@ import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.module.PlayerModuleService
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.bukkit.Location
+import org.bukkit.block.Block
+import org.bukkit.entity.Entity
 import org.bukkit.event.Cancellable
 import org.bukkit.event.HandlerList
+import org.bukkit.event.entity.EntityDamageByBlockEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.PlayerDeathEvent
 
 class GamePlayerDeathEvent(
         playerData: PlayerData,
-        game: Game
+        game: Game,
+        private val bukkitEvent: PlayerDeathEvent
 ) : GamePlayerEvent(playerData, game), Cancellable {
+
     private var cancel = false
-    private var canRespawn = Module.getGameModule(game).canRespawn
+
+    /**
+     * Determines if this player can respawn or not.
+     *
+     * Defaults to [GameModule.setCanRespawn]
+     */
+    var canRespawn = Module.getGameModule(game).canRespawn
+
+    /**
+     * Decide to keep the items in inventory upon death.
+     */
+    var keepInventory = Module.getGameModule(game).keepInventory
+        private set
+
+    /**
+     * Decide to drop items on ground upon death.
+     */
+    var dropItems = Module.getGameModule(game).dropItems
+        private set
 
     companion object {
         private val handlerList = HandlerList()
@@ -40,10 +66,50 @@ class GamePlayerDeathEvent(
     }
 
     /**
-     * Get whether this player can respawn or not.
+     * Get the cause of this event.
+     *
+     * @return [EntityDamageEvent.DamageCause]
      */
-    fun canRespawn(): Boolean {
-        return canRespawn
+    fun getCause(): EntityDamageEvent.DamageCause? {
+        val damageEvent = getPlayer().lastDamageCause
+
+        return if (damageEvent?.isCancelled == false) {
+            damageEvent.cause
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Get the block which killed this player.
+     *
+     * @return [Block] if it exists, null otherwise.
+     */
+    fun getKillerBlock(): Block? {
+        val damageEvent = getPlayer().lastDamageCause
+
+        return if (damageEvent?.isCancelled == false
+                && damageEvent is EntityDamageByBlockEvent) {
+            damageEvent.damager
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Get the entity who killed this player.
+     *
+     * @return [Entity] if it exists, null otherwise.
+     */
+    fun getKillerEntity(): Entity? {
+        val damageEvent = getPlayer().lastDamageCause
+
+        return if (damageEvent?.isCancelled == false
+                && damageEvent is EntityDamageByEntityEvent) {
+            damageEvent.damager
+        } else {
+            null
+        }
     }
 
     /**
@@ -63,15 +129,6 @@ class GamePlayerDeathEvent(
     }
 
     /**
-     * Set whether this player can respawn or not.
-     *
-     * Defaults to [GameModule.setCanRespawn]
-     */
-    fun setCanRespawn(canRespawn: Boolean) {
-        this.canRespawn = canRespawn
-    }
-
-    /**
      * Decide if player should respawn back to the location where he/she died last time.
      *
      * @param rewind If [rewind] is true, previous death location becomes the new spawnpoint.
@@ -85,6 +142,44 @@ class GamePlayerDeathEvent(
         } else {
             getPlayerModule().resetSpawnpoint(player)
         }
+    }
+
+    /**
+     * Decide if player's items should be kept upon death.
+     *
+     * Defaults to [GameModule.setKeepInventory]
+     *
+     * @param keep Whether or not to keep items in inventory.
+     * @param drop Whether or not to drop items on ground.
+     * @throws IllegalArgumentException is thrown if [keep] and [drop] are both true.
+     */
+    fun setKeepInventory(keep: Boolean, drop: Boolean) {
+        this.keepInventory = keep
+        this.dropItems = drop
+    }
+
+    /**
+     * Decide if player's experience level should be kept upon death.
+     *
+     * @param keep Whether or not to keep experience level.
+     * @param drop Whether or not to drop experience on ground.
+     * @throws IllegalArgumentException is thrown if [keep] and [drop] are both true.
+     */
+    fun setKeepExp(keep: Boolean, drop: Boolean) {
+        bukkitEvent.keepLevel = keep
+
+        if (keep || !drop) {
+            bukkitEvent.droppedExp = 0
+        }
+    }
+
+    /**
+     * Set death message to be announced upon death.
+     *
+     * @param message The message (Pass null to remove it).
+     */
+    fun setDeathMessage(message: String?) {
+        bukkitEvent.deathMessage = message
     }
 
     /**

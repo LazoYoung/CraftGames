@@ -166,17 +166,18 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val player = gamePlayer.getPlayer()
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
+        val playerModule = Module.getPlayerModule(game)
         val timer = respawnTimer[player.uniqueId]?.clone()
                 ?: Module.getGameModule(game).respawnTimer.clone()
         val gracePeriod = Main.getConfig()?.getLong("spawn-invincible", 60L)
                 ?: 60L
 
-        gamePlayer.restore(false)
+        gamePlayer.restore(respawn = false, leave = false)
         player.gameMode = GameMode.SPECTATOR
 
         object : BukkitRunnable() {
             override fun run() {
-                if (!Module.getPlayerModule(game).isOnline(player)) {
+                if (game.phase != Game.Phase.PLAYING || !playerModule.isOnline(player)) {
                     this.cancel()
                     return
                 }
@@ -194,9 +195,8 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                         .start()
 
                 if (timer.subtract(frame).toSecond() < 0L) {
-                    // Rollback to spawnpoint and gear up
-                    gamePlayer.restore(false)
-                    Module.getItemModule(game).applyKit(player)
+                    // Return to spawnpoint and gear up
+                    gamePlayer.restore(respawn = true, leave = false)
                     Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
                     ActionbarTask(player, period = frame, text = *arrayOf("&9&l> &a&lRESPAWN &9&l<"))
                             .start()

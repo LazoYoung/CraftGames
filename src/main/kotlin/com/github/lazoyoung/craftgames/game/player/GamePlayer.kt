@@ -19,6 +19,8 @@ class GamePlayer private constructor(
 
             val instance = GamePlayer(player, game)
             registry[player.uniqueId] = instance
+
+            instance.captureState()
             return instance
         }
     }
@@ -32,7 +34,7 @@ class GamePlayer private constructor(
 
     fun toSpectator() {
         try {
-            Spectator.register(getPlayer(), game)
+            Spectator.register(getPlayer(), game, this)
         } catch(e: RuntimeException) {
             e.printStackTrace()
             game.leave(this)

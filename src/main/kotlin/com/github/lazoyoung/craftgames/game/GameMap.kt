@@ -4,10 +4,7 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
-import org.bukkit.Bukkit
-import org.bukkit.World
-import org.bukkit.WorldCreator
-import org.bukkit.WorldType
+import org.bukkit.*
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.io.IOException
 import java.nio.file.*
@@ -80,70 +77,6 @@ class GameMap internal constructor(
 
         val worldName = StringBuilder(label).append('_').append(game.id).toString()
 
-        fun loadWorld() {
-            scheduler.runTask(plugin, Runnable sync@{
-                val gen = WorldCreator(worldName)
-                val world: World?
-                val legacyMap = game.map
-
-                // Assign worldName so that WorldInitEvent detects the new world.
-                this.worldName = worldName
-                game.map = this
-                gen.type(WorldType.FLAT)
-                world = gen.createWorld()
-                Main.logger.info("World $worldName generated.")
-
-                if (world == null) {
-                    game.map = legacyMap
-                    game.forceStop(error = true)
-                    throw RuntimeException("Unable to load world $worldName for ${game.name}")
-                }
-
-                val init = {
-                    world.isAutoSave = false
-                    this.isGenerated = true
-                    this.world = world
-                    this.worldPath = container.resolve(worldName)
-
-                    // Don't forget to callback.
-                    callback?.accept(world)
-                }
-
-                try {
-                    if (regen) {
-                        val players = game.players.mapNotNull { Bukkit.getPlayer(it) }
-
-                        if (players.isNotEmpty()) {
-                            // Move players to the new world. (Async)
-                            scheduler.runTaskAsynchronously(plugin, Runnable {
-                                players.first().teleportAsync(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                                        .exceptionally { it.printStackTrace(); return@exceptionally null }
-                                        .get()
-
-                                scheduler.runTask(plugin, Runnable {
-                                    players.drop(1).forEach {
-                                        it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                                    }
-
-                                    scheduler.runTaskLater(plugin, Runnable {
-                                        // We're now safe to unload the old world.
-                                        legacyMap.destruct()
-                                        init()
-                                    }, 5L)
-                                })
-                            })
-                            return@sync
-                        }
-                    }
-
-                    init()
-                } catch (e: InvalidPathException) {
-                    game.forceStop(error = true)
-                    throw RuntimeException(e)
-                }
-            })
-        }
-
         // Copy world files to container
         scheduler.runTaskAsynchronously(plugin, Runnable {
             when {
@@ -166,7 +99,7 @@ class GameMap internal constructor(
                                     renamed, repository,
                                     StandardCopyOption.ATOMIC_MOVE
                             )
-                            loadWorld()
+                            loadWorld(worldName, game, container, regen, callback)
                         })
                     } catch (e: IllegalArgumentException) {
                         if (e.message?.startsWith("source", true) == true) {
@@ -194,7 +127,7 @@ class GameMap internal constructor(
                     throw FaultyConfiguration("There's an existing map with the same name: $worldName")
                 }
                 else -> {
-                    loadWorld()
+                    loadWorld(worldName, game, container, regen, callback)
                 }
             }
         })
@@ -229,5 +162,79 @@ class GameMap internal constructor(
         } catch (e: Exception) {
             throw RuntimeException("Failed to unload world \'$worldName\' at $worldPath", e)
         }
+    }
+
+    private fun loadWorld(
+            worldName: String,
+            game: Game,
+            container: Path,
+            regen: Boolean,
+            callback: Consumer<World>? = null
+    ) {
+        val plugin = Main.instance
+        val scheduler = Bukkit.getScheduler()
+
+        scheduler.runTask(plugin, Runnable sync@{
+            val gen = WorldCreator(worldName)
+            val world: World?
+            val legacyMap = game.map
+
+            // Assign worldName so that WorldInitEvent detects the new world.
+            this.worldName = worldName
+            game.map = this
+            gen.type(WorldType.FLAT)
+            world = gen.createWorld()
+            Main.logger.info("World $worldName generated.")
+
+            if (world == null) {
+                game.map = legacyMap
+                game.forceStop(error = true)
+                throw RuntimeException("Unable to load world $worldName for ${game.name}")
+            }
+
+            fun init() {
+                world.isAutoSave = false
+                world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
+                this.isGenerated = true
+                this.world = world
+                this.worldPath = container.resolve(worldName)
+
+                // Don't forget to callback.
+                callback?.accept(world)
+            }
+
+            try {
+                if (regen) {
+                    val players = game.players.mapNotNull { Bukkit.getPlayer(it) }
+
+                    if (players.isNotEmpty()) {
+                        // Move players to the new world. (Async)
+                        scheduler.runTaskAsynchronously(plugin, Runnable {
+                            players.first().teleportAsync(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                                    .exceptionally { it.printStackTrace(); return@exceptionally null }
+                                    .get()
+
+                            scheduler.runTask(plugin, Runnable {
+                                players.drop(1).forEach {
+                                    it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                                }
+
+                                scheduler.runTaskLater(plugin, Runnable {
+                                    // We're now safe to unload the old world.
+                                    legacyMap.destruct()
+                                    init()
+                                }, 5L)
+                            })
+                        })
+                        return@sync
+                    }
+                }
+
+                init()
+            } catch (e: InvalidPathException) {
+                game.forceStop(error = true)
+                throw RuntimeException(e)
+            }
+        })
     }
 }

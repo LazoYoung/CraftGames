@@ -53,29 +53,32 @@ class GameEditor private constructor(
          */
         fun start(player: Player, gameName: String, mapID: String) {
             val pid = player.uniqueId
-            var mapSel: String? = mapID
 
             if (registry.containsKey(pid)) {
                 player.sendMessage("\u00A7cYou're already in editor mode.")
                 return
             }
 
-            if (mapID == GameResource(gameName).lobbyMap.id)
-                mapSel = null
-
             val present = Game.find(gameName, true).firstOrNull { mapID == it.map.id }
+            val mapSel = if (mapID == GameResource(gameName).lobbyMap.id) {
+                null
+            } else {
+                mapID
+            }
 
             if (present == null) {
                 Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
                     val instance = GameEditor(player, game)
-
                     registry[pid] = instance
+
+                    instance.captureState()
                     game.joinEditor(instance)
                 })
             } else {
                 val instance = GameEditor(player, present)
-
                 registry[pid] = instance
+
+                instance.captureState()
                 present.joinEditor(instance)
             }
         }

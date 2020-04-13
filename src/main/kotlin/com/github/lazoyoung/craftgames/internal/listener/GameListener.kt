@@ -1,8 +1,6 @@
 package com.github.lazoyoung.craftgames.internal.listener
 
-import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.api.*
 import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
@@ -12,7 +10,6 @@ import org.bukkit.event.Cancellable
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.scoreboard.Objective
 
 class GameListener : Listener {
 
@@ -43,11 +40,11 @@ class GameListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameJoinPost(event: GameJoinPostEvent) {
+        relayToScript(event, EventType.GAME_JOIN_POST_EVENT)
+
         if (event.getPlayerType() == PlayerType.EDITOR) {
             updateEditors(event.getGame())
         }
-
-        relayToScript(event, EventType.GAME_JOIN_POST_EVENT)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -55,9 +52,16 @@ class GameListener : Listener {
         relayToScript(event, EventType.GAME_LEAVE_EVENT)
     }
 
+    @Suppress("DEPRECATION")
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameTimeout(event: GameTimeoutEvent) {
         relayToScript(event, EventType.GAME_TIMEOUT_EVENT)
+
+        val game = event.getGame()
+
+        if (game.phase != Game.Phase.FINISH) {
+            Module.getGameModule(game).drawGame(Timer(TimeUnit.SECOND, 5))
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -77,38 +81,12 @@ class GameListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerKill(event: GamePlayerKillEvent) {
-        val player = event.getPlayer()
-        val scoreboard = Module.getTeamModule(event.getGame()).getScoreboard()
-        val objectives = ArrayList<Objective>()
-        objectives.addAll(scoreboard.getObjectivesByCriteria("totalKillCount"))
-        objectives.addAll(scoreboard.getObjectivesByCriteria("playerKillCount"))
-        objectives.forEach {
-            val score = it.getScore(player.name)
-            score.score = score.score + 1
-        }
-
         relayToScript(event, EventType.PLAYER_KILL_EVENT)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerDeath(event: GamePlayerDeathEvent) {
-        val scoreboard = Module.getTeamModule(event.getGame()).getScoreboard()
-        val objectives = ArrayList<Objective>()
-        val player = event.getPlayer()
-        objectives.addAll(scoreboard.getObjectivesByCriteria("deathCount"))
-        objectives.forEach {
-            val score = it.getScore(player.name)
-            score.score = score.score + 1
-        }
-
         relayToScript(event, EventType.PLAYER_DEATH_EVENT)
-
-        if (event.isCancelled) {
-            objectives.forEach {
-                val score = it.getScore(player.name)
-                score.score = score.score - 1
-            }
-        }
     }
 
     private fun <T : GameEvent> relayToScript(event: T, type: EventType) {

@@ -11,18 +11,22 @@ class Spectator private constructor(
 
     companion object {
         /**
+         * @param migrate [PlayerData] storing the previous data
+         * which should be migrated into this instance (This is optional).
          * @throws RuntimeException is raised if plugin fails to write player's data.
          */
-        internal fun register(player: Player, game: Game): Spectator {
+        internal fun register(player: Player, game: Game, migrate: PlayerData? = null): Spectator {
             val pid = player.uniqueId
             val legacy = get(player)
-            val new = Spectator(player, game)
+            val instance = Spectator(player, game)
 
-            if (legacy?.isOnline() == true && legacy.getGame() != game)
+            if (legacy?.isOnline() == true && legacy.getGame() != game) {
                 throw ConcurrentPlayerState(null)
+            }
 
-            registry[pid] = new
-            return new
+            registry[pid] = instance
+            instance.captureState(migrate)
+            return instance
         }
     }
 
