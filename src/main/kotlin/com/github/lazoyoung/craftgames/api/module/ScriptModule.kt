@@ -59,15 +59,21 @@ interface ScriptModule {
     fun setLogVerbosity(verbose: Boolean)
 
     /**
-     * Repeat execution of the [task][Runnable].
+     * Repeat to execute [task][Runnable].
      *
-     * @param counter How many times to repeat?
-     * @param interval What is the frequency of this repeating task?
+     * @param counter The number of times to repeat.
+     * @param interval The [frequency][Timer] of repeating task.
+     * @param task The [task][Runnable] to be executed.
+     * @throws IllegalArgumentException is thrown if [interval] is less than 10 ticks.
      */
     fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask
 
     /**
-     * Wait certain amount of [time][Timer] before executing the [task][Runnable].
+     * Wait before executing the [task][Runnable].
+     *
+     * @param delay The amount of [time][Timer] to wait.
+     * @param task The [task][Runnable] to be executed.
+     * @throws IllegalArgumentException is thrown if [delay] is less than 1 tick.
      */
     fun wait(delay: Timer, task: Runnable): BukkitTask
 

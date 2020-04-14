@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.WorldModule
+import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
@@ -21,11 +22,14 @@ import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.session.ClipboardHolder
 import org.bukkit.*
 import org.bukkit.block.Container
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.loot.LootTable
 import org.bukkit.loot.Lootable
 import java.io.FileInputStream
+import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
 class WorldModuleService(private val game: Game) : WorldModule {
@@ -38,6 +42,14 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
     override fun getWorldBorder(): WorldBorder {
         return getWorld().worldBorder
+    }
+
+    override fun setBorderCenter(blockTag: String, index: Int) {
+        val tag = Module.getRelevantTag(game, blockTag, TagMode.BLOCK)
+        val capture = tag.getCaptures(getMapID())
+                .filterIsInstance(BlockCapture::class.java)[index]
+
+        getWorldBorder().setCenter(capture.x.toDouble(), capture.z.toDouble())
     }
 
     override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {}
@@ -191,8 +203,68 @@ class WorldModuleService(private val game: Game) : WorldModule {
         }
     }
 
-    private fun getWorld(): World {
+    internal fun getWorld(): World {
         return game.map.world ?: throw MapNotFound()
     }
 
+    internal inline fun <reified T : Entity> getEntitiesInside(areaTag: String, callback: Consumer<List<T>>) {
+        val world = Module.getWorldModule(game).getWorld()
+        val tag = Module.getRelevantTag(game, areaTag, TagMode.AREA)
+        val captures = tag.getCaptures(game.map.id)
+                .filterIsInstance(AreaCapture::class.java)
+        val futureMap = LinkedHashMap<AreaCapture, LinkedList<CompletableFuture<Chunk>>>()
+        val totalMobs = LinkedList<T>()
+
+        // Register tasks to load chunks async.
+        captures.forEach { capture ->
+            var xCursor = capture.x1.toDouble()
+            var zCursor = capture.z1.toDouble()
+
+            do {
+                do {
+                    val future = world.getChunkAtAsync(Location(world, xCursor, 1.0, zCursor), true)
+                            .exceptionally { t ->
+                                t.printStackTrace()
+                                futureMap.clear()
+                                callback.accept(emptyList())
+                                null
+                            }
+                    futureMap.computeIfAbsent(capture) { LinkedList() }.add(future)
+                    xCursor += 16.0
+                } while (xCursor <= capture.z2)
+
+                xCursor = capture.x1.toDouble()
+                zCursor += 16.0
+            } while (zCursor <= capture.x2)
+        }
+
+        futureMap.forEach { (capture, futureList) ->
+            CompletableFuture.allOf(*futureList.toTypedArray()).handleAsync { _, t ->
+                if (t != null) {
+                    t.printStackTrace()
+                    callback.accept(emptyList())
+                    return@handleAsync
+                }
+
+                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+
+                    // Aggregate mobs by iterating each chunk
+                    futureList.forEach { future ->
+                        try {
+                            val chunk = future.join()
+                            val mobs = chunk.entities
+                                    .filterIsInstance<T>()
+                                    .filter { return@filter capture.isInside(it.location) }
+
+                            totalMobs.addAll(mobs)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+
+                    callback.accept(totalMobs)
+                })
+            }
+        }
+    }
 }

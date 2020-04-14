@@ -6,7 +6,6 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
@@ -17,15 +16,27 @@ import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
+import java.util.function.Consumer
 import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule {
 
     private val script = game.resource.script
 
+    override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
+        return livingEntity.type.key
+    }
+
+    override fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>) {
+        Module.getWorldModule(game).getEntitiesInside(areaTag, Consumer<List<Mob>> {
+            callback.accept(it)
+            script.printDebug("Found ${it.size} mobs inside area: $areaTag")
+        })
+    }
+
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
-        val world = game.map.world ?: throw MapNotFound()
+        val world = Module.getWorldModule(game).getWorld()
         val capture = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
@@ -59,10 +70,29 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         return mobList
     }
 
+    override fun spawnMob(type: String, name: String, spawnTag: String): List<Mob> {
+        val mobList = spawnMob(type, spawnTag)
+
+        mobList.forEach {
+            it.customName = name
+        }
+        return mobList
+    }
+
     override fun spawnMob(type: String, loot: LootTable, spawnTag: String): List<Mob> {
         val mobList = spawnMob(type, spawnTag)
 
         mobList.forEach { it.setLootTable(loot, Random.nextLong()) }
+        return mobList
+    }
+
+    override fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): List<Mob> {
+        val mobList = spawnMob(type, spawnTag)
+
+        mobList.forEach {
+            it.customName = name
+            it.setLootTable(loot, Random.nextLong())
+        }
         return mobList
     }
 
@@ -72,7 +102,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
-        val world = game.map.world ?: throw MapNotFound()
+        val world = Module.getWorldModule(game).getWorld()
         val mapID = game.map.id
         val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
@@ -127,10 +157,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
         mobList.forEach { it.setLootTable(loot, Random.nextLong()) }
         return mobList
-    }
-
-        override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
-        return livingEntity.type.key
     }
 
 }

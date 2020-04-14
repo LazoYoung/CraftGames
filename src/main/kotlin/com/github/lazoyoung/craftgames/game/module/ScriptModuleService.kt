@@ -5,7 +5,7 @@ import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.event.GameEvent
-import com.github.lazoyoung.craftgames.game.GameResource
+import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
@@ -16,10 +16,11 @@ import java.nio.file.Paths
 import java.util.function.Consumer
 
 class ScriptModuleService internal constructor(
-        private val resource: GameResource
+        private val game: Game
 ) : ScriptModule {
 
     internal val events = HashMap<EventType, Consumer<in GameEvent>>()
+    private val resource = game.resource
     private val script = resource.script
     private val tasks = ArrayList<BukkitTask>()
 
@@ -53,12 +54,21 @@ class ScriptModuleService internal constructor(
     }
 
     override fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask {
+        if (interval.toTick() < 10L) {
+            throw IllegalArgumentException("Repeat interval is too short! (< 10 ticks)")
+        }
+
         val bukkitTask = object : BukkitRunnable() {
             var count = counter
 
             override fun run() {
                 if (count-- > 0) {
-                    task.run()
+                    try {
+                        task.run()
+                    } catch (e: Exception) {
+                        script.writeStackTrace(e)
+                        game.forceStop(error = true)
+                    }
                 } else {
                     this.cancel()
                 }
@@ -70,9 +80,18 @@ class ScriptModuleService internal constructor(
     }
 
     override fun wait(delay: Timer, task: Runnable): BukkitTask {
+        if (delay.toTick() < 1L) {
+            throw IllegalArgumentException("Wait delay is too short! (< 1 tick)")
+        }
+
         val bukkitTask = object : BukkitRunnable() {
             override fun run() {
-                task.run()
+                try {
+                    task.run()
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    game.forceStop(error = true)
+                }
             }
         }.runTaskLater(Main.instance, delay.toTick())
 
@@ -172,7 +191,11 @@ class ScriptModuleService internal constructor(
     internal fun terminate() {
         script.clear()
         events.clear()
-        tasks.forEach(BukkitTask::cancel)
+        tasks.forEach {
+            try {
+                it.cancel()
+            } catch (e: Exception) {}
+        }
     }
 
 }

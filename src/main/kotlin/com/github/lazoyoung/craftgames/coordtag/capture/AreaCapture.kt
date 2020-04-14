@@ -116,14 +116,40 @@ class AreaCapture(
     }
 
     fun isInside(loc: Location): Boolean {
-        val x = loc.x.toInt()
-        val y = loc.y.toInt()
-        val z = loc.z.toInt()
+        val x = loc.blockX
+        val y = loc.blockY
+        val z = loc.blockZ
         val inX = x == x.coerceIn(x1, x2)
         val inY = y == y.coerceIn(y1, y2)
         val inZ = z == z.coerceIn(z1, z2)
 
         return inX && inY && inZ
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AreaCapture
+
+        if (x1 != other.x1) return false
+        if (x2 != other.x2) return false
+        if (y1 != other.y1) return false
+        if (y2 != other.y2) return false
+        if (z1 != other.z1) return false
+        if (z2 != other.z2) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = x1
+        result = 31 * result + x2
+        result = 31 * result + y1
+        result = 31 * result + y2
+        result = 31 * result + z1
+        result = 31 * result + z2
+        return result
     }
 
 }

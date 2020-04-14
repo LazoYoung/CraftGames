@@ -16,11 +16,22 @@ interface WorldModule {
     fun getMapID(): String
 
     /**
-     * Get [WorldBorder] of the current world.
+     * Get [WorldBorder] of current world.
      *
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
     fun getWorldBorder(): WorldBorder
+
+    /**
+     * Set center of [WorldBorder] for current world.
+     *
+     * @param blockTag Name of the block coordinate tag which represents the center of border.
+     * @param index Index of capture (This is optional).
+     * @throws IllegalArgumentException is thrown if [blockTag]
+     * does not indicate a block coordinate in this world.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     */
+    fun setBorderCenter(blockTag: String, index: Int = 0)
 
     @Deprecated("Replaced with GameAreaTriggerEvent", level = DeprecationLevel.ERROR)
     fun setAreaTrigger(tag: String, task: Consumer<Player>?)

@@ -14,6 +14,15 @@ interface PlayerModule {
     fun getDeadPlayers(): List<Player>
 
     /**
+     * Inspect which [Player]s are inside the area.
+     *
+     * @param areaTag Name of the coordinate tag which designates the area.
+     * @param callback Callback function that will accept the result
+     * ([List] of players inside) once the process is completed.
+     */
+    fun getPlayersInside(areaTag: String, callback: Consumer<List<Player>>)
+
+    /**
      * Check if [player] is playing this game.
      */
     fun isOnline(player: Player): Boolean

@@ -57,6 +57,7 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
                 return false
             }
 
+            // TODO This doesn't work.
             callback.addAnnotation(AnnotationNode(classNodeFor(CompileDynamic::class.java)))
             callback.putNodeMetaData(StaticTypesMarker.DYNAMIC_RESOLUTION, java.lang.Boolean.TRUE)
             call.arguments = ArgumentListExpression(eventType, callback)
@@ -77,7 +78,7 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
                     return false
                 }
             }
-            // FIXME NullPointerException at ClosureWriter.getClosureSharedVariables(ClosureWriter.java:395)
+            // NullPointerException at ClosureWriter.getClosureSharedVariables(ClosureWriter.java:395)
             // Maybe fixed?
             val newClosure = ClosureExpression(arrayOf(newParams), callback.code)
             newClosure.variableScope = callback.variableScope

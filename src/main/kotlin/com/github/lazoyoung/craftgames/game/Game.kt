@@ -58,7 +58,7 @@ class Game(
     enum class JoinRejection { FULL, IN_GAME, GENERATING, TERMINATING }
 
     /** List of players (regardless of PlayerState) **/
-    internal val players = ArrayList<UUID>()
+    internal val players = LinkedList<UUID>()
 
     /** The state of game progress **/
     var phase = Phase.INIT

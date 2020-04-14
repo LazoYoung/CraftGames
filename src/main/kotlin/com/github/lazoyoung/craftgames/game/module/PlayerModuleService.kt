@@ -47,6 +47,13 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         return game.getPlayers().filter { PlayerData.get(it) is Spectator }
     }
 
+    override fun getPlayersInside(areaTag: String, callback: Consumer<List<Player>>) {
+        Module.getWorldModule(game).getEntitiesInside(areaTag, Consumer<List<Player>> {
+            callback.accept(it)
+            script.printDebug("Found ${it.size} players inside area: $areaTag")
+        })
+    }
+
     override fun isOnline(player: Player): Boolean {
         return game.getPlayers().contains(player)
     }

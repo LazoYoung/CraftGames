@@ -16,7 +16,7 @@ class Module internal constructor(val game: Game) {
     private val lobbyModule = LobbyModuleService(game)
     private val playerModule = PlayerModuleService(game)
     private val mobModule = MobModuleService(game)
-    private val scriptModule = ScriptModuleService(game.resource)
+    private val scriptModule = ScriptModuleService(game)
     private val worldModule = WorldModuleService(game)
     private val itemModule = ItemModuleService(game)
     private var terminateSignal = false
