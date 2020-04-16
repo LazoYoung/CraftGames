@@ -175,32 +175,29 @@ class WorldModuleService(private val game: Game) : WorldModule {
      * @param index Index of the spawnpoint capture. (Optional)
      * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
-    fun teleportSpawn(playerData: PlayerData, index: Int?, asyncCallback: Consumer<Boolean>? = null) {
+    fun teleportSpawn(playerData: PlayerData, index: Int?): CompletableFuture<Boolean> {
         val scheduler = Bukkit.getScheduler()
         val player = playerData.getPlayer()
         val playerModule = Module.getPlayerModule(game)
         val location = playerModule.getSpawnpoint(playerData, index)
 
-        fun protect() {
-            val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
+        return player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                .handleAsync { result, t ->
+                    if (t != null) {
+                        t.printStackTrace()
+                        return@handleAsync false
+                    } else {
+                        scheduler.runTask(Main.instance, Runnable {
+                            val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
 
-            player.isInvulnerable = true
-            scheduler.runTaskLater(Main.instance, Runnable {
-                player.isInvulnerable = false
-            }, Timer(TimeUnit.TICK, gracePeriod).toTick())
-        }
-
-        if (asyncCallback == null) {
-            player.teleport(location)
-            protect()
-        } else {
-            scheduler.runTaskAsynchronously(Main.instance, Runnable {
-                player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                        .thenAccept(asyncCallback::accept)
-                        .thenRun { protect() }
-                        .exceptionally { it.printStackTrace(); return@exceptionally null }
-            })
-        }
+                            player.isInvulnerable = true
+                            scheduler.runTaskLater(Main.instance, Runnable {
+                                player.isInvulnerable = false
+                            }, Timer(TimeUnit.TICK, gracePeriod).toTick())
+                        })
+                        return@handleAsync result
+                    }
+                }
     }
 
     internal fun getWorld(): World {

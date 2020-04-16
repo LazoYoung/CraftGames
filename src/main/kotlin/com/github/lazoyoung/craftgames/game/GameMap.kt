@@ -8,7 +8,10 @@ import org.bukkit.*
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.io.IOException
 import java.nio.file.*
+import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import kotlin.collections.HashMap
 
 class GameMap internal constructor(
         /** ID of this map **/
@@ -174,7 +177,7 @@ class GameMap internal constructor(
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
 
-        scheduler.runTask(plugin, Runnable sync@{
+        scheduler.runTask(plugin, Runnable {
             val gen = WorldCreator(worldName)
             val world: World?
             val legacyMap = game.map
@@ -204,33 +207,35 @@ class GameMap internal constructor(
             }
 
             try {
-                if (regen) {
+                if (!regen) {
+                    init()
+                } else {
+                    val teleportCause = PlayerTeleportEvent.TeleportCause.PLUGIN
+                    val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
                     val players = game.players.mapNotNull { Bukkit.getPlayer(it) }
 
                     if (players.isNotEmpty()) {
-                        // Move players to the new world. (Async)
-                        scheduler.runTaskAsynchronously(plugin, Runnable {
-                            players.first().teleportAsync(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                                    .exceptionally { it.printStackTrace(); return@exceptionally null }
-                                    .get()
 
-                            scheduler.runTask(plugin, Runnable {
-                                players.drop(1).forEach {
-                                    it.teleport(world.spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                                }
+                        // Teleport players to new world.
+                        players.forEach { player ->
+                            teleportFutures.add(
+                                    player.teleportAsync(world.spawnLocation, teleportCause)
+                                    .exceptionally {
+                                        it.printStackTrace()
+                                        return@exceptionally null
+                                    })
+                        }
 
-                                scheduler.runTaskLater(plugin, Runnable {
-                                    // We're now safe to unload the old world.
-                                    legacyMap.destruct()
-                                    init()
-                                }, 5L)
+                        CompletableFuture.allOf(*teleportFutures.toTypedArray()).thenAcceptAsync {
+                            scheduler.runTask(Main.instance, Runnable {
+
+                                // We're now safe to unload the old world.
+                                legacyMap.destruct()
+                                init()
                             })
-                        })
-                        return@sync
+                        }
                     }
                 }
-
-                init()
             } catch (e: InvalidPathException) {
                 game.forceStop(error = true)
                 throw RuntimeException(e)

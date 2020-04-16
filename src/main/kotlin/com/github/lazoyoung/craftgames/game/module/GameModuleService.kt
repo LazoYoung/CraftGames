@@ -23,7 +23,8 @@ import org.bukkit.entity.Player
 import org.bukkit.loot.LootTable
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
-import java.util.function.Consumer
+import java.util.*
+import java.util.concurrent.CompletableFuture
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
@@ -163,22 +164,27 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
+        val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
         var index = 0
-
-        // Fire event
-        Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
             if (p is GamePlayer) {
                 p.restore(respawn = true, leave = false)
-                worldModule.teleportSpawn(p, index++, Consumer<Boolean> {})
+                teleportFutures.add(worldModule.teleportSpawn(p, index++))
             } else {
                 p.restore(respawn = false, leave = false)
-                worldModule.teleportSpawn(p, null, Consumer<Boolean> {})
+                teleportFutures.add(worldModule.teleportSpawn(p, null))
             }
 
             bossBar.addPlayer(p.getPlayer())
+        }
+
+        // Fire event once all the teleport tasks are complete.
+        CompletableFuture.allOf(*teleportFutures.toTypedArray()).thenAcceptAsync {
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+            })
         }
 
         serviceTask = object : BukkitRunnable() {
