@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.api.module.MobModule
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
@@ -42,21 +41,19 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
         val world = Module.getWorldModule(game).getWorld()
-        // TODO Accept area tags
-        val capture = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
+        val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
 
-        if (capture.isEmpty()) {
+        if (captures.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
         }
 
-        capture.forEach {
-            it as SpawnCapture
-            val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
-            typeKey = entityType.key
-            val loc = Location(world, it.x, it.y, it.z, it.yaw, it.pitch)
+        captures.forEach { capture ->
             val entity: Entity
+            val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
+            val loc = capture.toLocation(world)
+            typeKey = entityType.key
 
             if (!entityType.isSpawnable) {
                 throw RuntimeException("Entity is not spawn-able: $typeKey")
@@ -110,7 +107,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
         val world = Module.getWorldModule(game).getWorld()
         val mapID = game.map.id
-        val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
+        val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
         val bukkitAPIHelper: Any
@@ -131,8 +128,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
 
         captures.forEach { capture ->
-            capture as SpawnCapture
-            val loc = Location(world, capture.x, capture.y, capture.z, capture.yaw, capture.pitch)
+            val loc = capture.toLocation(world)
             val entity: Entity
 
             try {
