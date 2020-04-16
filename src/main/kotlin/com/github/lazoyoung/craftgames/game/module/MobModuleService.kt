@@ -30,13 +30,19 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
     override fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>) {
         Module.getWorldModule(game).getEntitiesInside(areaTag, Consumer<List<Mob>> {
             callback.accept(it)
-            script.printDebug("Found ${it.size} mobs inside area: $areaTag")
+
+            script.printDebug(it.joinToString(
+                            prefix = "Found ${it.size} mobs inside $areaTag: ",
+                            limit = 10,
+                            transform = { mob -> mob.type.name })
+            )
         })
     }
 
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
         val world = Module.getWorldModule(game).getWorld()
+        // TODO Accept area tags
         val capture = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null

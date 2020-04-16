@@ -1,11 +1,13 @@
 package com.github.lazoyoung.craftgames.coordtag.capture
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Particle
 import org.bukkit.World
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import kotlin.random.Random
@@ -51,22 +53,26 @@ class AreaCapture(
      *
      * @param timer How long will particles shows up?
      */
-    fun displayBorder(world: World, res: Int, timer: Timer) {
+    fun displayBorder(world: World, timer: Timer) {
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
-        val builder = Particle.REDSTONE.builder()
-                .count(1).offset(0.0, 0.0, 0.0)
+        val res = Main.getConfig()?.getInt("particle.resolution", 2) ?: 2
+        val distance = Main.getConfig()?.getInt("particle.visible-distance", 30) ?: 30
+        val interval = Timer(TimeUnit.SECOND, 2)
+        val builder = Particle.END_ROD.builder()
+                .count(1)
+                .offset(0.0, 0.0, 0.0)
+                .extra(0.0)
+                .force(false)
 
         object : BukkitRunnable() {
-            var counter = timer.toTick() / 5L
+            var counter = timer.toTick() / interval.toTick()
 
             override fun run() {
                 if (counter-- < 1) {
                     this.cancel()
                     return
                 }
-
-                builder.color(Random.nextInt(256), Random.nextInt(256), Random.nextInt(256))
 
                 // Generate particles
                 scheduler.runTask(plugin, Runnable {
@@ -78,7 +84,7 @@ class AreaCapture(
                             builder.location(
                                     world, x.toDouble() / res + 0.5,
                                     it[0].toDouble() + 0.5, it[1].toDouble() + 0.5
-                            ).spawn()
+                            ).receivers(distance).spawn()
                         }
                     }
 
@@ -91,7 +97,7 @@ class AreaCapture(
                                 builder.location(
                                         world, it[0].toDouble() + 0.5,
                                         y.toDouble() / res + 0.5, it[1].toDouble() + 0.5
-                                ).spawn()
+                                ).receivers(distance).spawn()
                             }
                         }
 
@@ -104,7 +110,7 @@ class AreaCapture(
                                     builder.location(
                                             world, it[0].toDouble() + 0.5,
                                             it[1].toDouble() + 0.5, z.toDouble() / res + 0.5
-                                    ).spawn()
+                                    ).receivers(distance).spawn()
                                 }
                             }
                         })
@@ -112,7 +118,11 @@ class AreaCapture(
                 })
             }
 
-        }.runTaskTimer(plugin, 0L, 5L)
+        }.runTaskTimer(plugin, 0L, interval.toTick())
+    }
+
+    fun isInside(entity: Entity): Boolean {
+        return isInside(entity.location)
     }
 
     fun isInside(loc: Location): Boolean {

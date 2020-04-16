@@ -122,6 +122,9 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun finishGame(winner: Team, timer: Timer) {
+        if (game.phase != Game.Phase.PLAYING)
+            return
+
         val winners = Module.getTeamModule(game).getPlayers(winner)
 
         // Fire event
@@ -133,6 +136,9 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun finishGame(winner: Player, timer: Timer) {
+        if (game.phase != Game.Phase.PLAYING)
+            return
+
         // Fire event
         Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.SOLO_WIN, null, listOf(winner)))
 
@@ -143,6 +149,9 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     @Deprecated("This is for internal use.")
     override fun drawGame(timer: Timer) {
+        if (game.phase != Game.Phase.PLAYING)
+            return
+
         // Fire event
         Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.DRAW, null, null))
 
@@ -171,7 +180,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
             bossBar.addPlayer(p.getPlayer())
         }
-
 
         serviceTask = object : BukkitRunnable() {
             override fun run() {

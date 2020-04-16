@@ -203,7 +203,7 @@ class CoordtagCommand : CommandBase {
                                 if (capture is AreaCapture) {
                                     val timer = Timer(TimeUnit.SECOND, 20)
 
-                                    capture.displayBorder(sender.world, 5, timer)
+                                    capture.displayBorder(sender.world, timer)
                                 }
 
                                 sender.teleport(capture.toLocation(sender.world))
@@ -226,7 +226,7 @@ class CoordtagCommand : CommandBase {
                             is AreaCapture -> {
                                 val timer = Timer(TimeUnit.SECOND, 20)
 
-                                capture.displayBorder(sender.world, 5, timer)
+                                capture.displayBorder(sender.world, timer)
                                 ActionbarTask(
                                         player = sender,
                                         period = timer,

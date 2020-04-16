@@ -21,6 +21,16 @@ script:
 schematic-throttle: 10000
 
 
+# Graphical particle settings
+particle:
+
+  # Set how many particles are generated per 1 block while displaying area.
+  resolution: 2
+
+  # Set maximum distance for particles to be visible.
+  visible-distance: 30
+
+
 # The prefix of generated world's directory name.
 world-label: game
 

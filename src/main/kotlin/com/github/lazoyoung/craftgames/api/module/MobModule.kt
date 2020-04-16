@@ -31,7 +31,7 @@ interface MobModule {
      *
      * @param type Type of [mobs][Mob]s to be spawned.
      * @param spawnTag Name of the coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Spawnpoint Tag.
+     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
@@ -44,7 +44,7 @@ interface MobModule {
      * @param type Type of [mobs][Mob]s to be spawned.
      * @param name Custom name.
      * @param spawnTag Name of the coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Spawnpoint Tag.
+     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
@@ -58,7 +58,7 @@ interface MobModule {
      * @param loot The [LootTable] which defines the items to drop upon death.
      * Use [ItemModule.getLootTable] to get a loot table.
      * @param spawnTag The name of coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Spawnpoint Tag.
+     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
@@ -73,7 +73,7 @@ interface MobModule {
      * @param loot The [LootTable] which defines the items to drop upon death.
      * Use [ItemModule.getLootTable] to get a loot table.
      * @param spawnTag The name of coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Spawnpoint Tag.
+     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
@@ -105,6 +105,7 @@ interface MobModule {
      * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
+    @Deprecated("MythicMob supports LootTable by itself.")
     fun spawnMythicMob(name: String, level: Int, loot: LootTable, spawnTag: String): List<Mob>
 
 }

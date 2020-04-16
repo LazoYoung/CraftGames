@@ -497,24 +497,34 @@ class Game(
      * @param timer The amount of time to wait before termination.
      */
     internal fun close(async: Boolean = true, timer: Timer = Timer(TimeUnit.TICK, 0)) {
-        if (phase != Phase.INIT) {
-            updatePhase(Phase.FINISH)
 
-            Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
-                updatePhase(Phase.TERMINATE)
-                getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
-                resource.saveToDisk(editMode)
-
-                if (map.isGenerated) {
-                    map.destruct(async)
-                }
-
-                purge(this)
-            }, timer.toTick())
-        } else {
+        if (phase == Phase.INIT) {
             getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
             resource.saveToDisk(editMode)
             purge(this)
+            return
+        }
+
+        updatePhase(Phase.FINISH)
+
+        fun terminate() {
+            updatePhase(Phase.TERMINATE)
+            getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
+            resource.saveToDisk(editMode)
+
+            if (map.isGenerated) {
+                map.destruct(async)
+            }
+
+            purge(this)
+        }
+
+        if (timer.toTick() > 0L) {
+            Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+                terminate()
+            }, timer.toTick())
+        } else {
+            terminate()
         }
     }
 

@@ -212,59 +212,69 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val tag = Module.getRelevantTag(game, areaTag, TagMode.AREA)
         val captures = tag.getCaptures(game.map.id)
                 .filterIsInstance(AreaCapture::class.java)
-        val futureMap = LinkedHashMap<AreaCapture, LinkedList<CompletableFuture<Chunk>>>()
+        val futureMap = LinkedHashMap<CompletableFuture<Chunk>, AreaCapture>()
         val totalMobs = LinkedList<T>()
 
         // Register tasks to load chunks async.
         captures.forEach { capture ->
-            var xCursor = capture.x1.toDouble()
-            var zCursor = capture.z1.toDouble()
+
+            val xInit = if (capture.x1 >= 0) {
+                capture.x1 - capture.x1 % 16
+            } else {
+                capture.x1 - (15 - ((-capture.x1 - 1) % 16))
+            }
+            var xCursor = xInit
+            var zCursor = if (capture.z1 >= 0) {
+                capture.z1 - capture.z1 % 16
+            } else {
+                capture.z1 - (15 - ((-capture.z1 - 1) % 16))
+            }
 
             do {
                 do {
-                    val future = world.getChunkAtAsync(Location(world, xCursor, 1.0, zCursor), true)
+                    val future = world.getChunkAtAsync(xCursor / 16, zCursor / 16, true)
                             .exceptionally { t ->
                                 t.printStackTrace()
                                 futureMap.clear()
                                 callback.accept(emptyList())
                                 null
                             }
-                    futureMap.computeIfAbsent(capture) { LinkedList() }.add(future)
-                    xCursor += 16.0
-                } while (xCursor <= capture.z2)
 
-                xCursor = capture.x1.toDouble()
-                zCursor += 16.0
-            } while (zCursor <= capture.x2)
+                    futureMap[future] = capture
+                    xCursor += 16
+                } while (xCursor <= capture.x2)
+
+                xCursor = xInit
+                zCursor += 16
+            } while (zCursor <= capture.z2)
         }
 
-        futureMap.forEach { (capture, futureList) ->
-            CompletableFuture.allOf(*futureList.toTypedArray()).handleAsync { _, t ->
-                if (t != null) {
-                    t.printStackTrace()
-                    callback.accept(emptyList())
-                    return@handleAsync
+        CompletableFuture.allOf(*futureMap.keys.toTypedArray()).handleAsync { _, t ->
+            if (t != null) {
+                t.printStackTrace()
+                callback.accept(emptyList())
+                return@handleAsync
+            }
+
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+
+                // Aggregate mobs by iterating each chunk
+                futureMap.forEach { (future, capture) ->
+                    try {
+                        val chunk = future.join()
+                        val mobs = chunk.entities
+
+                        totalMobs.addAll(
+                                mobs.filterIsInstance<T>()
+                                        .filter { return@filter capture.isInside(it) }
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
 
-                Bukkit.getScheduler().runTask(Main.instance, Runnable {
-
-                    // Aggregate mobs by iterating each chunk
-                    futureList.forEach { future ->
-                        try {
-                            val chunk = future.join()
-                            val mobs = chunk.entities
-                                    .filterIsInstance<T>()
-                                    .filter { return@filter capture.isInside(it.location) }
-
-                            totalMobs.addAll(mobs)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-
-                    callback.accept(totalMobs)
-                })
-            }
+                callback.accept(totalMobs)
+            })
         }
     }
 }
