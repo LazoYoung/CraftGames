@@ -1,29 +1,67 @@
 name: CraftGames
 main: com.github.lazoyoung.craftgames.Main
 author: LazoYoung
+website: https://github.com/LazoYoung/CraftGames
 api-version: '1.15'
 version: $version
 softdepend: [ WorldEdit, MythicMobs, Vault, LootTableFix ]
 commands:
+  craftgames:
+    description: See all commands available in CraftGames.
+    usage: /craftgames
+    aliases: [ cg ]
+    permission: craftgames.info
   join:
     description: Join a game.
-    usage: /join [game]
+    usage: 'Usage: /join [game]'
     aliases: [ play ]
+    permission: craftgames.player.access
   leave:
     description: Leave a game.
-    usage: /leave
+    usage: 'Usage: /leave'
     aliases: [ quit ]
-  kit:
-    description: Select a kit.
-    usage: /kit [name]
-  game:
-    description: Manage games.
-    usage: Type /game to see command list.
-  ctag:
-    description: Manage coordinate tags.
-    usage: Type /ctag to see command list.
-    aliases: [ coord, coordtag ]
+    permission: craftgames.player.access
   mapvote:
     description: Vote for a map inside a game.
-    usage: Type /vote to open menu.
+    usage: 'Type /vote to open menu.'
     aliases: [ vote ]
+    permission: craftgames.player.mapvote
+  kit:
+    description: Select a kit.
+    usage: 'Usage: /kit [name]'
+    permission: craftgames.player.kit
+  game:
+    description: Manage games.
+    usage: 'Type /game to see command list.'
+    permission: craftgames.admin.manage
+  ctag:
+    description: Manage coordinate tags.
+    usage: 'Type /ctag to see command list.'
+    aliases: [ coordtag ]
+    permission: craftgames.admin.ctag
+permissions:
+  craftgames.player.*:
+    description: Common permissions required to play CraftGames.
+    default: true
+    children:
+      craftgames.player.access: true
+      craftgames.player.mapvote: true
+      craftgames.player.kit: true
+  craftgames.admin.*:
+    description: A permission set required to administrate.
+    children:
+      craftgames.admin.manage: true
+      craftgames.admin.ctag: true
+  craftgames.info:
+    description: See information of CraftGames.
+    default: true
+  craftgames.player.access:
+    description: Basic permission to access games.
+  craftgames.player.mapvote:
+    description: Basic permission to choose a map to vote.
+  craftgames.player.kit:
+    description: Basic permission to choose kit.
+  craftgames.admin.manage:
+    description: Basic permission to manage or edit games.
+  craftgames.admin.ctag:
+    description: Basic permission to manage coordinate tags.

@@ -48,7 +48,7 @@ class CoordtagCommand : CommandBase {
                             .create()
                 }
 
-                val elements = PageElement.getPageComponents(
+                val components = PageElement.getPageComponents(
                         PageElement("◎ /ctag create (tag) <mode>", "Create a new tag in specific mode.", "/ctag create"),
                         PageElement("◎ /ctag capture (tag)", "Capture the current coordinate for specific tag", "/ctag capture"),
                         PageElement("◎ /ctag remove (tag)", "Wipe out the whole tag.", "/ctag remove"),
@@ -59,11 +59,12 @@ class CoordtagCommand : CommandBase {
                     *ComponentBuilder(BORDER_STRING)
                             .append("\nCoordTag Command Manual (Page 1/3)\n", RESET_FORMAT)
                             .append(warning, RESET_FORMAT)
-                            .append(elements)
+                            .append(components)
                             .append(PREV_NAV_END, RESET_FORMAT)
-                            .append("- PAGE NAVIGATION -", RESET_FORMAT)
-                            .append(NEXT_NAV).event(ClickEvent(RUN_CMD, "/ctag help 2"))
-                            .append(BORDER_STRING, RESET_FORMAT).create()
+                            .append("- PAGE NAVIGATION -")
+                            .append(NEXT_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/ctag help 2"))
+                            .append(BORDER_STRING, RESET_FORMAT)
+                            .create()
                 )
             } else if (args[1] == "2") {
                 val warning = if (pdata != null) {

@@ -9,8 +9,9 @@ import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.command.TabExecutor
 
 val RESET_FORMAT = ComponentBuilder.FormatRetention.NONE
-val HOVER_TEXT = HoverEvent.Action.SHOW_TEXT
+val OPEN_URL = ClickEvent.Action.OPEN_URL
 val SUGGEST_CMD = ClickEvent.Action.SUGGEST_COMMAND
+val HOVER_TEXT = HoverEvent.Action.SHOW_TEXT
 val RUN_CMD = ClickEvent.Action.RUN_COMMAND
 const val BORDER_STRING = "----------------------------------------"
 val PREV_NAV: Array<BaseComponent> = ComponentBuilder("\n< PREV ")

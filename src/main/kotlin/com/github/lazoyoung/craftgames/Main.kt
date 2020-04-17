@@ -57,12 +57,14 @@ class Main : JavaPlugin(), CommandExecutor {
     }
 
     override fun onEnable() {
+        val infoCmd = getCommand("craftgames")!!
         val gameCmd = getCommand("game")!!
         val ctCmd = getCommand("ctag")!!
         val joinCmd = getCommand("join")!!
         val leaveCmd = getCommand("leave")!!
         val voteCmd = getCommand("mapvote")!!
         val kitCmd = getCommand("kit")!!
+        val infoExecutor = InfoCommand()
         val gameExecutor = GameCommand()
         val ctExecutor = CoordtagCommand()
         val accessExecutor = GameAccessCommand()
@@ -78,12 +80,14 @@ class Main : JavaPlugin(), CommandExecutor {
 
         loadConfig()
         loadAsset()
+        infoCmd.setExecutor(infoExecutor)
         gameCmd.setExecutor(gameExecutor)
         ctCmd.setExecutor(ctExecutor)
         joinCmd.setExecutor(accessExecutor)
         leaveCmd.setExecutor(accessExecutor)
         voteCmd.setExecutor(voteExecutor)
         kitCmd.setExecutor(kitExecutor)
+        infoCmd.tabCompleter = infoExecutor
         gameCmd.tabCompleter = gameExecutor
         ctCmd.tabCompleter = ctExecutor
         joinCmd.tabCompleter = accessExecutor

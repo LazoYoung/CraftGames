@@ -84,7 +84,7 @@ class Game(
          * @param isEditMode Find the games that are in edit mode. Defaults to false.
          * @return A list of games found by given arguments.
          */
-        fun find(name: String? = null, isEditMode: Boolean? = null) : List<Game> {
+        fun find(name: String? = null, isEditMode: Boolean? = null): List<Game> {
             return gameRegistry.values.filter {
                 (name == null || it.name == name)
                         && (isEditMode == null || it.editMode == isEditMode)
@@ -345,7 +345,11 @@ class Game(
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
                 ActionbarTask(
                         player = player,
-                        text = *arrayOf("&aWelcome to &f$name&a!", "&aPlease wait until the game starts.")
+                        text = *arrayOf(
+                                "&aWelcome to &f$name&a!",
+                                "&aPlease wait until the game starts.",
+                                "&9&lCraftGames &ris licensed under &7MIT License &rby &b&lLazoYoung&r."
+                        )
                 ).start()
             } else if (phase == Phase.PLAYING) {
                 playerData.restore(respawn = true, leave = false)
