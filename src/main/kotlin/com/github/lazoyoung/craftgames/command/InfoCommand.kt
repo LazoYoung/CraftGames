@@ -21,7 +21,8 @@ class InfoCommand : CommandBase {
         when {
             args.isEmpty() -> {
                 sender.sendMessage(
-                        *ComponentBuilder(BORDER_STRING)
+                        *ComponentBuilder()
+                                .append(BORDER_STRING, RESET_FORMAT)
                                 .append("\nCraftGames").color(ChatColor.GOLD)
                                 .append(" - the core of minigames with ").color(ChatColor.RESET)
                                 .append("infinite").bold(true)
@@ -48,18 +49,19 @@ class InfoCommand : CommandBase {
                                     .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click to auto-type.").create()))
                                     .event(ClickEvent(SUGGEST_CMD, "/craftgames help"))
                                 .append(" to open command manual.", RESET_FORMAT)
-                                .append(BORDER_STRING)
+                                .append(BORDER_STRING, RESET_FORMAT)
                                 .create())
             }
             args[0].equals("help", true) -> {
                 sender.sendMessage(
-                        *ComponentBuilder(BORDER_STRING)
+                        *ComponentBuilder()
+                                .append(BORDER_STRING, RESET_FORMAT)
                                 .append("\nCraftGames Command Manual (Page 1/1)\n", RESET_FORMAT)
-                                .append(components)
+                                .append(components, RESET_FORMAT)
                                 .append(PREV_NAV_END, RESET_FORMAT)
-                                .append("- PAGE NAVIGATION -")
+                                .append(PAGE_NAV, RESET_FORMAT)
                                 .append(NEXT_NAV_END, RESET_FORMAT)
-                                .append(BORDER_STRING)
+                                .append(BORDER_STRING, RESET_FORMAT)
                                 .create())
             }
             else -> {

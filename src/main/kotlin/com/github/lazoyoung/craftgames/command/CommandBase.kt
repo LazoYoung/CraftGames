@@ -13,20 +13,27 @@ val OPEN_URL = ClickEvent.Action.OPEN_URL
 val SUGGEST_CMD = ClickEvent.Action.SUGGEST_COMMAND
 val HOVER_TEXT = HoverEvent.Action.SHOW_TEXT
 val RUN_CMD = ClickEvent.Action.RUN_COMMAND
-const val BORDER_STRING = "----------------------------------------"
-val PREV_NAV: Array<BaseComponent> = ComponentBuilder("\n< PREV ")
-        .bold(true).color(ChatColor.GOLD)
+val BORDER_STRING: Array<BaseComponent> = ComponentBuilder()
+        .append("--------------------------------------------------")
+        .create()
+val PREV_NAV: Array<BaseComponent> = ComponentBuilder()
+        .append("\n< PREV ").bold(true).color(ChatColor.GOLD)
         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to navigate.").create()))
         .create()
-val PREV_NAV_END: Array<BaseComponent> = ComponentBuilder("\n< PREV ")
-        .bold(true).color(ChatColor.GRAY)
+val PREV_NAV_END: Array<BaseComponent> = ComponentBuilder()
+        .append("\n< PREV ").bold(true).color(ChatColor.DARK_GRAY)
         .create()
-val NEXT_NAV: Array<BaseComponent> = ComponentBuilder(" NEXT >\n")
-        .bold(true).color(ChatColor.GOLD)
+val PAGE_NAV: Array<BaseComponent> = ComponentBuilder()
+        .append("- ").color(ChatColor.GRAY)
+        .append("PAGE NAVIGATION")
+        .append(" -")
+        .create()
+val NEXT_NAV: Array<BaseComponent> = ComponentBuilder()
+        .append(" NEXT >\n").bold(true).color(ChatColor.GOLD)
         .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to navigate.").create()))
         .create()
-val NEXT_NAV_END: Array<BaseComponent> = ComponentBuilder(" NEXT >\n")
-        .bold(true).color(ChatColor.GRAY)
+val NEXT_NAV_END: Array<BaseComponent> = ComponentBuilder()
+        .append(" NEXT >\n").bold(true).color(ChatColor.DARK_GRAY)
         .create()
 
 interface CommandBase : TabExecutor {

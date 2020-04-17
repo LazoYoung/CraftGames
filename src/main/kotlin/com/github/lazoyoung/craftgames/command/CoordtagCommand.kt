@@ -56,12 +56,13 @@ class CoordtagCommand : CommandBase {
                 )
 
                 sender.sendMessage(
-                    *ComponentBuilder(BORDER_STRING)
+                    *ComponentBuilder()
+                            .append(BORDER_STRING, RESET_FORMAT)
                             .append("\nCoordTag Command Manual (Page 1/3)\n", RESET_FORMAT)
                             .append(warning, RESET_FORMAT)
                             .append(components)
                             .append(PREV_NAV_END, RESET_FORMAT)
-                            .append("- PAGE NAVIGATION -")
+                            .append(PAGE_NAV, RESET_FORMAT)
                             .append(NEXT_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/ctag help 2"))
                             .append(BORDER_STRING, RESET_FORMAT)
                             .create()
@@ -85,14 +86,16 @@ class CoordtagCommand : CommandBase {
                 )
 
                 sender.sendMessage(
-                    *ComponentBuilder(BORDER_STRING)
+                    *ComponentBuilder()
+                            .append(BORDER_STRING, RESET_FORMAT)
                             .append("\nCoordTag Command Manual (Page 2/3)\n", RESET_FORMAT)
                             .append(warning, RESET_FORMAT)
                             .append(elements)
                             .append(PREV_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/ctag help 1"))
-                            .append("- PAGE NAVIGATION -", RESET_FORMAT)
-                            .append(NEXT_NAV).event(ClickEvent(RUN_CMD, "/ctag help 3"))
-                            .append(BORDER_STRING, RESET_FORMAT).create()
+                            .append(PAGE_NAV, RESET_FORMAT)
+                            .append(NEXT_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/ctag help 3"))
+                            .append(BORDER_STRING, RESET_FORMAT)
+                            .create()
                 )
             } else if (args[1] == "3") {
                 val warning = if (pdata != null) {
@@ -109,13 +112,16 @@ class CoordtagCommand : CommandBase {
                 )
 
                 sender.sendMessage(
-                        *ComponentBuilder(BORDER_STRING)
+                        *ComponentBuilder()
+                                .append(BORDER_STRING, RESET_FORMAT)
                                 .append("\nCoordTag Command Manual (Page 3/3)\n", RESET_FORMAT)
                                 .append(warning, RESET_FORMAT)
                                 .append(elements)
                                 .append(PREV_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/ctag help 2"))
-                                .append(NEXT_NAV_END)
-                                .append(BORDER_STRING, RESET_FORMAT).create()
+                                .append(PAGE_NAV, RESET_FORMAT)
+                                .append(NEXT_NAV_END, RESET_FORMAT)
+                                .append(BORDER_STRING, RESET_FORMAT)
+                                .create()
                 )
             } else return false
             return true
