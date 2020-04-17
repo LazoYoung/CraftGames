@@ -52,6 +52,8 @@ class WorldModuleService(private val game: Game) : WorldModule {
         }
     }
 
+    internal var mobCap = Main.getConfig()?.getInt("mob-capacity", 100) ?: 100
+
     private val script = game.resource.script
 
     override fun getMapID(): String {
@@ -68,6 +70,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
                 .filterIsInstance(BlockCapture::class.java)[index]
 
         getWorldBorder().setCenter(capture.x.toDouble(), capture.z.toDouble())
+    }
+
+    override fun setMobCapacity(max: Int) {
+        this.mobCap = max
     }
 
     override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {}

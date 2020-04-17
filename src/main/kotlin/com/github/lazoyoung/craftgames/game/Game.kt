@@ -96,8 +96,26 @@ class Game(
          *
          * @param id Instance ID
          */
-        fun findByID(id: Int) : Game? {
+        fun findByID(id: Int): Game? {
             return gameRegistry[id]
+        }
+
+        /**
+         * Find the live game by world.
+         *
+         * @param world world instance
+         * @throws FaultyConfiguration is thrown if world-label is not defined in config.yml
+         */
+        fun findByWorld(world: World): Game? {
+            val label = Main.getConfig()?.getString("world-label")?.plus("_")
+                    ?: throw FaultyConfiguration("world-label is not defined in config.yml")
+            val worldName = world.name
+
+            return if (worldName.startsWith(label)) {
+                findByID(worldName.replace(label, "").toInt())
+            } else {
+                null
+            }
         }
 
         fun getGameNames(): Array<String> {

@@ -33,6 +33,12 @@ interface WorldModule {
      */
     fun setBorderCenter(blockTag: String, index: Int = 0)
 
+    /**
+     * Set [max] number of mobs in this world.
+     * (Defaults to 100)
+     */
+    fun setMobCapacity(max: Int)
+
     @Deprecated("Replaced with GameAreaTriggerEvent", level = DeprecationLevel.ERROR)
     fun setAreaTrigger(tag: String, task: Consumer<Player>?)
 

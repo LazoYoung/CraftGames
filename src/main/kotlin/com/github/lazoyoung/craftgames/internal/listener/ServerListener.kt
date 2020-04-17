@@ -12,12 +12,14 @@ import com.github.lazoyoung.craftgames.game.player.Spectator
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
+import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
@@ -34,6 +36,25 @@ class ServerListener : Listener {
             if (event.world.name == game.map.worldName) {
                 event.world.keepSpawnInMemory = false
                 break
+            }
+        }
+    }
+
+    @EventHandler
+    fun onEntitySpawn(event: EntitySpawnEvent) {
+
+        if (event.entity !is Mob) {
+            return
+        }
+
+        val game = Game.findByWorld(event.entity.world) ?: return
+
+        if (game.phase == Game.Phase.PLAYING) {
+            val worldModule = Module.getWorldModule(game)
+            val world = worldModule.getWorld()
+
+            if (world.entityCount >= worldModule.mobCap) {
+                event.isCancelled = true
             }
         }
     }

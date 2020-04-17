@@ -39,6 +39,10 @@ world-label: game
 spawn-invincible: 60
 
 
+# Limit the number of mobs alive per each game.
+mob-capacity: 100
+
+
 # Default fallback location when leaving game.
 #exit-fallback:
 #  world: world

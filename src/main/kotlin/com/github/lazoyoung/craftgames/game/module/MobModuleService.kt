@@ -21,6 +21,7 @@ import kotlin.random.Random
 class MobModuleService internal constructor(private val game: Game) : MobModule {
 
     private val script = game.resource.script
+    private val mythicMobPlugin = Bukkit.getPluginManager().getPlugin("MythicMobs")
 
     override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
         return livingEntity.type.key
@@ -40,7 +41,13 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
-        val world = Module.getWorldModule(game).getWorld()
+        val worldModule = Module.getWorldModule(game)
+        val world = worldModule.getWorld()
+
+        if (world.entityCount >= worldModule.mobCap) {
+            return emptyList()
+        }
+
         val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
@@ -101,11 +108,17 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
     override fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob> {
 
-        if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null) {
+        if (mythicMobPlugin == null) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
-        val world = Module.getWorldModule(game).getWorld()
+        val worldModule = Module.getWorldModule(game)
+        val world = worldModule.getWorld()
+
+        if (world.entityCount >= worldModule.mobCap) {
+            return emptyList()
+        }
+
         val mapID = game.map.id
         val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
@@ -151,13 +164,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
 
         script.printDebug("Spawned ${mobList.size} $typeKey")
-        return mobList
-    }
-
-    override fun spawnMythicMob(name: String, level: Int, loot: LootTable, spawnTag: String): List<Mob> {
-        val mobList = spawnMythicMob(name, level, spawnTag)
-
-        mobList.forEach { it.setLootTable(loot, Random.nextLong()) }
         return mobList
     }
 
