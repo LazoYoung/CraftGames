@@ -7,40 +7,38 @@ file-encoding: UTF-8
 install-sample: false
 
 
-# Script settings
+# Invincible duration (in ticks) applied to a respawning player.
+spawn-invincible: 60
+
+
+# Script Settings
 script:
 
   # Available engines: Groovy, JSR223
   engine: Groovy
 
-  # Verbose output to console for debugging
-  verbose: false
-
-
-# Limits the number of blocks in one schematic to be processed.
-schematic-throttle: 10000
-
-
-# Graphical particle settings
-particle:
-
-  # Set how many particles are generated per 1 block while displaying area.
-  resolution: 2
-
-  # Set maximum distance for particles to be visible.
-  visible-distance: 30
+  # Toggle verbose output to log file (for debugging purpose)
+  debug: false
 
 
 # The prefix of generated world's directory name.
 world-label: game
 
 
-# Invincible duration (in ticks) applied to a respawning player.
-spawn-invincible: 60
+# Performance Optimization
+optimization:
 
+  # Limit the number of mobs alive per each game.
+  mob-capacity: 100
 
-# Limit the number of mobs alive per each game.
-mob-capacity: 100
+  # Limits the number of blocks in one schematic to be processed.
+  schematic-throttle: 10000
+
+  # Set how many particles are generated per 1 block while displaying area.
+  particle-resolution: 2
+
+  # Set maximum distance for particles to be visible.
+  particle-render-distance: 30
 
 
 # Default fallback location when leaving game.
@@ -53,8 +51,8 @@ mob-capacity: 100
 #  pitch: 0.0
 
 
-# Specification for every games.
-# The root folder is equivalent to: plugins/CraftGames/
+# Game Registration
+# Note: The root folder is equivalent to: plugins/CraftGames/
 # https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
 games:
   example: # Title of sample game. Turn on 'install-sample' above to test it!

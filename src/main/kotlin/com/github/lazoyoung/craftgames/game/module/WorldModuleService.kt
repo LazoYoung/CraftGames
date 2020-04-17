@@ -52,7 +52,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         }
     }
 
-    internal var mobCap = Main.getConfig()?.getInt("mob-capacity", 100) ?: 100
+    internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
 
     private val script = game.resource.script
 
@@ -75,8 +75,6 @@ class WorldModuleService(private val game: Game) : WorldModule {
     override fun setMobCapacity(max: Int) {
         this.mobCap = max
     }
-
-    override fun setAreaTrigger(tag: String, task: Consumer<Player>?) {}
 
     override fun setStormyWeather(storm: Boolean) {
         val world = getWorld()
@@ -147,7 +145,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val filePath = game.resource.root.resolve(path)
         val file = filePath.toFile()
         val world = getWorld()
-        val maxBlocks = Main.getConfig()?.getInt("schematic-throttle", 10000) ?: 10000
+        val maxBlocks = Main.getConfig()?.getInt("optimization.schematic-throttle", 10000) ?: 10000
         val format = ClipboardFormats.findByFile(file)
                 ?: throw IllegalArgumentException("Unable to resolve schematic file: $filePath")
         val ctag = CoordTag.get(game, tag)

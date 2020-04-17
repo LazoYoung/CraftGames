@@ -46,8 +46,6 @@ class AreaCapture(
         return Location(world, x.toDouble(), y.toDouble(), z.toDouble())
     }
 
-    override fun teleport(player: Player) {}
-
     /**
      * Spawn particles inside [world] to depict the border of this area.
      *
@@ -56,8 +54,8 @@ class AreaCapture(
     fun displayBorder(world: World, timer: Timer) {
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
-        val res = Main.getConfig()?.getInt("particle.resolution", 2) ?: 2
-        val distance = Main.getConfig()?.getInt("particle.visible-distance", 30) ?: 30
+        val res = Main.getConfig()?.getInt("optimization.particle-resolution", 2) ?: 2
+        val distance = Main.getConfig()?.getInt("optimization.particle-render-distance", 30) ?: 30
         val interval = Timer(TimeUnit.SECOND, 2)
         val builder = Particle.END_ROD.builder()
                 .count(1)

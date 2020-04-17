@@ -14,7 +14,7 @@ abstract class ScriptBase(
         protected val mainFile: File,
         private val regex: Regex
 ) {
-    var debug = Main.getConfig()?.getBoolean("script.verbose", false) ?: false
+    var debug = Main.getConfig()?.getBoolean("script.debug", false) ?: false
     protected val name: String = mainFile.nameWithoutExtension
     protected val logPath: Path = path.resolve("log")
 
