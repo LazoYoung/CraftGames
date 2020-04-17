@@ -53,6 +53,10 @@ open class PlayerData {
             return registry[player.uniqueId]
         }
 
+        fun get(uid: UUID): PlayerData? {
+            return registry[uid]
+        }
+
         /**
          * Read offline [PlayerData] from disk.
          *

@@ -23,11 +23,21 @@ interface ItemModule {
     fun getLootTable(key: NamespacedKey): LootTable?
 
     /**
-     * Let the players select kit during the countdown in lobby.
+     * Let the players select kit inside lobby or during respawn cooldown.
      *
-     * @param respawn If true, players are allowed to choose kit during the respawn cooldown as well.
+     * @param respawn Determines if players are allowed to choose kit or not.
      */
     fun allowKit(respawn: Boolean)
+
+    /**
+     * Prevent players from dropping items.
+     */
+    fun preventItemDrop()
+
+    /**
+     * Lock inventory so that players won't be able to move items in it.
+     */
+    fun lockInventory()
 
     /**
      * Default kit is assigned to the players who don't select anything.

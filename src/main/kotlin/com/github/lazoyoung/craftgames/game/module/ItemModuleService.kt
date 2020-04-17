@@ -26,6 +26,8 @@ import java.util.*
 
 class ItemModuleService(private val game: Game) : ItemModule {
 
+    internal var lockInventory = false
+    internal var allowItemDrop = true
     private var allowKit = true
     private var allowKitRespawn = false
     private val resource = game.resource
@@ -90,6 +92,14 @@ class ItemModuleService(private val game: Game) : ItemModule {
     override fun allowKit(respawn: Boolean) {
         allowKit = true
         allowKitRespawn = respawn
+    }
+
+    override fun preventItemDrop() {
+        allowItemDrop = false
+    }
+
+    override fun lockInventory() {
+        lockInventory = true
     }
 
     override fun setDefaultKit(name: String?) {

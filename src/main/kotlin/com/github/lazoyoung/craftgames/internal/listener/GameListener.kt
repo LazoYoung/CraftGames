@@ -89,6 +89,11 @@ class GameListener : Listener {
         relayToScript(event, EventType.PLAYER_DEATH_EVENT)
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerInteract(event: GamePlayerInteractEvent) {
+        relayToScript(event, EventType.PLAYER_INTERACT_EVENT)
+    }
+
     private fun <T : GameEvent> relayToScript(event: T, type: EventType) {
         val game = event.getGame()
 

@@ -2,10 +2,7 @@ package com.github.lazoyoung.craftgames.internal.listener
 
 import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.event.GameAreaEnterEvent
-import com.github.lazoyoung.craftgames.event.GameAreaExitEvent
-import com.github.lazoyoung.craftgames.event.GamePlayerDeathEvent
-import com.github.lazoyoung.craftgames.event.GamePlayerKillEvent
+import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
@@ -22,13 +19,88 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.PlayerInteractEvent
-import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerMoveEvent
-import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.inventory.InventoryAction
+import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryDragEvent
+import org.bukkit.event.player.*
 import org.bukkit.event.world.WorldInitEvent
+import org.bukkit.inventory.PlayerInventory
 
 class ServerListener : Listener {
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun onWorldLoad(event: WorldInitEvent) {
+        for (game in Game.find()) {
+            if (event.world.name == game.map.worldName) {
+                event.world.keepSpawnInMemory = false
+                break
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerInteract(event: PlayerInteractEvent) {
+        val pdata = PlayerData.get(event.player) ?: return
+        val game = pdata.getGame()
+        val action = event.action
+        val block = event.clickedBlock
+
+        if (pdata is GameEditor && block != null) {
+
+            if (action != Action.LEFT_CLICK_BLOCK && action != Action.RIGHT_CLICK_BLOCK)
+                return
+
+            if (event.isBlockInHand || event.player.isSneaking)
+                return
+
+            if (pdata.callBlockPrompt(block) || pdata.callAreaPrompt(block, event.action)) {
+                event.isCancelled = true
+            }
+        }
+
+        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+            val relayEvent = GamePlayerInteractEvent(pdata, game, event)
+
+            Bukkit.getPluginManager().callEvent(relayEvent)
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    fun onInventoryClick(event: InventoryClickEvent) {
+
+        if (event.clickedInventory !is PlayerInventory) {
+            return
+        }
+
+        val pdata = PlayerData.get(event.whoClicked.uniqueId) ?: return
+        val game = pdata.getGame()
+
+        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+            if (event.action != InventoryAction.NOTHING) {
+                event.isCancelled = Module.getItemModule(game).lockInventory
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    fun onInventoryDrag(event: InventoryDragEvent) {
+        val pdata = PlayerData.get(event.whoClicked.uniqueId) ?: return
+        val game = pdata.getGame()
+
+        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+            event.isCancelled = Module.getItemModule(game).lockInventory
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun onItemDrop(event: PlayerDropItemEvent) {
+        val pdata = PlayerData.get(event.player) ?: return
+        val game = pdata.getGame()
+
+        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+            event.isCancelled = !Module.getItemModule(game).allowItemDrop
+        }
+    }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerMove(event: PlayerMoveEvent) {
@@ -57,36 +129,6 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
-    fun onWorldLoad(event: WorldInitEvent) {
-        for (game in Game.find()) {
-            if (event.world.name == game.map.worldName) {
-                event.world.keepSpawnInMemory = false
-                break
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onBlockClick(event: PlayerInteractEvent) {
-        event.clickedBlock?.let {
-            val pdata = PlayerData.get(event.player) ?: return
-            val action = event.action
-
-            if (pdata is GameEditor) {
-                if (action != Action.LEFT_CLICK_BLOCK && action != Action.RIGHT_CLICK_BLOCK)
-                    return
-
-                if (event.isBlockInHand || event.player.isSneaking)
-                    return
-
-                if (pdata.callBlockPrompt(it) || pdata.callAreaPrompt(it, event.action)) {
-                    event.isCancelled = true
-                }
-            }
-        }
-    }
-
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
@@ -102,25 +144,6 @@ class ServerListener : Listener {
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         PlayerData.get(event.player)?.leaveGame()
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onEntityDeath(event: EntityDeathEvent) {
-        val entity = event.entity
-        val killer = entity.killer
-                ?.let { PlayerData.get(it) } as? GamePlayer
-                ?: return
-        val player = killer.getPlayer()
-        val game = killer.getGame()
-        val service = Module.getPlayerModule(game)
-
-        if (game.phase == Game.Phase.PLAYING) {
-            // Call GamePlayerKillEvent
-            Bukkit.getPluginManager().callEvent(
-                    GamePlayerKillEvent(killer, entity, game)
-            )
-            service.killTriggers[player.uniqueId]?.accept(entity)
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -183,6 +206,25 @@ class ServerListener : Listener {
             return
 
         event.isCancelled = true
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onEntityDeath(event: EntityDeathEvent) {
+        val entity = event.entity
+        val killer = entity.killer
+                ?.let { PlayerData.get(it) } as? GamePlayer
+                ?: return
+        val player = killer.getPlayer()
+        val game = killer.getGame()
+        val service = Module.getPlayerModule(game)
+
+        if (game.phase == Game.Phase.PLAYING) {
+            // Call GamePlayerKillEvent
+            Bukkit.getPluginManager().callEvent(
+                    GamePlayerKillEvent(killer, entity, game)
+            )
+            service.killTriggers[player.uniqueId]?.accept(entity)
+        }
     }
 
 }
