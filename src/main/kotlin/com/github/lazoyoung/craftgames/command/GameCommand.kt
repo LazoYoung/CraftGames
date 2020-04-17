@@ -249,7 +249,7 @@ class GameCommand : CommandBase {
                     if (playerData?.isOnline() == true) {
                         getCompletions(
                                 query = args[1],
-                                args = *Game.getMapNames(playerData.getGame().name).toTypedArray()
+                                options = *Game.getMapNames(playerData.getGame().name).toTypedArray()
                         )
                     } else {
                         mutableListOf()
@@ -285,7 +285,7 @@ class GameCommand : CommandBase {
                             if (playerData?.isOnline() == true) {
                                 getCompletions(
                                         query = args[2],
-                                        args = *playerData.getGame().resource.kitData.keys.toTypedArray()
+                                        options = *playerData.getGame().resource.kitData.keys.toTypedArray()
                                 )
                             } else {
                                 mutableListOf()

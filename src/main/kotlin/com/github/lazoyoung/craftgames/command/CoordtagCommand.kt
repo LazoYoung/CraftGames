@@ -380,7 +380,7 @@ class CoordtagCommand : CommandBase {
                                 val map = mapSel[pdata.getPlayer().uniqueId]
                                 getCompletions(
                                         query = args[args.size - 1],
-                                        args = *CoordTag.getAll(game)
+                                        options = *CoordTag.getAll(game)
                                                 .filter {
                                                     mode == null || mode == it.mode
                                                             && it.getCaptures(map).isNotEmpty()
@@ -398,11 +398,11 @@ class CoordtagCommand : CommandBase {
                 "display", "tp" -> return when (args.size) {
                     2 -> getCompletions(
                             query = args[1],
-                            args = *CoordTag.getAll(game).filter { it.getCaptures(game.map.id).isNotEmpty() }
+                            options = *CoordTag.getAll(game).filter { it.getCaptures(game.map.id).isNotEmpty() }
                                     .map { it.name }.toTypedArray())
                     3 -> getCompletions(
                             query = args[2],
-                            args = *CoordTag.get(game, args[1])
+                            options = *CoordTag.get(game, args[1])
                                     ?.getCaptures(game.map.id)
                                     ?.map { it.index.toString() }
                                     ?.toTypedArray() ?: emptyArray()

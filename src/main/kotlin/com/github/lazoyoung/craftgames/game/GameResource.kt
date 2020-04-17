@@ -196,12 +196,14 @@ class GameResource(val gameName: String) {
         val scriptMain = scriptPath.resolve(scriptMainStr).toFile()
 
         try {
-            if (!Files.isDirectory(scriptPath))
-                throw FaultyConfiguration("This is not a directory: $scriptPath")
-            if (!scriptMain.isFile)
-                throw FaultyConfiguration("This is not a file: $scriptMain")
+            if (!Files.isDirectory(scriptPath)) {
+                Files.createDirectory(scriptPath)
+            }
+            if (!scriptMain.isFile) {
+                scriptMain.createNewFile()
+            }
         } catch (e: SecurityException) {
-            throw RuntimeException("Unable to read script: $scriptPathStr", e)
+            throw RuntimeException("Failed to create script: $scriptPathStr", e)
         }
 
         try {

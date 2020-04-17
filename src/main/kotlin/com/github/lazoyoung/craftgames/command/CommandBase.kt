@@ -38,16 +38,16 @@ val NEXT_NAV_END: Array<BaseComponent> = ComponentBuilder()
 
 interface CommandBase : TabExecutor {
 
-    fun getCompletions(query: String, vararg args: String) : MutableList<String> {
-        return args
-                .filter { it.isEmpty() || it.startsWith(query.toLowerCase()) }
+    fun getCompletions(query: String, vararg options: String) : MutableList<String> {
+        return options
+                .filter { it.isEmpty() || it.startsWith(query, true) }
                 .toMutableList()
     }
 
     fun getGameTitles(query: String) : MutableList<String> {
         return getCompletions(
                 query = query,
-                args = *Main.getConfig()?.getConfigurationSection("games")
+                options = *Main.getConfig()?.getConfigurationSection("games")
                         ?.getKeys(false)
                         ?.toTypedArray()
                         ?: emptyArray()

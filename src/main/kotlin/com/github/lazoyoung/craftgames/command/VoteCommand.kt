@@ -57,7 +57,7 @@ class VoteCommand : CommandBase {
         if (pData?.isOnline() == true && args.size == 1)
             return getCompletions(
                     query = args[0],
-                    args = *Game.getMapNames(pData.getGame().name, false).toTypedArray()
+                    options = *Game.getMapNames(pData.getGame().name, false).toTypedArray()
             )
 
         return mutableListOf()
