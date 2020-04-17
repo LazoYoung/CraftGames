@@ -2,6 +2,9 @@ package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.game.module.WorldModuleService
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import org.bukkit.*
@@ -12,6 +15,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.collections.HashMap
+import kotlin.math.floor
 
 class GameMap internal constructor(
         /** ID of this map **/
@@ -174,15 +178,14 @@ class GameMap internal constructor(
             regen: Boolean,
             callback: Consumer<World>? = null
     ) {
-        val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
 
-        scheduler.runTask(plugin, Runnable {
+        scheduler.runTask(Main.instance, Runnable {
             val gen = WorldCreator(worldName)
             val world: World?
             val legacyMap = game.map
 
-            // Assign worldName so that WorldInitEvent detects the new world.
+            // Assign worldName so that WorldInitEvent detects new world.
             this.worldName = worldName
             game.map = this
             gen.type(WorldType.FLAT)
@@ -196,14 +199,63 @@ class GameMap internal constructor(
             }
 
             fun init() {
+                val futures = LinkedList<CompletableFuture<Chunk>>()
+
+                // Setup world
                 world.isAutoSave = false
                 world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
                 this.isGenerated = true
                 this.world = world
                 this.worldPath = container.resolve(worldName)
 
-                // Don't forget to callback.
-                callback?.accept(world)
+                // Asynchronously load chunks referred by coordinate tags.
+                CoordTag.getAll(game).forEach {
+                    loop@ for (capture in it.getCaptures(id)) {
+                        val cursorList: List<Pair<Int, Int>> = when (capture) {
+                            is SpawnCapture -> {
+                                val xCursor = floor(capture.x / 16).toInt()
+                                val zCursor = floor(capture.z / 16).toInt()
+
+                                listOf(Pair(xCursor, zCursor))
+                            }
+                            is AreaCapture -> {
+                                var xCursor = WorldModuleService.getChunkX(capture.x1)
+                                var zCursor = WorldModuleService.getChunkZ(capture.z1)
+                                val pairs = LinkedList<Pair<Int, Int>>()
+
+                                do {
+                                    do {
+                                        pairs.add(Pair(xCursor, zCursor))
+                                        xCursor++
+                                    } while (xCursor * 16 <= capture.x2)
+
+                                    xCursor = WorldModuleService.getChunkX(capture.x1)
+                                    zCursor++
+                                } while (zCursor * 16 <= capture.z2)
+
+                                pairs
+                            }
+                            else -> continue@loop
+                        }
+
+                        cursorList.forEach { cursor ->
+                            futures.add(
+                                    world.getChunkAtAsync(cursor.first, cursor.second).exceptionally {
+                                        t -> t.printStackTrace()
+                                        null
+                                    })
+                        }
+                    }
+                }
+
+                // Finish the process. All chunks are loaded.
+                CompletableFuture.allOf(*futures.toTypedArray()).thenAccept {
+                    futures.forEach {
+                        it.join()?.isForceLoaded = true
+                    }
+
+                    callback?.accept(world)
+                }
             }
 
             try {

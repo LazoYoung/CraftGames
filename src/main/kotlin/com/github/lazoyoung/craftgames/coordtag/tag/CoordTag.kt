@@ -19,8 +19,7 @@ class CoordTag private constructor(
 
         /**
          * This method allows you to access every coordinate tags in the game.
-         * CoordTag preserves a set of CoordCapture per each map.
-         * CoordCapture is fundamental unit of coordinate tags.
+         * CoordTag generally preserve a set of CoordCaptures per each map.
          *
          * @param game Which game to get the tags from?
          * @return List of CoordTag matching the conditions above.

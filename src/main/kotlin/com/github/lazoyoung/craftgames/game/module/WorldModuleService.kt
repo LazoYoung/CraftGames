@@ -34,6 +34,24 @@ import java.util.function.Consumer
 
 class WorldModuleService(private val game: Game) : WorldModule {
 
+    companion object {
+        internal fun getChunkX(coordX: Int): Int {
+            return if (coordX >= 0) {
+                (coordX - coordX % 16) / 16
+            } else {
+                (coordX - (15 - ((-coordX - 1) % 16))) / 16
+            }
+        }
+
+        internal fun getChunkZ(coordZ: Int): Int {
+            return if (coordZ >= 0) {
+                (coordZ - coordZ % 16) / 16
+            } else {
+                (coordZ - (15 - ((-coordZ - 1) % 16))) / 16
+            }
+        }
+    }
+
     private val script = game.resource.script
 
     override fun getMapID(): String {
@@ -214,22 +232,12 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
         // Register tasks to load chunks async.
         captures.forEach { capture ->
-
-            val xInit = if (capture.x1 >= 0) {
-                capture.x1 - capture.x1 % 16
-            } else {
-                capture.x1 - (15 - ((-capture.x1 - 1) % 16))
-            }
-            var xCursor = xInit
-            var zCursor = if (capture.z1 >= 0) {
-                capture.z1 - capture.z1 % 16
-            } else {
-                capture.z1 - (15 - ((-capture.z1 - 1) % 16))
-            }
+            var xCursor = getChunkX(capture.x1)
+            var zCursor = getChunkZ(capture.z1)
 
             do {
                 do {
-                    val future = world.getChunkAtAsync(xCursor / 16, zCursor / 16, true)
+                    val future = world.getChunkAtAsync(xCursor, zCursor)
                             .exceptionally { t ->
                                 t.printStackTrace()
                                 futureMap.clear()
@@ -238,12 +246,12 @@ class WorldModuleService(private val game: Game) : WorldModule {
                             }
 
                     futureMap[future] = capture
-                    xCursor += 16
-                } while (xCursor <= capture.x2)
+                    xCursor++
+                } while (xCursor * 16 <= capture.x2)
 
-                xCursor = xInit
-                zCursor += 16
-            } while (zCursor <= capture.z2)
+                xCursor = getChunkX(capture.x1)
+                zCursor++
+            } while (zCursor * 16 <= capture.z2)
         }
 
         CompletableFuture.allOf(*futureMap.keys.toTypedArray()).handleAsync { _, t ->
