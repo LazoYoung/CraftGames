@@ -205,6 +205,13 @@ class ServerListener : Listener {
                     if (!playerData.isOnline())
                         return@Runnable
 
+                    val location = player.location
+
+                    if (location.y < -16.0) {
+                        location.y = location.world.getHighestBlockYAt(location).toDouble()
+                        player.teleport(location)
+                    }
+
                     if (relayEvent.canRespawn) {
                         playerModule.respawn(playerData)
                     } else {

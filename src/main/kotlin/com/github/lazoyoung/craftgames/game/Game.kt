@@ -530,32 +530,27 @@ class Game(
      */
     internal fun close(async: Boolean = true, timer: Timer = Timer(TimeUnit.TICK, 0)) {
 
-        if (phase == Phase.INIT) {
+        fun terminate() {
             getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
             resource.saveToDisk(editMode)
             purge(this)
-            return
-        }
-
-        updatePhase(Phase.FINISH)
-
-        fun terminate() {
-            updatePhase(Phase.TERMINATE)
-            getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
-            resource.saveToDisk(editMode)
 
             if (map.isGenerated) {
                 map.destruct(async)
             }
-
-            purge(this)
         }
 
         if (timer.toTick() > 0L) {
+            updatePhase(Phase.FINISH)
             Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+                updatePhase(Phase.TERMINATE)
                 terminate()
             }, timer.toTick())
         } else {
+            if (phase != Phase.INIT) {
+                updatePhase(Phase.TERMINATE)
+            }
+
             terminate()
         }
     }

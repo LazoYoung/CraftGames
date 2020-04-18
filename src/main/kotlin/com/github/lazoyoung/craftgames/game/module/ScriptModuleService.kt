@@ -56,8 +56,8 @@ class ScriptModuleService internal constructor(
     }
 
     override fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask {
-        if (interval.toTick() < 10L) {
-            throw IllegalArgumentException("Repeat interval is too short! (< 10 ticks)")
+        if (interval.toTick() < 1L) {
+            throw IllegalArgumentException("Repeat interval is too short! (< 1 tick)")
         }
 
         val bukkitTask = object : BukkitRunnable() {
@@ -65,12 +65,7 @@ class ScriptModuleService internal constructor(
 
             override fun run() {
                 if (count-- > 0) {
-                    try {
-                        task.run()
-                    } catch (e: Exception) {
-                        script.writeStackTrace(e)
-                        game.forceStop(error = true)
-                    }
+                    task.run()
                 } else {
                     this.cancel()
                 }
@@ -88,12 +83,7 @@ class ScriptModuleService internal constructor(
 
         val bukkitTask = object : BukkitRunnable() {
             override fun run() {
-                try {
-                    task.run()
-                } catch (e: Exception) {
-                    script.writeStackTrace(e)
-                    game.forceStop(error = true)
-                }
+                task.run()
             }
         }.runTaskLater(Main.instance, delay.toTick())
 
@@ -102,11 +92,33 @@ class ScriptModuleService internal constructor(
     }
 
     override fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean {
-        if (target.world.name != game.map.worldName) {
-            throw IllegalArgumentException("Target is outside the world.")
+        val wasOp = target.isOp
+        var result = false
+
+        if (commandLine.split(" ").any { it.equals("op", true) }
+                || target.isDead || target.world.name != game.map.worldName) {
+            return false
         }
 
-        return Bukkit.getServer().dispatchCommand(target, commandLine)
+        try {
+            target.isOp = true
+            result = Bukkit.getServer().dispatchCommand(target, commandLine)
+        } catch (e: Exception) {
+            script.writeStackTrace(e)
+            game.forceStop(error = true)
+        } finally {
+            if (!wasOp) {
+                target.isOp = false
+            }
+        }
+
+        if (result) {
+            script.printDebug("Successfully dispatched command: $commandLine")
+        } else {
+            script.print("Failed to dispatch command: $commandLine")
+        }
+
+        return result
     }
 
     override fun getFile(path: String): File {

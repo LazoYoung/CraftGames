@@ -65,7 +65,7 @@ interface ScriptModule {
      * @param counter The number of times to repeat.
      * @param interval The [frequency][Timer] of repeating task.
      * @param task The [task][Runnable] to be executed.
-     * @throws IllegalArgumentException is thrown if [interval] is less than 10 ticks.
+     * @throws IllegalArgumentException is thrown if [interval] is less than 1 tick.
      */
     fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask
 
@@ -79,12 +79,11 @@ interface ScriptModule {
     fun wait(delay: Timer, task: Runnable): BukkitTask
 
     /**
-     * Dispatch [command][commandLine] to [the target][LivingEntity] and execute it.
+     * Dispatch the [command][commandLine] to [target][LivingEntity] and execute it.
      *
-     * @param target The [LivingEntity] who executes the command.
-     * @param commandLine Command + Arguments, without prefix: /
-     * @return false if no [target] is found.
-     * @throws IllegalArgumentException is thrown if [target] is outside the world.
+     * @param target [LivingEntity] who executes the command. e.g. Player
+     * @param commandLine Command + Arguments, without slash: /
+     * @return false if dispatch is failed.
      */
     fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean
 

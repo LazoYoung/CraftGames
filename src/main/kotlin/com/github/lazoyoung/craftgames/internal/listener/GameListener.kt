@@ -77,7 +77,7 @@ class GameListener : Listener {
             Module.getScriptModule(game).events[type]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
-            game.close()
+            game.forceStop(error = true)
 
             if (event is Cancellable) {
                 event.isCancelled = true
