@@ -358,7 +358,7 @@ class Game(
                         text = *arrayOf(
                                 "&aWelcome to &f$name&a!",
                                 "&aPlease wait until the game starts.",
-                                "&9&lCraftGames &ris licensed under &7MIT License &rby &b&lLazoYoung&r."
+                                "&6CraftGames &7is developed by &fLazoYoung&7."
                         )
                 ).start()
             } else if (phase == Phase.PLAYING) {

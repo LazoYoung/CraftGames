@@ -6,7 +6,9 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.Game
+import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.entity.LivingEntity
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -97,6 +99,14 @@ class ScriptModuleService internal constructor(
 
         tasks.add(bukkitTask)
         return bukkitTask
+    }
+
+    override fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean {
+        if (target.world.name != game.map.worldName) {
+            throw IllegalArgumentException("Target is outside the world.")
+        }
+
+        return Bukkit.getServer().dispatchCommand(target, commandLine)
     }
 
     override fun getFile(path: String): File {

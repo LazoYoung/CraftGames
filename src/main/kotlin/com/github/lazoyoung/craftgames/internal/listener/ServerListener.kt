@@ -240,7 +240,6 @@ class ServerListener : Listener {
         val service = Module.getPlayerModule(game)
 
         if (game.phase == Game.Phase.PLAYING) {
-            // Call GamePlayerKillEvent
             Bukkit.getPluginManager().callEvent(
                     GamePlayerKillEvent(killer, entity, game)
             )

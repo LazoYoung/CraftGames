@@ -23,7 +23,6 @@ import com.sk89q.worldedit.session.ClipboardHolder
 import org.bukkit.*
 import org.bukkit.block.Container
 import org.bukkit.entity.Entity
-import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.loot.LootTable
 import org.bukkit.loot.Lootable
@@ -54,6 +53,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
 
+    internal var difficulty = Difficulty.NORMAL
+
+    internal val gamerules = HashMap<String, String>()
+
     private val script = game.resource.script
 
     override fun getMapID(): String {
@@ -74,6 +77,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
     override fun setMobCapacity(max: Int) {
         this.mobCap = max
+    }
+
+    override fun setDifficulty(difficulty: Difficulty) {
+        this.difficulty = difficulty
     }
 
     override fun setStormyWeather(storm: Boolean) {
@@ -104,17 +111,18 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun <T> setGameRule(rule: GameRule<T>, value: T) {
-        getWorld().setGameRule(rule, value)
+        gamerules[rule.name] = value.toString()
+        game.map.world?.setGameRule(rule, value)
     }
 
-    override fun fillContainers(tag: String, loot: LootTable) {
+    override fun fillContainers(blockTag: String, loot: LootTable) {
         val world = getWorld()
         val mapID = game.map.id
-        val ctag = Module.getRelevantTag(game, tag, TagMode.BLOCK)
+        val ctag = Module.getRelevantTag(game, blockTag, TagMode.BLOCK)
         val captures = ctag.getCaptures(mapID)
 
         if (captures.isEmpty()) {
-            throw UndefinedCoordTag("$tag has no capture in map: $mapID")
+            throw UndefinedCoordTag("$blockTag has no capture in map: $mapID")
         }
 
         captures.filterIsInstance(BlockCapture::class.java).forEach {

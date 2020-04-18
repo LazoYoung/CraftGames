@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.event.GameEvent
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
+import org.bukkit.entity.LivingEntity
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
@@ -76,6 +77,16 @@ interface ScriptModule {
      * @throws IllegalArgumentException is thrown if [delay] is less than 1 tick.
      */
     fun wait(delay: Timer, task: Runnable): BukkitTask
+
+    /**
+     * Dispatch [command][commandLine] to [the target][LivingEntity] and execute it.
+     *
+     * @param target The [LivingEntity] who executes the command.
+     * @param commandLine Command + Arguments, without prefix: /
+     * @return false if no [target] is found.
+     * @throws IllegalArgumentException is thrown if [target] is outside the world.
+     */
+    fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean
 
     /**
      * Returns the [File] which is silently created if it didn't exist there.

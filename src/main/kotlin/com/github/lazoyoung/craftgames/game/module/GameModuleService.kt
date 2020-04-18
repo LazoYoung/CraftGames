@@ -51,7 +51,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun setTimer(timer: Timer) {
-        this.fullTime = timer
+        this.fullTime = timer.clone()
         this.timer = timer.clone()
     }
 
@@ -227,7 +227,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                 } else {
                     timer.subtract(TimeUnit.SECOND, 1)
 
-                    if (livingPlayers.isEmpty() || timer.toSecond() < 1) {
+                    if (livingPlayers.isEmpty() || timer.toSecond() < 0) {
                         Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
 
                         if (game.phase != Game.Phase.FINISH) {

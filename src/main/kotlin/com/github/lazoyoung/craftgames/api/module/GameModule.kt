@@ -26,11 +26,13 @@ interface GameModule {
     /**
      * After the game starts, you decide
      * to allow or deny players from joining this game.
+     * (Defaults to false)
      */
     fun setCanJoinAfterStart(boolean: Boolean)
 
     /**
-     * Decide whether or not to give players the ability to respawn upon death.
+     * Whether or not to let players respawn upon death.
+     * (Defaults to false)
      */
     fun setCanRespawn(boolean: Boolean)
 
