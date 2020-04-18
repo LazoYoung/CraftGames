@@ -23,6 +23,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
 import java.util.function.Consumer
+import javax.script.ScriptException
 
 class Game(
         val name: String,
@@ -153,11 +154,20 @@ class Game(
          * @throws MapNotFound No such map exists in the game.
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
+         * @throws ScriptException Cannot evaluate script.
          */
         fun openNew(name: String, editMode: Boolean, mapID: String? = null, consumer: Consumer<Game>? = null) {
             val resource = GameResource(name)
             val game = Game(name, -1, editMode, resource)
             val initEvent = GameInitEvent(game)
+
+            try {
+                resource.script.execute()
+            } catch (e: Exception) {
+                resource.script.writeStackTrace(e)
+                game.forceStop(error = true)
+                throw ScriptException("Cannot evaluate script.")
+            }
 
             Bukkit.getPluginManager().callEvent(initEvent)
 
@@ -406,11 +416,11 @@ class Game(
             else -> return
         }
 
+        players.add(uid)
         playerData.restore(respawn = false, leave = false)
+        playerData.updateEditors()
         player.gameMode = GameMode.SPECTATOR
         player.sendMessage("You are now spectating $name.")
-
-        players.add(uid)
         Bukkit.getPluginManager().callEvent(postEvent)
     }
 

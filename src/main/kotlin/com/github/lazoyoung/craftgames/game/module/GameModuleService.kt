@@ -161,6 +161,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         game.close(timer = timer)
     }
 
+    @Suppress("DEPRECATION")
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
@@ -228,6 +229,11 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
                     if (livingPlayers.isEmpty() || timer.toSecond() < 1) {
                         Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
+
+                        if (game.phase != Game.Phase.FINISH) {
+                            drawGame(Timer(TimeUnit.SECOND, 5))
+                        }
+
                         this.cancel()
                         return
                     }
