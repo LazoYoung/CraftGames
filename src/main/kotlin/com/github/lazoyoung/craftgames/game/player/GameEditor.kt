@@ -12,8 +12,8 @@ import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
+import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
-import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
@@ -190,45 +190,7 @@ class GameEditor private constructor(
 
                 scheduler.runTask(plugin, Runnable {
                     gameModule.broadcast("&aChanges are saved!")
-
-                    // Inform to editor if incomplete tag were found.
-                    CoordTag.getAll(game).forEach { tag ->
-                        val maps = tag.scanIncompleteMaps().toMutableList()
-                        maps.remove(game.resource.lobbyMap.id)
-
-                        if (maps.isNotEmpty()) {
-                            val hov1 = arrayOf(TextComponent("Click here to capture the tag."))
-                            val hov2 = arrayOf(TextComponent("Click here to edit the map."))
-                            val arr = ArrayList<TextComponent>()
-                            arr.add(0, TextComponent("You forgot to capture "))
-                            arr.add(1, TextComponent(tag.name))
-                            arr.add(2, TextComponent(" tag from "))
-                            arr.addAll(maps.mapIndexed { index, mapID ->
-                                val c4 = if (index == maps.size - 1) {
-                                    TextComponent(mapID)
-                                } else {
-                                    TextComponent(mapID.plus(", "))
-                                }
-                                c4.color = ChatColor.WHITE
-                                c4.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, hov2)
-                                c4.clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
-                                        "/game edit ${game.name} $mapID")
-                                c4.isUnderlined = true
-                                c4
-                            })
-                            arr.add(TextComponent("!"))
-                            arr[0].color = ChatColor.YELLOW
-                            arr[1].color = ChatColor.WHITE
-                            arr[1].isUnderlined = true
-                            arr[1].hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, hov1)
-                            arr[1].clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag capture ${tag.name}")
-                            arr[2].color = ChatColor.YELLOW
-                            arr[arr.lastIndex].color = ChatColor.YELLOW
-                            player.sendMessage(*arr.toTypedArray())
-                        }
-                    }
-
-                    // Close the game
+                    informIncompleteTags(player)
                     game.close()
                 })
             }
@@ -246,6 +208,54 @@ class GameEditor private constructor(
             })
         } catch (e: Exception) {
             throw RuntimeException("Unable to clone world files.", e)
+        }
+    }
+
+    private fun informIncompleteTags(player: Player) {
+        CoordTag.getAll(game).forEach { tag ->
+            val incomplMap = tag.scanIncompleteMaps().minus(game.resource.lobbyMap.id)
+
+            if (incomplMap.isEmpty()) {
+                return@forEach
+            }
+
+            val gameName = game.name
+            val tagName = tag.name
+            val reset = ComponentBuilder.FormatRetention.NONE
+            var builder = ComponentBuilder()
+                    .append("You forgot to capture ", reset)
+                    .color(ChatColor.YELLOW)
+                    .append(tagName)
+                    .event(HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder("Click to capture this tag.").create()))
+                    .event(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag capture $tagName"))
+                    .underlined(true)
+                    .color(ChatColor.WHITE)
+                    .append(" from ", reset)
+                    .color(ChatColor.YELLOW)
+
+            incomplMap.mapIndexed { index, mapID ->
+                builder = if (index == incomplMap.lastIndex) {
+                    builder.append(mapID, reset)
+                } else {
+                    builder.append(mapID.plus(", "), reset)
+                }
+
+                builder = builder.event(HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder("Click to edit this map.").create()))
+                        .event(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/game edit $gameName $mapID"))
+                        .color(ChatColor.WHITE).underlined(true)
+            }
+
+            builder = builder
+                    .append("! ", reset)
+                    .color(ChatColor.YELLOW)
+                    .append("×")
+                    .color(ChatColor.DARK_RED)
+                    .underlined(true)
+                    .event(HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            ComponentBuilder("Click to hide this warning.").color(ChatColor.RED).create()))
+                    .event(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag suppress $gameName $tagName true"))
+
+            player.sendMessage(*builder.create())
         }
     }
 }

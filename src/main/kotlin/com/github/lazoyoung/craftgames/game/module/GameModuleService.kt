@@ -23,8 +23,6 @@ import org.bukkit.entity.Player
 import org.bukkit.loot.LootTable
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
-import java.util.*
-import java.util.concurrent.CompletableFuture
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
@@ -165,27 +163,22 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
-        val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
         var index = 0
+
+        // Call event
+        Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
             if (p is GamePlayer) {
                 p.restore(respawn = true, leave = false)
-                teleportFutures.add(worldModule.teleportSpawn(p, index++))
+                worldModule.teleportSpawn(p, index++)
             } else {
                 p.restore(respawn = false, leave = false)
-                teleportFutures.add(worldModule.teleportSpawn(p, null))
+                worldModule.teleportSpawn(p, null)
             }
 
             bossBar.addPlayer(p.getPlayer())
-        }
-
-        // Fire event once all the teleport tasks are complete.
-        CompletableFuture.allOf(*teleportFutures.toTypedArray()).thenAcceptAsync {
-            Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                Bukkit.getPluginManager().callEvent(GameStartEvent(game))
-            })
         }
 
         serviceTask = object : BukkitRunnable() {
@@ -212,31 +205,17 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
                 bossBar.progress = progress
                 bossBar.setTitle(title.toString())
+                timer.subtract(TimeUnit.SECOND, 1)
 
-                if (livingPlayers.size == 1) {
-                    val player = livingPlayers.first()
-                    val team = Module.getTeamModule(game).getPlayerTeam(player)
-                    val timer = Timer(TimeUnit.SECOND, 5)
+                if (livingPlayers.isEmpty() || timer.toSecond() < 0) {
+                    Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
 
-                    if (team != null) {
-                        finishGame(team, timer)
-                    } else {
-                        finishGame(player, timer)
+                    if (game.phase != Game.Phase.FINISH) {
+                        drawGame(Timer(TimeUnit.SECOND, 5))
                     }
+
                     this.cancel()
-                } else {
-                    timer.subtract(TimeUnit.SECOND, 1)
-
-                    if (livingPlayers.isEmpty() || timer.toSecond() < 0) {
-                        Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
-
-                        if (game.phase != Game.Phase.FINISH) {
-                            drawGame(Timer(TimeUnit.SECOND, 5))
-                        }
-
-                        this.cancel()
-                        return
-                    }
+                    return
                 }
             }
         }

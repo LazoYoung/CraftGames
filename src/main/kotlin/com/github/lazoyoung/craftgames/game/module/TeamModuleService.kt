@@ -35,6 +35,15 @@ class TeamModuleService(private val game: Game) : TeamModule {
         return team
     }
 
+    override fun createTeam(teamName: String, color: ChatColor, kit: String): Team {
+        val itemModule = Module.getItemModule(game)
+        val byteArray = game.resource.kitData[kit]
+                ?: throw IllegalArgumentException("$kit does not exist.")
+
+        itemModule.teamKit[teamName] = Pair(kit, byteArray)
+        return createTeam(teamName, color)
+    }
+
     override fun getScoreboard(): Scoreboard {
         return scoreboard
     }

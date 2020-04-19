@@ -15,6 +15,7 @@ interface TeamModule {
      * @param teamName Name of the team.
      * @param color [String] representing color of the team and its nametag.
      */
+    @Deprecated("This is redundant.", ReplaceWith(expression = "createTeam(String, ChatColor)"))
     fun createTeam(teamName: String, color: String): Team
 
     /**
@@ -24,6 +25,16 @@ interface TeamModule {
      * @param color [ChatColor] of the team and its nametag.
      */
     fun createTeam(teamName: String, color: ChatColor): Team
+
+    /**
+     * Create a new [Team].
+     *
+     * @param teamName Name of the team.
+     * @param color [ChatColor] of the team and its nametag.
+     * @param kit Name of the kit assigned to this team.
+     * @throws IllegalArgumentException is thrown if [kit] doesn't exist.
+     */
+    fun createTeam(teamName: String, color: ChatColor, kit: String): Team
 
     /**
      * @return The [Scoreboard] instance of this game.

@@ -8,13 +8,18 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
 
 class CoordTag private constructor(
-        val resource: GameResource,
-        val mode: TagMode,
         val name: String,
-        private val captures: List<CoordCapture>
+        val mode: TagMode,
+        val resource: GameResource,
+
+        /** List of captures in this tag */
+        private val captures: List<CoordCapture>,
+
+        /** Suppress warning that it's incomplete. */
+        private var suppress: Boolean = false
 ) {
     companion object Registry {
-        /** Key: Game name, Value: List of tags **/
+        /** Key: Game name, Value: List of tags */
         private val tags = HashMap<String, List<CoordTag>>()
 
         /**
@@ -29,17 +34,33 @@ class CoordTag private constructor(
         }
 
         /**
-         * @see [getAll]
+         * Functionailty is equivalent to [getAll].
          */
         fun getAll(gameName: String): List<CoordTag> {
-            return tags[gameName] ?: emptyList()
+            var tagList = tags[gameName]
+
+            if (tagList == null) {
+                try {
+                    reload(GameResource((gameName)))
+                    tagList = tags[gameName]
+                } catch (e: Exception) {}
+            }
+
+            return tagList ?: emptyList()
         }
 
         /**
-         * @return CoordTag matching with [name] inside the [game]. Null if not found.
+         * @return The [tag][CoordTag] matching with [name] inside the [game]. Null if not found.
          */
-        fun get(game: Game, name: String): CoordTag? {
-            return getAll(game).firstOrNull { it.name == name }
+        fun get(game: Game, tagName: String): CoordTag? {
+            return getAll(game).firstOrNull { it.name == tagName }
+        }
+
+        /**
+         * @see [get]
+         */
+        fun get(gameName: String, tagName: String): CoordTag? {
+            return getAll(gameName).firstOrNull { it.name == tagName }
         }
 
         /**
@@ -51,19 +72,19 @@ class CoordTag private constructor(
             val list = ArrayList<CoordTag>()
 
             for (name in config.getKeys(false)) {
-                val modeStr = config.getString(name.plus('.')
-                        .plus("mode"))?.toUpperCase()
+                val modeStr = config.getString(name.plus(".mode"))?.toUpperCase()
                         ?: continue
                 val mode = TagMode.valueOf(modeStr)
+                val suppress = config.getBoolean(name.plus(".suppress"), false)
                 val captList = ArrayList<CoordCapture>()
-                val mapIterate = config.getConfigurationSection(name.plus('.')
-                        .plus("captures"))?.getKeys(false)
-                        ?: emptyList<String>()
+                val mapIterate = config.getConfigurationSection(
+                        name.plus('.').plus("captures")
+                )?.getKeys(false) ?: emptyList<String>()
 
                 for (map in mapIterate) {
                     captList.addAll(deserialize(resource, map, mode, name))
                 }
-                list.add(CoordTag(resource, mode, name, captList))
+                list.add(CoordTag(name, mode, resource, captList, suppress))
             }
 
             tags[resource.gameName] = list
@@ -130,19 +151,37 @@ class CoordTag private constructor(
     }
 
     /**
-     * This method scans the captures to examine if this tag is incomplete.
-     * Incomplete tags are those who omit to capture coordinate from at least one map.
+     * Choose whether or not to suppress warning that tag is incomplete.
      *
-     * @return List of IDs for game-maps that are excluded from the tag.
+     * @param suppress whether or not to suppress warning.
+     */
+    fun suppress(suppress: Boolean) {
+        val config = resource.tagConfig
+
+        config.set(name.plus(".suppress"), suppress)
+        resource.saveToDisk(true)
+        reload(resource)
+    }
+
+    /**
+     * This method scans the captures to examine if this tag is incomplete.
+     * Incomplete tags are those who omit to capture coordinate at least 1 map.
+     *
+     * @return List of map IDs where this tag haven't captured yet.
      */
     fun scanIncompleteMaps(): List<String> {
         val list = ArrayList<String>()
+
+        if (suppress) {
+            return list
+        }
 
         for (mapID in Game.getMapNames(resource.gameName)) {
             if (captures.none { mapID == it.mapID }) {
                 list.add(mapID)
             }
         }
+
         return list
     }
 

@@ -32,20 +32,17 @@ class ItemModuleService(private val game: Game) : ItemModule {
     private var allowKitRespawn = false
     private val resource = game.resource
     private val script = resource.script
-    private val kitSel = HashMap<UUID, ByteArray>()
-    private val kitSelName = HashMap<UUID, String>()
-    private var defaultKitName: String?
-    private var defaultKit: ByteArray?
+    internal val teamKit = HashMap<String, Pair<String, ByteArray>>()
+    private val kitSel = HashMap<UUID, Pair<String, ByteArray>>()
+    private var defaultKit: Pair<String, ByteArray>?
 
     init {
         resource.kitData.keys.let {
-            if (it.isEmpty()) {
-                defaultKitName = null
-                defaultKit = null
+            defaultKit = if (it.isEmpty()) {
+                null
             } else {
                 val name = it.random()
-                defaultKitName = name
-                defaultKit = resource.kitData[name]
+                Pair(name, resource.kitData[name]!!)
             }
         }
     }
@@ -108,7 +105,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 null
             }
             resource.kitData.containsKey(name) -> {
-                resource.kitData[name]
+                Pair(name, resource.kitData[name]!!)
             }
             else -> {
                 throw IllegalArgumentException("No such kit found: $name")
@@ -124,8 +121,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 kitSel.remove(uid)
             }
             resource.kitData.containsKey(name) -> {
-                kitSelName[uid] = name
-                kitSel[uid] = resource.kitData[name]!!
+                kitSel[uid] = Pair(name, resource.kitData[name]!!)
             }
             else -> {
                 throw IllegalArgumentException("No such kit found: $name")
@@ -135,13 +131,24 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
     override fun applyKit(player: Player) {
         val uid = player.uniqueId
-        val kitName = kitSelName[uid] ?: defaultKitName
-        val byteArr = kitSel[uid] ?: defaultKit
         val inv = player.inventory
         var wrapper: BukkitObjectInputStream? = null
+        var kitName = kitSel[uid]?.first
+        val byteArr: ByteArray
 
-        if (kitName == null || byteArr == null)
-            return
+        if (kitName != null) {
+            byteArr = kitSel[uid]!!.second
+        } else {
+            val team = Module.getTeamModule(game).getPlayerTeam(player)?.name
+
+            if (team != null) {
+                kitName = teamKit[team]!!.first
+                byteArr = teamKit[team]!!.second
+            } else {
+                kitName = defaultKit?.first ?: return
+                byteArr = defaultKit!!.second
+            }
+        }
 
         // Clear Inventory and PotionEffects
         player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }

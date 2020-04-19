@@ -78,11 +78,9 @@ class CoordtagCommand : CommandBase {
                 }
 
                 val elements = PageElement.getPageComponents(
-                        PageElement("◎ /ctag list", "Show all captures matching the flags.", "/ctag list"),
-                        PageElement("◎ /ctag list -mode <mode>", "Apply filter by capture mode.", "/ctag list -mode "),
-                        PageElement("◎ /ctag list -tag (name)", "Apply filter by specific tag.", "/ctag list -tag "),
-                        PageElement("◎ /ctag list -map (mapID)", "Apply filter by specific map.", "/ctag list -map "),
-                        PageElement("◎ /ctag list -reset", "Reset all filters.", "/ctag list -reset")
+                        PageElement("◎ /ctag list", "Show all captures matching the flags.\n" +
+                                "Flags: -mode, -tag, -map", "/ctag list"),
+                        PageElement("◎ /ctag list -reset", "Reset all the flags.", "/ctag list -reset")
                 )
 
                 sender.sendMessage(
@@ -124,10 +122,30 @@ class CoordtagCommand : CommandBase {
                                 .create()
                 )
             } else return false
-            return true
-        }
 
-        if (pdata?.isOnline() != true) {
+            return true
+
+        } else if (args[0].equals("suppress", true)) {
+            if (args.size < 4) {
+                return false
+            }
+
+            try {
+                val suppress = args[3].toBoolean()
+
+                CoordTag.get(args[1], args[2])!!.suppress(suppress)
+
+                if (suppress) {
+                    sender.sendMessage("[CoordTag] Warning for ${args[2]} is now suppressed.")
+                } else {
+                    sender.sendMessage("[CoordTag] Warning for ${args[2]} is now accepted.")
+                }
+            } catch (e: Exception) {
+                return false
+            }
+            return true
+
+        } else if (pdata?.isOnline() != true) {
             sender.sendMessage(
                     *ComponentBuilder("[CoordTag] You must be in a game.")
                             .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to join.").color(ChatColor.GOLD).create()))
@@ -165,8 +183,9 @@ class CoordtagCommand : CommandBase {
                 return true
             }
             "tp", "display" -> {
-                if (args.size < 2)
+                if (args.size < 2) {
                     return false
+                }
 
                 if (!pdata.isOnline()) {
                     sender.sendMessage(
@@ -279,8 +298,10 @@ class CoordtagCommand : CommandBase {
                         sender.sendMessage("[CoordTag] This tag already exist!")
                     }
                     else -> {
-                        CoordTag.create(game.resource, game.map.id, mode, args[1])
-                        ActionbarTask(sender, "&6Tag &r${args[1]} &6has been created.").start()
+                        val tagName = args[1].toLowerCase()
+
+                        CoordTag.create(game.resource, game.map.id, mode, tagName)
+                        ActionbarTask(sender, "&6Tag &r$tagName &6has been created.").start()
                     }
                 }
             }

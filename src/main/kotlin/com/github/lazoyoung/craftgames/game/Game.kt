@@ -3,7 +3,10 @@ package com.github.lazoyoung.craftgames.game
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.*
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.event.*
+import com.github.lazoyoung.craftgames.event.GameInitEvent
+import com.github.lazoyoung.craftgames.event.GameJoinEvent
+import com.github.lazoyoung.craftgames.event.GameJoinPostEvent
+import com.github.lazoyoung.craftgames.event.GameLeaveEvent
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
@@ -292,11 +295,6 @@ class Game(
                 )
             }
         }
-
-        // Fire event
-        Bukkit.getPluginManager().callEvent(
-                GameFinishEvent(this, GameResult.SUSPENSION, null, null)
-        )
 
         close(async)
     }

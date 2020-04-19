@@ -68,6 +68,19 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         player.gameMode = GameMode.SPECTATOR
         player.sendTitle(Title(title, subTitle, 20, 80, 20))
         gamePlayer.toSpectator()
+
+        if (getLivingPlayers().size == 1) {
+            val survivor = getLivingPlayers().first()
+            val gameModule = Module.getGameModule(game)
+            val team = Module.getTeamModule(game).getPlayerTeam(survivor)
+            val timer = Timer(TimeUnit.SECOND, 5)
+
+            if (team != null) {
+                gameModule.finishGame(team, timer)
+            } else {
+                gameModule.finishGame(survivor, timer)
+            }
+        }
     }
 
     override fun setSpawnpoint(type: PlayerType, spawnTag: String) {
