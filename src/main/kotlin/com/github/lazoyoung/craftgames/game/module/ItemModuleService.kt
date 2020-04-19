@@ -141,7 +141,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
         } else {
             val team = Module.getTeamModule(game).getPlayerTeam(player)?.name
 
-            if (team != null) {
+            if (team != null && teamKit.containsKey(team)) {
                 kitName = teamKit[team]!!.first
                 byteArr = teamKit[team]!!.second
             } else {
