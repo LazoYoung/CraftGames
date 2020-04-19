@@ -159,6 +159,14 @@ class TeamModuleService(private val game: Game) : TeamModule {
         assignee.forEach { assignPlayer(it, team) }
     }
 
+    override fun setKit(team: Team, kit: String) {
+        val itemModule = Module.getItemModule(game)
+        val byteArray = game.resource.kitData[kit]
+                ?: throw IllegalArgumentException("$kit does not exist.")
+
+        itemModule.teamKit[team.name] = Pair(kit, byteArray)
+    }
+
     override fun setSpawnpoint(team: Team, spawnTag: String) {
         this.spawnTag[team.name] = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
     }

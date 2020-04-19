@@ -34,6 +34,7 @@ interface TeamModule {
      * @param kit Name of the kit assigned to this team.
      * @throws IllegalArgumentException is thrown if [kit] doesn't exist.
      */
+    @Deprecated("This is redundant.", ReplaceWith("assignKit(String)"))
     fun createTeam(teamName: String, color: ChatColor, kit: String): Team
 
     /**
@@ -109,6 +110,15 @@ interface TeamModule {
      * @param team The team where selected players should be assigned to.
      */
     fun assignPlayers(ratio: Float, team: Team)
+
+    /**
+     * Assign [kit] to the [team].
+     *
+     * @param team Team instance
+     * @param kit Name of the kit
+     * @throws IllegalArgumentException is thrown if [kit] doesn't exist.
+     */
+    fun setKit(team: Team, kit: String)
 
     /**
      * Set spawnpoint for the team.
