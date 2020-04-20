@@ -35,15 +35,6 @@ class TeamModuleService(private val game: Game) : TeamModule {
         return team
     }
 
-    override fun createTeam(teamName: String, color: ChatColor, kit: String): Team {
-        val itemModule = Module.getItemModule(game)
-        val byteArray = game.resource.kitData[kit]
-                ?: throw IllegalArgumentException("$kit does not exist.")
-
-        itemModule.teamKit[teamName] = Pair(kit, byteArray)
-        return createTeam(teamName, color)
-    }
-
     override fun getScoreboard(): Scoreboard {
         return scoreboard
     }
@@ -68,10 +59,6 @@ class TeamModuleService(private val game: Game) : TeamModule {
             }
         }
         return topScore
-    }
-
-    override fun getFirstPlayerScore(objective: Objective): Score {
-        return getTopPlayerScore(objective)
     }
 
     override fun getTopTeams(objective: Objective): List<Team> {
@@ -123,10 +110,6 @@ class TeamModuleService(private val game: Game) : TeamModule {
         return orderedTable
     }
 
-    override fun getFirstTeam(objective: Objective): Team {
-        return getTopTeams(objective).first()
-    }
-
     override fun assignPlayer(player: Player, team: Team) {
         val name = player.name
         val legacy = scoreboard.getEntryTeam(name)
@@ -159,20 +142,23 @@ class TeamModuleService(private val game: Game) : TeamModule {
         assignee.forEach { assignPlayer(it, team) }
     }
 
-    override fun setKit(team: Team, kit: String) {
+    override fun setKit(team: Team, vararg kits: String) {
         val itemModule = Module.getItemModule(game)
-        val byteArray = game.resource.kitData[kit]
-                ?: throw IllegalArgumentException("$kit does not exist.")
+        val kitMap = HashMap<String, ByteArray>()
 
-        itemModule.teamKit[team.name] = Pair(kit, byteArray)
+        for (kitName in kits) {
+            val byteArray = game.resource.kitData[kitName]
+                    ?: throw IllegalArgumentException("$kits does not exist.")
+
+            kitMap[kitName] = byteArray
+        }
+
+        itemModule.teamKit[team.name] = kitMap
+        script.printDebug("Kit ".plus(kits.joinToString()).plus(" are assigned to ${team.name}."))
     }
 
     override fun setSpawnpoint(team: Team, spawnTag: String) {
         this.spawnTag[team.name] = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
-    }
-
-    override fun setSpawn(team: Team, spawnTag: String) {
-        setSpawnpoint(team, spawnTag)
     }
 
     internal fun getSpawnpoint(player: Player): CoordTag? {

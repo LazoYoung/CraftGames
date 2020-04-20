@@ -69,16 +69,31 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         player.sendTitle(Title(title, subTitle, 20, 80, 20))
         gamePlayer.toSpectator()
 
-        if (getLivingPlayers().size == 1) {
-            val survivor = getLivingPlayers().first()
+        if (Module.getGameModule(game).lastManStanding) {
             val gameModule = Module.getGameModule(game)
-            val team = Module.getTeamModule(game).getPlayerTeam(survivor)
+            val teamModule = Module.getTeamModule(game)
+            val survivors = getLivingPlayers().minus(player)
+            val firstSurvivor = survivors.first()
+            val firstSurvivorTeam = teamModule.getPlayerTeam(firstSurvivor)
+
+            if (survivors.size > 1) {
+                if (firstSurvivorTeam == null) {
+                    return
+                }
+
+                survivors.minus(firstSurvivor).forEach {
+                    if (firstSurvivorTeam.name != teamModule.getPlayerTeam(it)?.name) {
+                        return
+                    }
+                }
+            }
+
             val timer = Timer(TimeUnit.SECOND, 5)
 
-            if (team != null) {
-                gameModule.finishGame(team, timer)
+            if (firstSurvivorTeam != null) {
+                gameModule.finishGame(firstSurvivorTeam, timer)
             } else {
-                gameModule.finishGame(survivor, timer)
+                gameModule.finishGame(firstSurvivor, timer)
             }
         }
     }

@@ -27,17 +27,6 @@ interface TeamModule {
     fun createTeam(teamName: String, color: ChatColor): Team
 
     /**
-     * Create a new [Team].
-     *
-     * @param teamName Name of the team.
-     * @param color [ChatColor] of the team and its nametag.
-     * @param kit Name of the kit assigned to this team.
-     * @throws IllegalArgumentException is thrown if [kit] doesn't exist.
-     */
-    @Deprecated("This is redundant.", ReplaceWith("assignKit(String)"))
-    fun createTeam(teamName: String, color: ChatColor, kit: String): Team
-
-    /**
      * @return The [Scoreboard] instance of this game.
      */
     fun getScoreboard(): Scoreboard
@@ -61,9 +50,6 @@ interface TeamModule {
      */
     fun getTopPlayerScore(objective: Objective): Score
 
-    @Deprecated("Name changed.", ReplaceWith("getTopPlayerScore"))
-    fun getFirstPlayerScore(objective: Objective): Score
-
     /**
      * Find which team(s) have the most [Score] compared to others.
      *
@@ -71,9 +57,6 @@ interface TeamModule {
      * @return The top [Team]s.
      */
     fun getTopTeams(objective: Objective): List<Team>
-
-    @Deprecated("Name changed.", ReplaceWith("getTopTeam"))
-    fun getFirstTeam(objective: Objective): Team
 
     /**
      * Score table records the total score of each team.
@@ -112,13 +95,13 @@ interface TeamModule {
     fun assignPlayers(ratio: Float, team: Team)
 
     /**
-     * Assign [kit] to the [team].
+     * Assign [kits] to the [team].
      *
      * @param team Team instance
-     * @param kit Name of the kit
-     * @throws IllegalArgumentException is thrown if [kit] doesn't exist.
+     * @param kits Array of [String]s each representing the kit name
+     * @throws IllegalArgumentException is thrown if [kits] doesn't exist.
      */
-    fun setKit(team: Team, kit: String)
+    fun setKit(team: Team, vararg kits: String)
 
     /**
      * Set spawnpoint for the team.
@@ -128,8 +111,5 @@ interface TeamModule {
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
     fun setSpawnpoint(team: Team, spawnTag: String)
-
-    @Deprecated("Name changed.", ReplaceWith("setSpawnpoint"))
-    fun setSpawn(team: Team, spawnTag: String)
 
 }

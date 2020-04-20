@@ -42,18 +42,13 @@ class ServerListener : Listener {
 
     @EventHandler
     fun onEntitySpawn(event: EntitySpawnEvent) {
-
-        if (event.entity !is Mob) {
-            return
-        }
-
-        val game = Game.findByWorld(event.entity.world) ?: return
+        val mob = event.entity as? Mob ?: return
+        val game = Game.findByWorld(mob.world) ?: return
 
         if (game.phase == Game.Phase.PLAYING) {
-            val worldModule = Module.getWorldModule(game)
-            val world = worldModule.getWorld()
+            val mobModule = Module.getMobModule(game)
 
-            if (world.entityCount >= worldModule.mobCap) {
+            if (mob.world.entityCount >= mobModule.mobCap) {
                 event.isCancelled = true
             }
         }

@@ -32,7 +32,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     private var allowKitRespawn = false
     private val resource = game.resource
     private val script = resource.script
-    internal val teamKit = HashMap<String, Pair<String, ByteArray>>()
+    internal val teamKit = HashMap<String, Map<String, ByteArray>>()
     private val kitSel = HashMap<UUID, Pair<String, ByteArray>>()
     private var defaultKit: Pair<String, ByteArray>?
 
@@ -115,10 +115,20 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
     override fun selectKit(name: String?, player: Player) {
         val uid = player.uniqueId
+        val team = Module.getTeamModule(game).getPlayerTeam(player)
 
         when {
             name == null -> {
                 kitSel.remove(uid)
+            }
+            team != null && teamKit.containsKey(team.name) -> {
+                val teamKits = teamKit[team.name]!!
+
+                if (teamKits.containsKey(name)) {
+                    kitSel[uid] = Pair(name, teamKits[name] ?: error("Kit content cannot be null."))
+                } else {
+                    throw IllegalArgumentException("You cannot select this kit.")
+                }
             }
             resource.kitData.containsKey(name) -> {
                 kitSel[uid] = Pair(name, resource.kitData[name]!!)
@@ -142,8 +152,11 @@ class ItemModuleService(private val game: Game) : ItemModule {
             val team = Module.getTeamModule(game).getPlayerTeam(player)?.name
 
             if (team != null && teamKit.containsKey(team)) {
-                kitName = teamKit[team]!!.first
-                byteArr = teamKit[team]!!.second
+                val kitMap = teamKit[team]!!
+                val kits = kitMap.keys.toList()
+
+                kitName = kits[Random().nextInt(kits.size)]
+                byteArr = kitMap[kitName] ?: error("Kit content cannot be null.")
             } else {
                 kitName = defaultKit?.first ?: return
                 byteArr = defaultKit!!.second
@@ -151,7 +164,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
         }
 
         // Clear Inventory and PotionEffects
-        player.activePotionEffects.forEach{ e -> player.removePotionEffect(e.type) }
+        player.activePotionEffects.forEach { player.removePotionEffect(it.type) }
         inv.clear()
 
         try {

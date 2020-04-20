@@ -27,6 +27,7 @@ import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
 import java.util.function.Consumer
 import javax.script.ScriptException
+import kotlin.collections.LinkedHashMap
 
 class Game(
         val name: String,
@@ -76,7 +77,7 @@ class Game(
     companion object {
 
         /** Games Registry. (Key: ID of the game) **/
-        private val gameRegistry: MutableMap<Int, Game> = HashMap()
+        private val gameRegistry = LinkedHashMap<Int, Game>()
 
         /** Next ID for new game **/
         private var nextID = 0

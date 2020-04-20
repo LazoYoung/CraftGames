@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import org.bukkit.ChatColor
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -32,11 +33,10 @@ class KitCommand : CommandBase {
                         val name = args[0].toLowerCase()
 
                         try {
-                            val module = Module.getItemModule(game)
-                            module.selectKit(name, sender)
+                            Module.getItemModule(game).selectKit(name, sender)
                             ActionbarTask(sender, "&aSelected kit: &f$name").start()
                         } catch (e: IllegalArgumentException) {
-                            sender.sendMessage("That kit does not exist!")
+                            sender.sendMessage(ChatColor.RED.toString().plus(e.localizedMessage))
                         }
                     }
                 }

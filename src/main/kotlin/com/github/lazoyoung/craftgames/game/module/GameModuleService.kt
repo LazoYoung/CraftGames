@@ -26,6 +26,7 @@ import org.bukkit.scoreboard.Team
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
+    internal var lastManStanding = false
     internal var keepInventory = false
     internal var dropItems = false
     internal var defaultGameMode = GameMode.ADVENTURE
@@ -77,6 +78,10 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     override fun setRespawnTimer(timer: Timer) {
         this.respawnTimer = timer
+    }
+
+    override fun setLastManStanding(enable: Boolean) {
+        this.lastManStanding = enable
     }
 
     override fun setGameMode(mode: GameMode) {

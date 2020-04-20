@@ -27,6 +27,12 @@ interface MobModule {
     fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>)
 
     /**
+     * Set [max] number of mobs that can be spawned.
+     * (Defaults to 100)
+     */
+    fun setMobCapacity(max: Int)
+
+    /**
      * Spawn vanilla mobs.
      *
      * @param type Type of [mobs][Mob]s to be spawned.

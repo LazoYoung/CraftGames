@@ -1,10 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import org.bukkit.Difficulty
-import org.bukkit.GameRule
-import org.bukkit.World
-import org.bukkit.WorldBorder
+import org.bukkit.*
 import org.bukkit.loot.LootTable
 import org.bukkit.loot.Lootable
 
@@ -37,6 +34,8 @@ interface WorldModule {
      * Set [max] number of mobs in this world.
      * (Defaults to 100)
      */
+    @Deprecated("Moved to MobModule.",
+            ReplaceWith("MobModule.setMobCapacity(Int)", "com.github.lazoyoung.craftgames.api.module.MobModule"))
     fun setMobCapacity(max: Int)
 
     /**
@@ -99,6 +98,15 @@ interface WorldModule {
      * @throws MapNotFound is thrown if world is not generated yet.
      */
     fun fillContainers(blockTag: String, loot: LootTable)
+
+    /**
+     * Fill blocks at the spot pointed by a [coordinate tag][tag].
+     *
+     * @param tag Name of a Block or Area tag
+     * @param material Type of blocks to fill
+     * @throws IllegalArgumentException is thrown if tag is irrelevant.
+     */
+    fun fillBlocks(tag: String, material: Material)
 
     /**
      * Place blocks by reading a schematic file where the [path] points to.

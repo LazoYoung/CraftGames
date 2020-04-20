@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.game.module
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.module.MobModule
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
@@ -20,6 +21,7 @@ import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule {
 
+    internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
     private val script = game.resource.script
     private val mythicMobPlugin = Bukkit.getPluginManager().getPlugin("MythicMobs")
 
@@ -39,12 +41,16 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         })
     }
 
+    override fun setMobCapacity(max: Int) {
+        mobCap = max
+    }
+
     override fun spawnMob(type: String, spawnTag: String): List<Mob> {
         val mapID = game.map.id
         val worldModule = Module.getWorldModule(game)
         val world = worldModule.getWorld()
 
-        if (world.entityCount >= worldModule.mobCap) {
+        if (world.entityCount >= mobCap) {
             return emptyList()
         }
 
@@ -115,7 +121,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         val worldModule = Module.getWorldModule(game)
         val world = worldModule.getWorld()
 
-        if (world.entityCount >= worldModule.mobCap) {
+        if (world.entityCount >= mobCap) {
             return emptyList()
         }
 

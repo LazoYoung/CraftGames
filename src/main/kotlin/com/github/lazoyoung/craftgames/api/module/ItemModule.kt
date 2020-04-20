@@ -40,9 +40,11 @@ interface ItemModule {
     fun lockInventory()
 
     /**
-     * Default kit is assigned to the players who don't select anything.
+     * Default kit is assigned to players who don't select anything.
      *
-     * @param name The kit name. (Nullable)
+     * To assign kit per team, see [TeamModule.setKit]
+     *
+     * @param name The name of kit. Pass null to assign nothing.
      */
     fun setDefaultKit(name: String?)
 
@@ -53,7 +55,7 @@ interface ItemModule {
      * You can still use this function even if you disallow players to select one.
      *
      * @param name The kit name. (Pass null to de-select)
-     * @throws IllegalArgumentException is thrown if no kit was found by the given [name].
+     * @throws IllegalArgumentException is thrown if kit cannot be located or is not allowed for the player.
      * @see [allowKit]
      */
     fun selectKit(name: String?, player: Player)

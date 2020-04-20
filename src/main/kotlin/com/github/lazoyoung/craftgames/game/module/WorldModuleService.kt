@@ -51,12 +51,8 @@ class WorldModuleService(private val game: Game) : WorldModule {
         }
     }
 
-    internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
-
     internal var difficulty = Difficulty.NORMAL
-
     internal val gamerules = HashMap<String, String>()
-
     private val script = game.resource.script
 
     override fun getMapID(): String {
@@ -75,9 +71,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         getWorldBorder().setCenter(capture.x.toDouble(), capture.z.toDouble())
     }
 
-    override fun setMobCapacity(max: Int) {
-        this.mobCap = max
-    }
+    override fun setMobCapacity(max: Int) {}
 
     override fun setDifficulty(difficulty: Difficulty) {
         this.difficulty = difficulty
@@ -144,6 +138,48 @@ class WorldModuleService(private val game: Game) : WorldModule {
             state.update(true, false)
             script.printDebug("Filled a container at $ident with ${loot.key}")
         }
+    }
+
+    override fun fillBlocks(tag: String, material: Material) {
+        val world = getWorld()
+        val coordTag = Module.getRelevantTag(game, tag, TagMode.AREA, TagMode.BLOCK)
+        val captures = coordTag.getCaptures(game.map.id)
+        var counter = 0
+
+        captures.forEach {
+            when (coordTag.mode) {
+                TagMode.AREA -> {
+                    val capture = it as AreaCapture
+                    var x = capture.x1
+                    var y = capture.y1
+                    var z = capture.z1
+
+                    do {
+                        do {
+                            do {
+                                world.getBlockAt(x, y, z).type = material
+                                counter++
+                                x++
+                            } while (x <= capture.x2)
+                            x = capture.x1
+                            y++
+                        } while (y <= capture.y2)
+                        x = capture.x1
+                        y = capture.y1
+                        z++
+                    } while (z <= capture.z2)
+                }
+                TagMode.BLOCK -> {
+                    val capture = it as BlockCapture
+
+                    world.getBlockAt(capture.x, capture.y, capture.z).type = material
+                    counter++
+                }
+                else -> throw IllegalStateException("Illegal tag mode.")
+            }
+        }
+
+        script.printDebug("Filled $counter blocks at $tag.")
     }
 
     override fun placeSchematics(tag: String, path: String, biomes: Boolean, entities: Boolean, ignoreAir: Boolean) {
@@ -242,7 +278,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val futureMap = LinkedHashMap<CompletableFuture<Chunk>, AreaCapture>()
         val totalMobs = LinkedList<T>()
 
-        // Register tasks to load chunks async.
+        // Load chunks asynchronously
         captures.forEach { capture ->
             var xCursor = getChunkX(capture.x1)
             var zCursor = getChunkZ(capture.z1)

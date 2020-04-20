@@ -51,6 +51,16 @@ interface GameModule {
     fun setRespawnTimer(timer: Timer)
 
     /**
+     * Toggle LastManStanding mode.
+     *
+     * In this mode, the player (or its team) wins
+     * if they have survived and the others are dead.
+     *
+     * @param enable true to enable LMS. (Defaults to false)
+     */
+    fun setLastManStanding(enable: Boolean)
+
+    /**
      * Set default [GameMode].
      */
     fun setGameMode(mode: GameMode)
