@@ -19,11 +19,41 @@ import java.lang.reflect.Method
 import java.util.function.Consumer
 import kotlin.random.Random
 
+@Suppress("DuplicatedCode")
 class MobModuleService internal constructor(private val game: Game) : MobModule {
 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
     private val script = game.resource.script
-    private val mythicMobPlugin = Bukkit.getPluginManager().getPlugin("MythicMobs")
+    private var mythicMobsActive = false
+    private lateinit var apiHelper: Any
+    private lateinit var spawnMethod: Method
+    private lateinit var isMythicMobMethod: Method
+    private lateinit var getMythicMobInstanceMethod: Method
+    private lateinit var getEntityMethod: Method
+    private lateinit var unregisterMethod: Method
+    private lateinit var removeMethod: Method
+
+    init { // Reflect MythicMobs API
+        if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
+            try {
+                val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
+                val apiHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
+                val activeMobClass = Class.forName("io.lumine.xikage.mythicmobs.mobs.ActiveMob")
+                val abstractEntityClass = Class.forName("io.lumine.xikage.mythicmobs.adapters.AbstractEntity")
+                val mythicMobs = mythicMobsClass.getMethod("inst").invoke(null)
+                apiHelper = mythicMobsClass.getMethod("getAPIHelper").invoke(mythicMobs)
+                spawnMethod = apiHelperClass.getMethod("spawnMythicMob", String::class.java, Location::class.java, Int::class.java)
+                isMythicMobMethod = apiHelperClass.getMethod("isMythicMob", Entity::class.java)
+                getMythicMobInstanceMethod = apiHelperClass.getMethod("getMythicMobInstance", Entity::class.java)
+                getEntityMethod = activeMobClass.getMethod("getEntity")
+                unregisterMethod = activeMobClass.getMethod("unregister")
+                removeMethod = abstractEntityClass.getMethod("remove")
+                mythicMobsActive = true
+            } catch (e: Exception) {
+                throw RuntimeException(e)
+            }
+        }
+    }
 
     override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
         return livingEntity.type.key
@@ -114,10 +144,11 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
     override fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob> {
 
-        if (mythicMobPlugin == null) {
+        if (!mythicMobsActive) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
+        val mapID = game.map.id
         val worldModule = Module.getWorldModule(game)
         val world = worldModule.getWorld()
 
@@ -125,22 +156,9 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             return emptyList()
         }
 
-        val mapID = game.map.id
         val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
-        val bukkitAPIHelper: Any
-        val spawnMethod: Method
-
-        try {
-            val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
-            val bukkitAPIHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
-            val mythicMobs = mythicMobsClass.getMethod("inst").invoke(null)
-            bukkitAPIHelper = mythicMobsClass.getMethod("getAPIHelper").invoke(mythicMobs)
-            spawnMethod = bukkitAPIHelperClass.getMethod("spawnMythicMob", String::class.java, Location::class.java, Int::class.java)
-        } catch (e: Exception) {
-            throw RuntimeException(e)
-        }
 
         if (captures.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
@@ -151,7 +169,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             val entity: Entity
 
             try {
-                entity = spawnMethod.invoke(bukkitAPIHelper, name, loc, level) as Entity
+                entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity
                 typeKey = entity.type.key
 
                 if (entity !is Mob) {
@@ -171,6 +189,43 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
         script.printDebug("Spawned ${mobList.size} $typeKey")
         return mobList
+    }
+
+    override fun despawnEntities(type: EntityType): Int {
+        val world = Module.getWorldModule(game).getWorld()
+        var counter = 0
+
+        world.entities.forEach {
+            if (it.type == type) {
+                it.remove()
+                counter++
+            }
+        }
+
+        return counter
+    }
+
+    override fun despawnMythicMobs(name: String): Int {
+
+        if (!mythicMobsActive) {
+            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
+        }
+
+        val world = Module.getWorldModule(game).getWorld()
+        var counter = 0
+
+        world.livingEntities.forEach {
+            if (isMythicMobMethod.invoke(apiHelper, it) as Boolean) {
+                val activeMob = getMythicMobInstanceMethod.invoke(apiHelper, it)
+                val abstractEntity = getEntityMethod.invoke(activeMob)
+
+                removeMethod.invoke(abstractEntity)
+                unregisterMethod.invoke(activeMob)
+                counter++
+            }
+        }
+
+        return counter
     }
 
 }

@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.api.module
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
@@ -98,5 +99,19 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
     fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob>
+
+    /**
+     * Despawn specific [type][EntityType] of entities.
+     *
+     * @return Number of entities despawned.
+     */
+    fun despawnEntities(type: EntityType): Int
+
+    /**
+     * Despawn MythicMobs matching with [name].
+     *
+     * @return Number of entities despawned.
+     */
+    fun despawnMythicMobs(name: String): Int
 
 }
