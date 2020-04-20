@@ -237,32 +237,58 @@ class CoordtagCommand : CommandBase {
                             }
                         }
                     }
-                } else { // display
-                    if (args.size == 2) {
-                        sender.sendMessage("[CoordTag] Do not omit the index of capture!")
+                } else if (args[0].equals("display", true)) {
+
+                    val timer = Timer(TimeUnit.SECOND, 20)
+                    val areaCaptures = LinkedList(
+                            captures.filterIsInstance(AreaCapture::class.java)
+                    )
+
+                    if (tag.mode != TagMode.AREA) {
+                        sender.sendMessage("[CoordTag] Display feature doesn't support ${tag.mode} tags yet.")
+                        return true
+                    }
+
+                    if (areaCaptures.isEmpty()) {
+                        sender.sendMessage("[CoordTag] This tag is empty.")
+                        return true
+                    }
+
+                    if (args.size > 2) {
+                        try {
+                            val capture = areaCaptures.firstOrNull { it.index == args[2].toInt() }
+
+                            if (capture != null) {
+                                areaCaptures.clear()
+                                areaCaptures.add(capture)
+                            } else {
+                                sender.sendMessage("[CoordTag] Unable to find capture by index: ${args[2]}")
+                                return true
+                            }
+                        } catch (e: NumberFormatException) {
+                            return false
+                        }
+                    }
+
+                    if (areaCaptures.size == 1) {
+                        val capture = areaCaptures.first
+
+                        capture.displayBorder(sender.world, timer)
+                        ActionbarTask(
+                                player = sender,
+                                period = timer,
+                                text = *arrayOf("&9Displaying area: $tagName/${capture.index}")
+                        ).start()
                     } else {
-                        val capture = captures.firstOrNull {
-                            it.index == args[2].toIntOrNull()
+                        areaCaptures.forEach {
+                            it.displayBorder(sender.world, timer)
                         }
 
-                        when (capture) {
-                            null -> {
-                                sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
-                            }
-                            is AreaCapture -> {
-                                val timer = Timer(TimeUnit.SECOND, 20)
-
-                                capture.displayBorder(sender.world, timer)
-                                ActionbarTask(
-                                        player = sender,
-                                        period = timer,
-                                        text = *arrayOf("&9Displaying area $tagName/${capture.index}")
-                                ).start()
-                            }
-                            else -> {
-                                sender.sendMessage("[CoordTag] Display feature doesn't support ${tag.mode} tags yet.")
-                            }
-                        }
+                        ActionbarTask(
+                                player = sender,
+                                period = timer,
+                                text = *arrayOf("&9Displaying area: $tagName")
+                        ).start()
                     }
                 }
                 return true

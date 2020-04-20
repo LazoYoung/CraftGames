@@ -94,7 +94,7 @@ class GameCommand : CommandBase {
                     }
                     val game = when {
                         args.size > 1 -> {
-                            Game.findByID(args[1].toInt())
+                            Game.getByID(args[1].toInt())
                         }
                         playerData?.isOnline() == true -> {
                             playerData.getGame()

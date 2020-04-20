@@ -86,9 +86,13 @@ interface WorldModule {
     fun setTime(time: Long, absolute: Boolean)
 
     /**
-     * Set [GameRule] for every world.
+     * Change Minecraft [GameRule].
+     *
+     * @param rule The name of rule to change
+     * @param value The new value to apply
+     * @throws IllegalArgumentException is thrown if [rule] doesn't indicate a GameRule.
      */
-    fun <T> setGameRule(rule: GameRule<T>, value: T)
+    fun setGameRule(rule: String, value: Any)
 
     /**
      * Fill a [container][Lootable] block with loot table.

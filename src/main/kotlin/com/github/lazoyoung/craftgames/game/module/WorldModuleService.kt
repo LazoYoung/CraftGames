@@ -104,9 +104,14 @@ class WorldModuleService(private val game: Game) : WorldModule {
         }
     }
 
-    override fun <T> setGameRule(rule: GameRule<T>, value: T) {
-        gamerules[rule.name] = value.toString()
-        game.map.world?.setGameRule(rule, value)
+    @Suppress("DEPRECATION")
+    override fun setGameRule(rule: String, value: Any) {
+        if (GameRule.getByName(rule) == null) {
+            throw IllegalArgumentException("$rule does not exist.")
+        }
+
+        gamerules[rule] = value.toString()
+        game.map.world?.setGameRuleValue(rule, value.toString())
     }
 
     override fun fillContainers(blockTag: String, loot: LootTable) {

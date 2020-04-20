@@ -101,7 +101,7 @@ class Game(
          *
          * @param id Instance ID
          */
-        fun findByID(id: Int): Game? {
+        fun getByID(id: Int): Game? {
             return gameRegistry[id]
         }
 
@@ -111,13 +111,13 @@ class Game(
          * @param world world instance
          * @throws FaultyConfiguration is thrown if world-label is not defined in config.yml
          */
-        fun findByWorld(world: World): Game? {
+        fun getByWorld(world: World): Game? {
             val label = Main.getConfig()?.getString("world-label")?.plus("_")
                     ?: throw FaultyConfiguration("world-label is not defined in config.yml")
             val worldName = world.name
 
             return if (worldName.startsWith(label)) {
-                findByID(worldName.replace(label, "").toInt())
+                getByID(worldName.replace(label, "").toInt())
             } else {
                 null
             }
@@ -131,18 +131,12 @@ class Game(
         }
 
         fun getMapNames(gameName: String, lobby: Boolean = true): List<String> {
-            return getMapList(gameName, lobby).map { it.id }
-        }
+            val mapInstances = GameResource(gameName)
+                    .mapRegistry.values
+                    .filter { lobby || !it.isLobby }
+                    .toList()
 
-        /**
-         * Get a list of maps exist in the given game.
-         *
-         * @param gameName represents the game where you seek for the maps.
-         * @param lobby whether or not the lobby map is included as well.
-         * @return The instances of GameMaps inside the game.
-         */
-        fun getMapList(gameName: String, lobby: Boolean = true): List<GameMap> {
-            return GameResource(gameName).mapRegistry.values.filter { lobby || !it.isLobby }.toList()
+            return mapInstances.map { it.id }
         }
 
         /**

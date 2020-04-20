@@ -220,6 +220,7 @@ class GameMap internal constructor(
                 // Asynchronously load chunks referred by coordinate tags.
                 CoordTag.getAll(game).forEach {
                     loop@ for (capture in it.getCaptures(id)) {
+
                         val cursorList: List<Pair<Int, Int>> = when (capture) {
                             is SpawnCapture -> {
                                 val xCursor = floor(capture.x / 16).toInt()
@@ -260,7 +261,7 @@ class GameMap internal constructor(
                 // Finish the process. All chunks are loaded.
                 CompletableFuture.allOf(*futures.toTypedArray()).thenAccept {
                     futures.forEach {
-                        it.join()?.isForceLoaded = true
+                        it.join()?.addPluginChunkTicket(Main.instance)
                     }
 
                     callback?.accept(world)
@@ -283,12 +284,19 @@ class GameMap internal constructor(
                                     player.teleportAsync(world.spawnLocation, teleportCause)
                                     .exceptionally {
                                         it.printStackTrace()
+                                        game.forceStop(error = true)
                                         return@exceptionally null
                                     })
                         }
 
                         CompletableFuture.allOf(*teleportFutures.toTypedArray()).thenAcceptAsync {
-                            scheduler.runTask(Main.instance, Runnable {
+                            scheduler.runTask(Main.instance, Runnable sync@{
+                                teleportFutures.forEach {
+                                    if (!it.join()) {
+                                        game.forceStop(error = true)
+                                        error("Failed to teleport players into game.")
+                                    }
+                                }
 
                                 // We're now safe to unload the old world.
                                 legacyMap.destruct()

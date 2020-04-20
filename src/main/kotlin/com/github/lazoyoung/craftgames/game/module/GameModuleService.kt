@@ -23,6 +23,8 @@ import org.bukkit.entity.Player
 import org.bukkit.loot.LootTable
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scoreboard.Team
+import java.util.*
+import java.util.concurrent.CompletableFuture
 
 class GameModuleService internal constructor(private val game: Game) : GameModule {
 
@@ -168,14 +170,13 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal fun start() {
         val playerModule = Module.getPlayerModule(game)
         val worldModule = Module.getWorldModule(game)
+        val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
         var index = 0
-
-        // Call event
-        Bukkit.getPluginManager().callEvent(GameStartEvent(game))
 
         // Setup players
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
-            if (p is GamePlayer) {
+
+            val future = if (p is GamePlayer) {
                 p.restore(respawn = true, leave = false)
                 worldModule.teleportSpawn(p, index++)
             } else {
@@ -183,7 +184,15 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                 worldModule.teleportSpawn(p, null)
             }
 
+            teleportFutures.add(future)
             bossBar.addPlayer(p.getPlayer())
+        }
+
+        // Fire event once all the players have teleported.
+        CompletableFuture.allOf(*teleportFutures.toTypedArray()).thenAcceptAsync {
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+            })
         }
 
         serviceTask = object : BukkitRunnable() {
