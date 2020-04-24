@@ -73,14 +73,12 @@ class Main : JavaPlugin(), CommandExecutor {
         val kitExecutor = KitCommand()
         val manager = Bukkit.getPluginManager()
         val messenger = Bukkit.getMessenger()
-        val services = Bukkit.getServicesManager()
         instance = this
         Main.logger = logger
-        economy = services.getRegistration(Economy::class.java)?.provider
-        lootTablePatch = services.getRegistration(LootTablePatch::class.java)?.provider
 
         loadConfig()
         loadAsset()
+        loadDependency()
         infoCmd.setExecutor(infoExecutor)
         gameCmd.setExecutor(gameExecutor)
         ctCmd.setExecutor(ctExecutor)
@@ -150,5 +148,22 @@ class Main : JavaPlugin(), CommandExecutor {
             config.set("install-sample", false)
             saveConfig()
         }
+    }
+
+    private fun loadDependency() {
+        val services = Bukkit.getServicesManager()
+
+        try {
+            val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
+            economy = services.getRegistration(economyClass)?.provider as Economy?
+            Main.logger.info("Dependency loaded: Vault Economy")
+        } catch (e: ClassNotFoundException) {}
+
+        try {
+            val lootTablePatchClass = Class.forName("com.github.lazoyoung.loottablefix.LootTablePatch")
+            lootTablePatch = services.getRegistration(lootTablePatchClass)?.provider as LootTablePatch?
+            Main.logger.info("Dependency loaded: LootTable Patch")
+
+        } catch (e: ClassNotFoundException) {}
     }
 }
