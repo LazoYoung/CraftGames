@@ -60,7 +60,13 @@ class Game(
         TERMINATE
     }
 
-    enum class JoinRejection { FULL, IN_GAME, GENERATING, TERMINATING }
+    enum class JoinRejection(val message: String) {
+        FULL("The game is terminating."),
+        IN_GAME("The game is full."),
+        GENERATING("The game has already started."),
+        TERMINATING("The game is still loading."),
+        NO_PERMISSION("Not permitted to join this game.")
+    }
 
     /** List of players (regardless of PlayerState) **/
     internal val players = LinkedList<UUID>()
@@ -148,8 +154,8 @@ class Game(
          * @param editMode The game is in editor mode, if true.
          * @param mapID The map in which the game will take place.
          * @param consumer Returns the new instance once it's ready.
-         * @throws GameNotFound No such game exists with given id.
-         * @throws MapNotFound No such map exists in the game.
+         * @throws GameNotFound No such game exists by given [name].
+         * @throws MapNotFound No such map exists by given [mapID].
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          * @throws ScriptException Cannot evaluate script.
@@ -298,10 +304,12 @@ class Game(
      * This function explains why you can't join this game.
      * @return A [JoinRejection] unless you can join (in that case null is returned).
      */
-    fun getRejectCause(): JoinRejection? {
+    fun getRejectCause(player: Player): JoinRejection? {
         val service = Module.getGameModule(this)
 
-        return if (phase == Phase.INIT || phase == Phase.GENERATE) {
+        return if (!player.hasPermission(Bukkit.getPluginCommand("join")!!.permission!!)) {
+            JoinRejection.NO_PERMISSION
+        } else if (phase == Phase.INIT || phase == Phase.GENERATE) {
             JoinRejection.GENERATING
         } else if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
             JoinRejection.IN_GAME
@@ -314,12 +322,12 @@ class Game(
         }
     }
 
-    fun canJoin(): Boolean {
-        return getRejectCause() == null
+    fun canJoin(player: Player): Boolean {
+        return getRejectCause(player) == null
     }
 
-    fun joinPlayer(player: Player) {
-        if (canJoin()) {
+    fun joinPlayer(player: Player): Boolean {
+        if (canJoin(player)) {
             val event = GameJoinEvent(this, player, PlayerType.PLAYER)
             val postEvent = GameJoinPostEvent(this, player, PlayerType.PLAYER)
             val uid = player.uniqueId
@@ -330,13 +338,13 @@ class Game(
 
             if (event.isCancelled) {
                 player.sendMessage(*warning)
-                return
+                return false
             } else try {
                 playerData = GamePlayer.register(player, this)
             } catch (e: RuntimeException) {
                 e.printStackTrace()
                 player.sendMessage(*warning)
-                return
+                return false
             }
 
             resource.saveToDisk(false)
@@ -366,16 +374,10 @@ class Game(
             }
 
             Bukkit.getPluginManager().callEvent(postEvent)
+            return true
         } else {
-            val text = when (getRejectCause()) {
-                JoinRejection.TERMINATING -> "The game is terminating."
-                JoinRejection.FULL -> "The game is full."
-                JoinRejection.IN_GAME -> "The game has already started."
-                JoinRejection.GENERATING -> "The game is still loading."
-                else -> "Unable to join the game."
-            }
-
-            player.sendMessage(*ComponentBuilder(text).color(ChatColor.YELLOW).create())
+            player.sendMessage(*ComponentBuilder(getRejectCause(player)!!.message).color(ChatColor.YELLOW).create())
+            return false
         }
     }
 

@@ -9,6 +9,7 @@ import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import com.github.lazoyoung.loottablefix.LootTablePatch
 import net.milkbowl.vault.economy.Economy
+import net.milkbowl.vault.permission.Permission
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -32,7 +33,9 @@ class Main : JavaPlugin(), CommandExecutor {
             private set
         lateinit var instance: Main
             private set
-        var economy: Economy? = null
+        var vaultPerm: Permission? = null
+            private set
+        var vaultEco: Economy? = null
             private set
         var lootTablePatch: LootTablePatch? = null
             private set
@@ -63,6 +66,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val ctCmd = getCommand("ctag")!!
         val joinCmd = getCommand("join")!!
         val leaveCmd = getCommand("leave")!!
+        val forceJoinCmd = getCommand("forcejoin")!!
         val voteCmd = getCommand("mapvote")!!
         val kitCmd = getCommand("kit")!!
         val infoExecutor = InfoCommand()
@@ -84,6 +88,7 @@ class Main : JavaPlugin(), CommandExecutor {
         ctCmd.setExecutor(ctExecutor)
         joinCmd.setExecutor(accessExecutor)
         leaveCmd.setExecutor(accessExecutor)
+        forceJoinCmd.setExecutor(accessExecutor)
         voteCmd.setExecutor(voteExecutor)
         kitCmd.setExecutor(kitExecutor)
         infoCmd.tabCompleter = infoExecutor
@@ -91,6 +96,7 @@ class Main : JavaPlugin(), CommandExecutor {
         ctCmd.tabCompleter = ctExecutor
         joinCmd.tabCompleter = accessExecutor
         leaveCmd.tabCompleter = accessExecutor
+        forceJoinCmd.tabCompleter = accessExecutor
         voteCmd.tabCompleter = voteExecutor
         kitCmd.tabCompleter = kitExecutor
         manager.registerEvents(EntityListener(), this)
@@ -154,9 +160,11 @@ class Main : JavaPlugin(), CommandExecutor {
         val services = Bukkit.getServicesManager()
 
         try {
+            val permissionClass = Class.forName("net.milkbowl.vault.permission.Permission")
             val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
-            economy = services.getRegistration(economyClass)?.provider as Economy?
-            Main.logger.info("Dependency loaded: Vault Economy")
+            vaultPerm = services.getRegistration(permissionClass)?.provider as Permission?
+            vaultEco = services.getRegistration(economyClass)?.provider as Economy?
+            Main.logger.info("Dependency loaded: Vault")
         } catch (e: ClassNotFoundException) {}
 
         try {

@@ -100,7 +100,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         if (Bukkit.getPluginManager().getPlugin("Vault") == null)
             throw DependencyNotFound("Vault is required to reward money.")
 
-        val economy = Main.economy
+        val economy = Main.vaultEco
                 ?: throw DependencyNotFound("Economy plugin is required to reward money.")
         val playerData = PlayerData.get(player)
                 ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")

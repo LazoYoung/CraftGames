@@ -24,16 +24,12 @@ import java.nio.file.Path
 class GameResource(val gameName: String) {
 
     lateinit var script: ScriptBase
-
     var lobbyMap: GameMap
-
     val mapRegistry = HashMap<String, GameMap>()
 
+    internal val kitRoot: Path
     internal val kitData = HashMap<String, ByteArray>()
-
     private val kitFiles = HashMap<String, File>()
-
-    private val kitRoot: Path
 
     /** CoordTags configuration across all maps. **/
     internal val tagConfig: YamlConfiguration
@@ -65,6 +61,7 @@ class GameResource(val gameName: String) {
 
             fileReader = layoutFile.bufferedReader(Main.charset)
             root = layoutFile.parentFile.toPath()
+            root.toFile().setWritable(true, true)
             layoutConfig = YamlConfiguration.loadConfiguration(fileReader)
         } catch (e: IOException) {
             throw FaultyConfiguration("Unable to read ${layoutFile.toPath()}.", e)

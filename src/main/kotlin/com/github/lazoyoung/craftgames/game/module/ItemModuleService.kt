@@ -21,6 +21,7 @@ import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.nio.file.Files
 import java.util.*
 
 
@@ -242,6 +243,27 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 e.printStackTrace()
                 script.writeStackTrace(e)
             }
+        }
+    }
+
+    /**
+     * Delete the kit from disk.
+     *
+     * @param name Name of kit
+     * @throws IllegalArgumentException is thrown if kit doesn't exist.
+     * @throws RuntimeException is thrown if data cannot be deleted.
+     */
+    internal fun deleteKit(name: String) {
+        if (!resource.kitData.containsKey(name)) {
+            throw IllegalArgumentException("Kit does not exist.")
+        }
+
+        resource.kitData.remove(name)
+
+        try {
+            Files.deleteIfExists(resource.kitRoot.resolve(name.plus(".kit")))
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to delete kit file!", e)
         }
     }
 

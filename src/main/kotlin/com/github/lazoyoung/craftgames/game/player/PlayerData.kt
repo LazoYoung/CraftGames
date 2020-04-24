@@ -106,7 +106,7 @@ open class PlayerData {
             unregister()
 
             if (moneyReward > 0.0) {
-                Main.economy!!.depositPlayer(player, moneyReward)
+                Main.vaultEco!!.depositPlayer(player, moneyReward)
             }
 
             if (itemReward != null) {

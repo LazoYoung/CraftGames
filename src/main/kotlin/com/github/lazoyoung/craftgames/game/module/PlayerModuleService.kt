@@ -171,7 +171,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     fun getSpawnpoint(playerData: PlayerData, index: Int?): Location {
         val uid = playerData.getPlayer().uniqueId
         val script = game.resource.script
-        val world = game.map.world ?: throw MapNotFound()
+        val world = Module.getWorldModule(game).getWorld()
         var location = personalSpawn[uid]
         val tag = when (playerData) {
             is GameEditor -> editorSpawn

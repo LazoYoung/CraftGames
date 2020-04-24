@@ -419,14 +419,14 @@ class CoordtagCommand : CommandBase {
                 "help" -> return getCompletions(args[1], "1", "2", "3")
                 "list" -> {
                     when (args.size % 2) { // Interpret -flag values
-                        0 -> return getCompletions(args[args.size - 1], "-tag", "-mode", "-map", "-reset")
+                        0 -> return getCompletions(args.last(), "-tag", "-mode", "-map", "-reset")
                         1 -> return when (args[args.size - 2].toLowerCase()) {
-                            "-mode" -> getCompletions(args[args.size - 1], "block", "area", "spawn")
+                            "-mode" -> getCompletions(args.last(), "block", "area", "spawn")
                             "-tag" -> {
                                 val mode = modeSel[pdata.getPlayer().uniqueId]
                                 val map = mapSel[pdata.getPlayer().uniqueId]
                                 getCompletions(
-                                        query = args[args.size - 1],
+                                        query = args.last(),
                                         options = *CoordTag.getAll(game)
                                                 .filter {
                                                     mode == null || mode == it.mode
@@ -463,21 +463,21 @@ class CoordtagCommand : CommandBase {
 
             when (args[0].toLowerCase()) {
                 "create" -> if (args.size == 3) {
-                    return getCompletions(args[2], "block", "area", "spawn")
+                    return getCompletions(args.last(), "block", "area", "spawn")
                 }
                 "capture" -> return when (args.size) {
-                    2 -> getCompletions(args[1], *CoordTag.getAll(game).map { it.name }.toTypedArray())
+                    2 -> getCompletions(args.last(), *CoordTag.getAll(game).map { it.name }.toTypedArray())
                     else -> mutableListOf()
                 }
                 "remove" -> return when (args.size) {
-                    2 -> getCompletions(args[1], *CoordTag.getAll(game).map { it.name }.toTypedArray())
+                    2 -> getCompletions(args.last(), *CoordTag.getAll(game).map { it.name }.toTypedArray())
                     3 -> {
                         val arr = CoordTag.get(game, args[1])
                                 ?.getCaptures(pdata.mapID)
                                 ?.mapNotNull { it.index?.toString() }
                                 ?.toTypedArray()
 
-                        getCompletions(args[2], *arr ?: emptyArray())
+                        getCompletions(args.last(), *arr ?: emptyArray())
                     }
                     else -> mutableListOf()
                 }

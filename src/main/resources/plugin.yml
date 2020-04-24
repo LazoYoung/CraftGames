@@ -16,6 +16,11 @@ commands:
     usage: 'Usage: /join [game]'
     aliases: [ play ]
     permission: craftgames.player.access
+  forcejoin:
+    description: Force players to join a game.
+    usage: 'Usage: /forcejoin (player) [game]'
+    aliases: [ fjoin, forceplay ]
+    permission: craftgames.admin.forcejoin
   leave:
     description: Leave a game.
     usage: 'Usage: /leave'
@@ -50,6 +55,7 @@ permissions:
   craftgames.admin.*:
     description: A permission set required to administrate.
     children:
+      craftgames.admin.forcejoin: true
       craftgames.admin.manage: true
       craftgames.admin.ctag: true
   craftgames.info:
@@ -61,6 +67,8 @@ permissions:
     description: Basic permission to choose a map to vote.
   craftgames.player.kit:
     description: Basic permission to choose kit.
+  craftgames.admin.forcejoin:
+    description: Basic permission to force players to join games.
   craftgames.admin.manage:
     description: Basic permission to manage or edit games.
   craftgames.admin.ctag:

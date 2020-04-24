@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.command
 
+import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
@@ -192,7 +193,7 @@ class GameCommand : CommandBase {
                                 val name = args[2]
                                 Module.getItemModule(game).selectKit(name, sender)
                                 Module.getItemModule(game).applyKit(sender)
-                                sender.sendMessage("Applied kit: $name")
+                                ActionbarTask(sender, "&aKit \'$name\' has been applied.").start()
                             } catch (e: IllegalArgumentException) {
                                 sender.sendMessage("That kit does not exist!")
                             }
@@ -206,7 +207,7 @@ class GameCommand : CommandBase {
                             val name = args[2]
 
                             Module.getItemModule(game).saveKit(name, sender)
-                            sender.sendMessage("Kit \'$name\' has been saved.")
+                            ActionbarTask(sender, "&aKit \'$name\' has been saved.").start()
                         } else {
                             sender.sendMessage("Provide the name of kit!")
                             return false
@@ -217,13 +218,15 @@ class GameCommand : CommandBase {
                             try {
                                 val name = args[2]
 
-                                game.resource.kitData.remove(name)
-                                sender.sendMessage("Removed kit: $name")
+                                Module.getItemModule(game).deleteKit(name)
+                                ActionbarTask(sender, "&aKit \'$name\' has been removed.").start()
                             } catch (e: IllegalArgumentException) {
-                                sender.sendMessage("That kit does not exist!")
+                                sender.sendMessage("\u00A7eThat kit does not exist!")
+                            } catch (e: RuntimeException) {
+                                sender.sendMessage("\u00A7cFailed to delete kit.")
                             }
                         } else {
-                            sender.sendMessage("Provide the name of kit!")
+                            sender.sendMessage("\u00A7eProvide the name of kit!")
                             return false
                         }
                     }
