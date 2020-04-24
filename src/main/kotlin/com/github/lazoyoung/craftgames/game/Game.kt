@@ -352,7 +352,7 @@ class Game(
 
             if (phase == Phase.LOBBY) {
                 playerData.restore(respawn = false, leave = false)
-                Module.getLobbyModule(this).join(player)
+                Module.getLobbyModule(this).teleportSpawn(player)
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
                 ActionbarTask(
                         player = player,
@@ -403,7 +403,7 @@ class Game(
 
         when (phase) {
             Phase.LOBBY -> {
-                Module.getLobbyModule(this).join(player)
+                Module.getLobbyModule(this).teleportSpawn(player)
             }
             Phase.PLAYING -> {
                 Module.getWorldModule(this).teleportSpawn(playerData, null)
@@ -447,67 +447,6 @@ class Game(
                 if (player.location.add(0.0, -1.0, 0.0).block.isEmpty) {
                     player.allowFlight = true
                     player.isFlying = true
-                }
-            })
-        }
-    }
-
-    internal fun leave(playerData: PlayerData) {
-        val player = playerData.getPlayer()
-        val uid = player.uniqueId
-        val event = GameLeaveEvent(this, player, playerData.getPlayerType())
-
-        // Clear data
-        MessageTask.clearAll(player)
-        ActionbarTask.clearAll(player)
-        module.ejectPlayer(playerData)
-        players.remove(uid)
-
-        exit(player)
-        player.sendMessage("You left the game.")
-        Bukkit.getPluginManager().callEvent(event)
-    }
-
-    internal fun exit(player: Player) {
-        val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
-        val lobby = Module.getLobbyModule(this)
-
-        if (lobby.exitLoc != null) {
-            player.teleport(lobby.exitLoc!!, cause)
-        } else {
-            val fallback = Main.getConfig()?.getConfigurationSection("exit-fallback")
-            val fWorld = fallback?.getString("world")
-            var world: World? = null
-            val loc: Location
-
-            if (fWorld != null) {
-                world = Bukkit.getWorld(fWorld)
-            }
-
-            if (world != null && fallback != null) {
-                val fX = fallback.getDouble("x")
-                val fY = fallback.getDouble("y")
-                val fZ = fallback.getDouble("z")
-                val fYaw = fallback.getDouble("yaw").toFloat()
-                val fPitch = fallback.getDouble("pitch").toFloat()
-
-                loc = Location(world, fX, fY, fZ, fYaw, fPitch)
-            } else {
-                world = Bukkit.getWorlds().filter { it.name != map.worldName }.random()
-                loc = world.spawnLocation
-            }
-
-            if (!loc.add(0.0, 1.0, 0.0).block.isPassable) {
-                loc.y = world!!.getHighestBlockYAt(loc).toDouble()
-            }
-
-            player.teleport(loc, cause)
-        }
-
-        if (lobby.exitServer != null) {
-            MessengerUtil.request(player, arrayOf("GetServers"), Consumer { servers ->
-                if (servers?.split(", ")?.contains(lobby.exitServer!!) == true) {
-                    MessengerUtil.request(player, arrayOf("Connect", lobby.exitServer!!))
                 }
             })
         }
@@ -559,5 +498,66 @@ class Game(
     internal fun updatePhase(phase: Phase) {
         this.phase = phase
         module.update()
+    }
+
+    internal fun leave(playerData: PlayerData) {
+        val player = playerData.getPlayer()
+        val uid = player.uniqueId
+        val event = GameLeaveEvent(this, player, playerData.getPlayerType())
+
+        // Clear data
+        MessageTask.clearAll(player)
+        ActionbarTask.clearAll(player)
+        module.ejectPlayer(playerData)
+        players.remove(uid)
+
+        exit(player)
+        player.sendMessage("You left the game.")
+        Bukkit.getPluginManager().callEvent(event)
+    }
+
+    private fun exit(player: Player) {
+        val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
+        val lobby = Module.getLobbyModule(this)
+
+        if (lobby.exitLoc != null) {
+            player.teleport(lobby.exitLoc!!, cause)
+        } else {
+            val fallback = Main.getConfig()?.getConfigurationSection("exit-fallback")
+            val fWorld = fallback?.getString("world")
+            var world: World? = null
+            val loc: Location
+
+            if (fWorld != null) {
+                world = Bukkit.getWorld(fWorld)
+            }
+
+            if (world != null && fallback != null) {
+                val fX = fallback.getDouble("x")
+                val fY = fallback.getDouble("y")
+                val fZ = fallback.getDouble("z")
+                val fYaw = fallback.getDouble("yaw").toFloat()
+                val fPitch = fallback.getDouble("pitch").toFloat()
+
+                loc = Location(world, fX, fY, fZ, fYaw, fPitch)
+            } else {
+                world = Bukkit.getWorlds().filter { it.name != map.worldName }.random()
+                loc = world.spawnLocation
+            }
+
+            if (!loc.add(0.0, 1.0, 0.0).block.isPassable) {
+                loc.y = world!!.getHighestBlockYAt(loc).toDouble()
+            }
+
+            player.teleport(loc, cause)
+        }
+
+        if (lobby.exitServer != null) {
+            MessengerUtil.request(player, arrayOf("GetServers"), Consumer { servers ->
+                if (servers?.split(", ")?.contains(lobby.exitServer!!) == true) {
+                    MessengerUtil.request(player, arrayOf("Connect", lobby.exitServer!!))
+                }
+            })
+        }
     }
 }

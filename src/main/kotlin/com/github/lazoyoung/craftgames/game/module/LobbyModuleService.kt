@@ -31,10 +31,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
             .color(ChatColor.RED).create().first() as TextComponent
     private var ticking = false
     private var serviceTask: BukkitRunnable? = null
-
-    override fun setSpawn(spawnTag: String) {
-        //tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
-    }
+    private var minimum = 1
 
     override fun setSpawnpoint(x: Double, y: Double, z: Double) {
         loc = Location(null, x, y, z)
@@ -81,10 +78,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
         return true
     }
 
-    internal fun join(player: Player) {
-        val plugin = Main.instance
-        val min = Module.getGameModule(game).minPlayer
-        val count = Module.getPlayerModule(game).getLivingPlayers().size
+    internal fun teleportSpawn(player: Player) {
         val world = game.resource.lobbyMap.world
                 ?: throw MapNotFound("Lobby world is not loaded!")
 
@@ -93,13 +87,6 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
         } else {
             player.teleport(world.spawnLocation)
             player.sendMessage(notFound)
-        }
-
-        // Start timer if minimum player has reached.
-        if (!ticking && count >= min) {
-            ticking = true
-            startTimer()
-            serviceTask!!.runTaskTimer(plugin, 0L, 20L)
         }
     }
 
@@ -115,11 +102,31 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
 
         world.pvp = false
         world.difficulty = Difficulty.PEACEFUL
+        this.minimum = Module.getGameModule(game).minPlayer
+
+        startTimer()
+        serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
     private fun startTimer() {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
+                val count = Module.getPlayerModule(game).getLivingPlayers().size
+
+                if (count == 0) {
+                    game.forceStop(error = false)
+                    this.cancel()
+                    return
+                }
+
+                if (!ticking) {
+                    if (count < minimum) {
+                        return
+                    } else {
+                        ticking = true
+                    }
+                }
+
                 if (--timer <= 0) {
                     val playerCount = Module.getPlayerModule(game).getLivingPlayers().size
                     val minimum = Module.getGameModule(game).minPlayer

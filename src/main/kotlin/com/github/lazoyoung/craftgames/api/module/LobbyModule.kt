@@ -7,15 +7,6 @@ interface LobbyModule {
     /**
      * Set spawnpoint for this lobby.
      *
-     * @param spawnTag the coordinate tag which defines spawnpoint.
-     */
-    @Deprecated("CoordTag is not relevant to defining spawnpoint.",
-            ReplaceWith("setSpawnpoint"), DeprecationLevel.ERROR)
-    fun setSpawn(spawnTag: String)
-
-    /**
-     * Set spawnpoint for this lobby.
-     *
      * @param x Coordinate in X-axis.
      * @param y Coordinate in Y-axis.
      * @param z Coordinate in Z-axis.
