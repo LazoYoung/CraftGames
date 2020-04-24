@@ -22,10 +22,6 @@ class TeamModuleService(private val game: Game) : TeamModule {
     private var scoreboard = Bukkit.getScoreboardManager().newScoreboard
     private val script = game.resource.script
 
-    override fun createTeam(teamName: String, color: String): Team {
-        return createTeam(teamName, ChatColor.valueOf(color.toUpperCase()))
-    }
-
     override fun createTeam(teamName: String, color: ChatColor): Team {
         val team = scoreboard.registerNewTeam(teamName)
 
@@ -60,6 +56,13 @@ class TeamModuleService(private val game: Game) : TeamModule {
         }
         return topScore
     }
+
+    /* FIXME
+    fun getTopTeamScore(objective: Objective): Int {
+        val teams = scoreboard.teams
+        val topTeams
+    }
+     */
 
     override fun getTopTeams(objective: Objective): List<Team> {
         val teams = scoreboard.teams

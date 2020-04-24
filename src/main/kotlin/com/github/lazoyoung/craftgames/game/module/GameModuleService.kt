@@ -173,6 +173,8 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
         var index = 0
 
+        Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+
         // Setup players
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
 
@@ -186,13 +188,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
             teleportFutures.add(future)
             bossBar.addPlayer(p.getPlayer())
-        }
-
-        // Fire event once all the players have teleported.
-        CompletableFuture.allOf(*teleportFutures.toTypedArray()).thenAcceptAsync {
-            Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                Bukkit.getPluginManager().callEvent(GameStartEvent(game))
-            })
         }
 
         serviceTask = object : BukkitRunnable() {

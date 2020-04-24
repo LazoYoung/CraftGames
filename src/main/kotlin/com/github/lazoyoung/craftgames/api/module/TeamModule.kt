@@ -13,15 +13,6 @@ interface TeamModule {
      * Create a new [Team].
      *
      * @param teamName Name of the team.
-     * @param color [String] representing color of the team and its nametag.
-     */
-    @Deprecated("This is redundant.", ReplaceWith(expression = "createTeam(String, ChatColor)"))
-    fun createTeam(teamName: String, color: String): Team
-
-    /**
-     * Create a new [Team].
-     *
-     * @param teamName Name of the team.
      * @param color [ChatColor] of the team and its nametag.
      */
     fun createTeam(teamName: String, color: ChatColor): Team
