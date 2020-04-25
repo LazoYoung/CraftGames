@@ -30,7 +30,7 @@ class SpawnCapture(
         return builder.removeSuffix(",").toString()
     }
 
-    override fun toLocation(world: World): Location {
+    override fun toLocation(world: World, maxAttempt: Int): Location {
         return Location(world, x, y, z, yaw, pitch)
     }
 

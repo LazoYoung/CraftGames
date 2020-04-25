@@ -249,8 +249,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     fun teleportSpawn(playerData: PlayerData, index: Int?): CompletableFuture<Boolean> {
         val scheduler = Bukkit.getScheduler()
         val player = playerData.getPlayer()
-        val playerModule = Module.getPlayerModule(game)
-        val location = playerModule.getSpawnpoint(playerData, index)
+        val location = Module.getPlayerModule(game).getSpawnpoint(playerData, index)
 
         return player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
                 .handleAsync { result, t ->

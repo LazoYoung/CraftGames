@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.command
 
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
@@ -211,12 +212,19 @@ class CoordtagCommand : CommandBase {
                 }
 
                 if (args[0].equals("tp", true)) {
+                    val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
+
                     when (args.size) {
                         2 -> {
                             val capture = captures.random()
+                            val location = capture.toLocation(sender.world, maxAttempt)
 
-                            sender.teleport(capture.toLocation(sender.world))
-                            ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
+                            if (location != null) {
+                                sender.teleport(location)
+                                ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
+                            } else {
+                                sender.sendMessage("\u00A7eFailed to calculate safe zone.")
+                            }
                         }
                         else -> {
                             val capture = captures.firstOrNull {
@@ -226,14 +234,20 @@ class CoordtagCommand : CommandBase {
                             if (capture == null) {
                                 sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
                             } else {
+                                val location = capture.toLocation(sender.world, maxAttempt)
+
                                 if (capture is AreaCapture) {
                                     val timer = Timer(TimeUnit.SECOND, 20)
 
                                     capture.displayBorder(sender.world, timer)
                                 }
 
-                                sender.teleport(capture.toLocation(sender.world))
-                                sender.sendMessage("[CoordTag] Teleported to $tagName/${capture.index}.")
+                                if (location != null) {
+                                    sender.teleport(location)
+                                    ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
+                                } else {
+                                    sender.sendMessage("\u00A7eFailed to calculate safe zone.")
+                                }
                             }
                         }
                     }

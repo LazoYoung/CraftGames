@@ -3,12 +3,9 @@ package com.github.lazoyoung.craftgames.coordtag.capture
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
-import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.Particle
-import org.bukkit.World
+import org.bukkit.*
+import org.bukkit.block.Block
 import org.bukkit.entity.Entity
-import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import kotlin.random.Random
 import kotlin.random.nextInt
@@ -24,6 +21,8 @@ class AreaCapture(
         index: Int? = null
 ) : CoordCapture(mapID, index) {
 
+    private var maxAttempt = 0
+
     override fun serialize(): String {
         val builder = StringBuilder()
         val x = intArrayOf(x1, x2)
@@ -38,12 +37,43 @@ class AreaCapture(
         return builder.removeSuffix(",").toString()
     }
 
-    override fun toLocation(world: World): Location {
-        val x = Random.nextInt(x1..x2)
-        val y = Random.nextInt(y1..y2)
-        val z = Random.nextInt(z1..z2)
+    override fun toLocation(world: World, maxAttempt: Int): Location? {
+        this.maxAttempt = maxAttempt
+        return toLocation(1, world)
+    }
 
-        return Location(world, x.toDouble(), y.toDouble(), z.toDouble())
+    private fun toLocation(attempt: Int, world: World): Location? {
+        if (attempt > maxAttempt) {
+            return null
+        }
+
+        val x = Random.nextInt(x1..x2)
+        var y = y2
+        val z = Random.nextInt(z1..z2)
+        var block: Block
+        var pocket = 0
+
+        while (true) {
+            block = world.getBlockAt(x, y--, z)
+
+            when (block.type) {
+                Material.LAVA, Material.FIRE, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE -> {
+                    return toLocation(attempt + 1, world)
+                }
+                else -> if (block.isPassable) {
+                    pocket++
+                } else if (pocket > 1) {
+                    return when (block.type) {
+                        Material.CACTUS, Material.MAGMA_BLOCK, Material.CAMPFIRE -> {
+                            toLocation(attempt + 1, world)
+                        }
+                        else -> {
+                            Location(world, x.toDouble(), y + 1.0, z.toDouble())
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**

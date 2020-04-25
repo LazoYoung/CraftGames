@@ -23,6 +23,7 @@ import kotlin.random.Random
 class MobModuleService internal constructor(private val game: Game) : MobModule {
 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
+    private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.mob-throttle", 3) ?: 3
     private val script = game.resource.script
     private var mythicMobsActive = false
     private lateinit var apiHelper: Any
@@ -95,11 +96,14 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         captures.forEach { capture ->
             val entity: Entity
             val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
-            val loc = capture.toLocation(world)
+            val loc = capture.toLocation(world, maxAttempt)
             typeKey = entityType.key
 
             if (!entityType.isSpawnable) {
                 throw RuntimeException("Entity is not spawn-able: $typeKey")
+            } else if (loc == null) {
+                script.print("Excessive attempt to spawn mob at: $spawnTag")
+                return@forEach
             }
 
             entity = world.spawnEntity(loc, entityType)
@@ -165,8 +169,13 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
 
         captures.forEach { capture ->
-            val loc = capture.toLocation(world)
+            val loc = capture.toLocation(world, maxAttempt)
             val entity: Entity
+
+            if (loc == null) {
+                script.print("Excessive attempt to spawn mob at: $spawnTag")
+                return@forEach
+            }
 
             try {
                 entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity

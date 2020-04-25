@@ -161,7 +161,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     override fun setSpawnpoint(team: Team, spawnTag: String) {
-        this.spawnTag[team.name] = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
+        this.spawnTag[team.name] = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA)
     }
 
     internal fun getSpawnpoint(player: Player): CoordTag? {

@@ -40,6 +40,11 @@ optimization:
   # Set maximum distance for particles to be visible.
   particle-render-distance: 30
 
+  # Set maximum attempt to calculate safe area to spawn a mob/player
+  safezone-calculation:
+    mob-throttle: 3
+    player-throttle: 10
+
 
 # Default fallback location when leaving game.
 #exit-fallback:

@@ -8,7 +8,6 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
@@ -22,7 +21,6 @@ import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Location
-import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.*
@@ -36,7 +34,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     private var playerSpawn: CoordTag? = null
     private var editorSpawn: CoordTag? = null
     private var spectatorSpawn: CoordTag? = null
-    internal val killTriggers = HashMap<UUID, Consumer<LivingEntity>>()
+    private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
     private val script = game.resource.script
 
     override fun getLivingPlayers(): List<Player> {
@@ -112,11 +110,16 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         setSpawnpoint(PlayerType.valueOf(type), spawnTag)
     }
 
-    override fun overrideSpawnpoint(player: Player, tagName: String, index: Int?) {
-        val tag = Module.getRelevantTag(game, tagName, TagMode.SPAWN)
-        val location = getSpawnpointByTag(tag, index)
+    override fun overrideSpawnpoint(player: Player, tagName: String, index: Int) {
+        val tag = Module.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA)
 
-        overrideSpawnpoint(player, location)
+        try {
+            overrideSpawnpoint(player, getSpawnpointByTag(tag, index))
+        } catch (e: IllegalStateException) {
+            script.print("Failed to override ${player.name}'s spawnpoint to $tagName/$index.")
+            script.print("See error stacktrace for details.")
+            script.writeStackTrace(e)
+        }
     }
 
     override fun overrideSpawnpoint(player: Player, location: Location) {
@@ -133,40 +136,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             script.printDebug("Spawnpoint for ${player.name} is reset to default.")
         }
     }
-
-    override fun setRespawnTimer(player: Player, timer: Timer) {
-        this.respawnTimer[player.uniqueId] = timer
-    }
-
-    override fun setKillTrigger(killer: Player, trigger: Consumer<LivingEntity>?) {
-        val name = killer.name
-        val uid = killer.uniqueId
-
-        if (trigger == null) {
-            if (killTriggers.containsKey(uid)) {
-                killTriggers.remove(uid)
-                script.printDebug("A Kill trigger is un-bound from: $name")
-            }
-        } else {
-            killTriggers[uid] = Consumer { livingEntity ->
-                try {
-                    trigger.accept(livingEntity)
-                } catch (e: Exception) {
-                    script.writeStackTrace(e)
-                    script.print("Error occurred in Kill trigger: $name")
-                }
-            }
-            script.printDebug("A kill trigger is bound to $name.")
-        }
-    }
-
-    override fun setDeathTrigger(player: Player, respawn: Boolean, trigger: Runnable?) {}
-
-    override fun setSpawn(type: String, spawnTag: String) {
-        setSpawnpoint(type, spawnTag)
-    }
-
-    override fun sendMessage(player: Player, message: String) {}
 
     fun getSpawnpoint(playerData: PlayerData, index: Int?): Location {
         val uid = playerData.getPlayer().uniqueId
@@ -187,11 +156,18 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }
 
         if (tag != null) {
-            location = getSpawnpointByTag(tag, index)
-        } else if (location == null) {
+            try {
+                location = getSpawnpointByTag(tag, index)
+            } catch (e: IllegalStateException) {
+                script.print("Failed to calculate safezone for ${playerData.getPlayer().name}'s spawnpoint $index.")
+                script.print("See error stacktrace for details.")
+                script.writeStackTrace(e)
+            }
+        }
+
+        if (location == null) {
             location = world.spawnLocation
             location.y = world.getHighestBlockYAt(location).toDouble()
-            script.print("Spawn tag is not defined for ${playerData.getPlayer().name}!")
         }
 
         return location
@@ -242,6 +218,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }.runTaskTimer(plugin, 0L, 20L)
     }
 
+    /**
+     * @throws IllegalArgumentException is thrown if [tag] mode is not relevant.
+     * @throws IllegalStateException is thrown if plugin made excessive attempt to calculate safezone.
+     */
     private fun getSpawnpointByTag(tag: CoordTag, index: Int?): Location {
         val world = game.map.world ?: throw MapNotFound()
         val mapID = game.map.id
@@ -253,13 +233,21 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             location.y = world.getHighestBlockYAt(location).toDouble()
             script.print("Spawn tag \'${tag.name}\' is not captured in: $mapID")
         } else {
-            val c = if (index != null) {
-                captures[index % captures.size] as SpawnCapture
+            val capture = if (index != null) {
+                captures[index % captures.size]
             } else {
-                captures.random() as SpawnCapture
+                captures.random()
             }
 
-            location = Location(world, c.x, c.y, c.z, c.yaw, c.pitch)
+            when (tag.mode) {
+                TagMode.SPAWN, TagMode.AREA -> {
+                    location = capture.toLocation(world, maxAttempt)
+                            ?: error("Excessive attempt to calculate safezone is detected.")
+                }
+                else -> {
+                    throw IllegalArgumentException("Tag mode is irrelevant.")
+                }
+            }
         }
 
         return location

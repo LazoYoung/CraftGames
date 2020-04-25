@@ -30,5 +30,5 @@ abstract class CoordCapture(
 
     abstract fun serialize(): String
 
-    abstract fun toLocation(world: World): Location
+    abstract fun toLocation(world: World, maxAttempt: Int = 1): Location?
 }
