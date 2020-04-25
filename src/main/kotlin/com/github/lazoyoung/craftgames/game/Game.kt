@@ -61,11 +61,12 @@ class Game(
     }
 
     enum class JoinRejection(val message: String) {
+        PLAYING("You're already playing this game."),
         FULL("The game is terminating."),
         IN_GAME("The game is full."),
         GENERATING("The game has already started."),
         TERMINATING("The game is still loading."),
-        NO_PERMISSION("Not permitted to join this game.")
+        NO_PERMISSION("You're not permitted to join this game.")
     }
 
     /** List of players (regardless of PlayerState) **/
@@ -307,7 +308,9 @@ class Game(
     fun getRejectCause(player: Player): JoinRejection? {
         val service = Module.getGameModule(this)
 
-        return if (!player.hasPermission(Bukkit.getPluginCommand("join")!!.permission!!)) {
+        return if (players.contains(player.uniqueId)) {
+            JoinRejection.PLAYING
+        } else if (!player.hasPermission(Bukkit.getPluginCommand("join")!!.permission!!)) {
             JoinRejection.NO_PERMISSION
         } else if (phase == Phase.INIT || phase == Phase.GENERATE) {
             JoinRejection.GENERATING

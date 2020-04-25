@@ -199,10 +199,15 @@ class GameAccessCommand : CommandBase {
         var counter = 0
 
         for (p in players) {
-            if (game.joinPlayer(p)) {
+            if (game.canJoin(p)) {
+                game.joinPlayer(p)
                 counter++
             } else {
-                blocked[p.name] = game.getRejectCause(p)!!.message
+                val cause = game.getRejectCause(p)!!
+
+                if (cause != Game.JoinRejection.PLAYING) {
+                    blocked[p.name] = cause.name
+                }
             }
         }
 
