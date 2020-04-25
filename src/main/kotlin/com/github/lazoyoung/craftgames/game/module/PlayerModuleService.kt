@@ -8,6 +8,8 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
+import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
@@ -24,6 +26,7 @@ import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.collections.HashMap
 
@@ -113,12 +116,13 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     override fun overrideSpawnpoint(player: Player, tagName: String, index: Int) {
         val tag = Module.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA)
 
-        try {
-            overrideSpawnpoint(player, getSpawnpointByTag(tag, index))
-        } catch (e: IllegalStateException) {
-            script.print("Failed to override ${player.name}'s spawnpoint to $tagName/$index.")
-            script.print("See error stacktrace for details.")
-            script.writeStackTrace(e)
+        getSpawnpointByTag(tag, index).handle { location, t ->
+            if (location == null || t != null) {
+                t?.printStackTrace()
+                script.print("Failed to override ${player.name}'s spawnpoint to $tagName/$index.")
+            } else {
+                overrideSpawnpoint(player, location)
+            }
         }
     }
 
@@ -137,16 +141,20 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }
     }
 
-    fun getSpawnpoint(playerData: PlayerData, index: Int?): Location {
+    fun getSpawnpoint(playerData: PlayerData, index: Int?): CompletableFuture<Location> {
         val uid = playerData.getPlayer().uniqueId
         val script = game.resource.script
         val world = Module.getWorldModule(game).getWorld()
-        var location = personalSpawn[uid]
+        val personalSpawn = personalSpawn[uid]
+        var future = CompletableFuture.supplyAsync {
+            personalSpawn
+        }
+
         val tag = when (playerData) {
             is GameEditor -> editorSpawn
             is Spectator -> spectatorSpawn
             is GamePlayer -> {
-                if (location == null) {
+                if (future.get() == null) {
                     Module.getTeamModule(game).getSpawnpoint(playerData.getPlayer()) ?: playerSpawn
                 } else {
                     null
@@ -157,7 +165,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
         if (tag != null) {
             try {
-                location = getSpawnpointByTag(tag, index)
+                future = getSpawnpointByTag(tag, index)
             } catch (e: IllegalStateException) {
                 script.print("Failed to calculate safezone for ${playerData.getPlayer().name}'s spawnpoint $index.")
                 script.print("See error stacktrace for details.")
@@ -165,12 +173,17 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             }
         }
 
-        if (location == null) {
-            location = world.spawnLocation
-            location.y = world.getHighestBlockYAt(location).toDouble()
-        }
+        return future.thenCompose {
+            val loc =  if (it == null) {
+                val location = world.spawnLocation
+                location.y = world.getHighestBlockYAt(location).toDouble()
+                location
+            } else {
+                it
+            }
 
-        return location
+            CompletableFuture.supplyAsync { loc }
+        }
     }
 
     internal fun respawn(gamePlayer: GamePlayer) {
@@ -220,17 +233,19 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
     /**
      * @throws IllegalArgumentException is thrown if [tag] mode is not relevant.
-     * @throws IllegalStateException is thrown if plugin made excessive attempt to calculate safezone.
      */
-    private fun getSpawnpointByTag(tag: CoordTag, index: Int?): Location {
+    private fun getSpawnpointByTag(tag: CoordTag, index: Int?): CompletableFuture<Location?> {
         val world = game.map.world ?: throw MapNotFound()
         val mapID = game.map.id
         val captures = tag.getCaptures(mapID)
-        val location: Location
+        val future: CompletableFuture<Location?>
 
         if (captures.isEmpty()) {
-            location = world.spawnLocation
-            location.y = world.getHighestBlockYAt(location).toDouble()
+            val loc = world.spawnLocation
+            future = CompletableFuture<Location?>()
+
+            loc.y = world.getHighestBlockYAt(loc).toDouble()
+            future.complete(loc)
             script.print("Spawn tag \'${tag.name}\' is not captured in: $mapID")
         } else {
             val capture = if (index != null) {
@@ -239,10 +254,13 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 captures.random()
             }
 
-            when (tag.mode) {
-                TagMode.SPAWN, TagMode.AREA -> {
-                    location = capture.toLocation(world, maxAttempt)
-                            ?: error("Excessive attempt to calculate safezone is detected.")
+            when (capture) {
+                is AreaCapture -> {
+                    future = capture.toLocation(world, maxAttempt)
+                }
+                is SpawnCapture -> {
+                    future = CompletableFuture<Location?>()
+                    future.complete(capture.toLocation(world))
                 }
                 else -> {
                     throw IllegalArgumentException("Tag mode is irrelevant.")
@@ -250,7 +268,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             }
         }
 
-        return location
+        return future
     }
 
 }

@@ -31,14 +31,6 @@ interface WorldModule {
     fun setBorderCenter(blockTag: String, index: Int = 0)
 
     /**
-     * Set [max] number of mobs in this world.
-     * (Defaults to 100)
-     */
-    @Deprecated("Moved to MobModule.",
-            ReplaceWith("MobModule.setMobCapacity(Int)", "com.github.lazoyoung.craftgames.api.module.MobModule"))
-    fun setMobCapacity(max: Int)
-
-    /**
      * Set difficulty for every world.
      * (Defaults to [Difficulty.NORMAL])
      *

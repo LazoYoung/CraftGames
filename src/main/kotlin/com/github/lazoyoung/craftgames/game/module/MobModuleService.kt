@@ -2,6 +2,8 @@ package com.github.lazoyoung.craftgames.game.module
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.module.MobModule
+import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
@@ -16,7 +18,10 @@ import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
+import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 @Suppress("DuplicatedCode")
@@ -76,77 +81,100 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         mobCap = max
     }
 
-    override fun spawnMob(type: String, spawnTag: String): List<Mob> {
+    override fun spawnMob(type: String, spawnTag: String): CompletableFuture<List<Mob>> {
         val mapID = game.map.id
         val worldModule = Module.getWorldModule(game)
         val world = worldModule.getWorld()
 
         if (world.entityCount >= mobCap) {
-            return emptyList()
+            return CompletableFuture.completedFuture(emptyList())
         }
 
         val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
-        var typeKey: NamespacedKey? = null
+        val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
+        val typeKey = entityType.key
+        val tasks = LinkedList<CompletableFuture<Unit>>()
 
-        if (captures.isEmpty()) {
+        if (!entityType.isSpawnable) {
+            throw RuntimeException("Entity is not spawn-able: $typeKey")
+        } else if (captures.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
         }
 
         captures.forEach { capture ->
-            val entity: Entity
-            val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
-            val loc = capture.toLocation(world, maxAttempt)
-            typeKey = entityType.key
 
-            if (!entityType.isSpawnable) {
-                throw RuntimeException("Entity is not spawn-able: $typeKey")
-            } else if (loc == null) {
-                script.print("Excessive attempt to spawn mob at: $spawnTag")
-                return@forEach
+            fun teleport(loc: Location?) {
+                if (loc == null) {
+                    script.print("Excessive attempt to spawn mob at: $spawnTag")
+                    return
+                }
+
+                val entity = world.spawnEntity(loc, entityType)
+
+                if (entity !is Mob) {
+                    entity.remove()
+                    throw IllegalArgumentException("This is not a Mob: $typeKey")
+                }
+
+                mobList.add(entity)
             }
 
-            entity = world.spawnEntity(loc, entityType)
+            when (capture) {
+                is AreaCapture -> {
+                    tasks.add(capture.toLocation(world, maxAttempt).handle {
+                        location, t ->
 
-            if (entity !is Mob) {
-                entity.remove()
-                throw IllegalArgumentException("This is not a Mob: $typeKey")
+                        if (t != null) {
+                            t.printStackTrace()
+                        } else {
+                            teleport(location)
+                        }
+                    })
+                }
+                is SpawnCapture -> {
+                    teleport(capture.toLocation(world))
+                }
+                else -> error("Illegal tag mode.")
             }
-
-            mobList.add(entity)
         }
 
-        script.printDebug("Spawned ${mobList.size} $typeKey")
-        return mobList
-    }
-
-    override fun spawnMob(type: String, name: String, spawnTag: String): List<Mob> {
-        val mobList = spawnMob(type, spawnTag)
-
-        mobList.forEach {
-            it.customName = name
+        return if (tasks.isNotEmpty()) {
+            CompletableFuture.allOf(*tasks.toTypedArray()).thenCompose {
+                script.printDebug("Spawned ${mobList.size} $typeKey")
+                CompletableFuture.completedFuture(mobList.toList())
+            }
+        } else {
+            script.printDebug("Spawned ${mobList.size} $typeKey")
+            CompletableFuture.completedFuture(mobList.toList())
         }
-        return mobList
     }
 
-    override fun spawnMob(type: String, loot: LootTable, spawnTag: String): List<Mob> {
-        val mobList = spawnMob(type, spawnTag)
-
-        mobList.forEach { it.setLootTable(loot, Random.nextLong()) }
-        return mobList
-    }
-
-    override fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): List<Mob> {
-        val mobList = spawnMob(type, spawnTag)
-
-        mobList.forEach {
-            it.customName = name
-            it.setLootTable(loot, Random.nextLong())
+    override fun spawnMob(type: String, name: String, spawnTag: String): CompletableFuture<List<Mob>> {
+        return spawnMob(type, spawnTag).thenApply {
+            it.forEach { mob -> mob.customName = name }
+            it
         }
-        return mobList
     }
 
-    override fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob> {
+    override fun spawnMob(type: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>> {
+        return spawnMob(type, spawnTag).thenApply {
+            it.forEach { mob -> mob.setLootTable(loot, Random.nextLong()) }
+            it
+        }
+    }
+
+    override fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>> {
+        return spawnMob(type, spawnTag).thenApply {
+            it.forEach { mob ->
+                mob.customName = name
+                mob.setLootTable(loot, Random.nextLong())
+            }
+            it
+        }
+    }
+
+    override fun spawnMythicMob(name: String, level: Int, spawnTag: String): CompletableFuture<List<Mob>> {
 
         if (!mythicMobsActive) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
@@ -157,47 +185,75 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         val world = worldModule.getWorld()
 
         if (world.entityCount >= mobCap) {
-            return emptyList()
+            return CompletableFuture.completedFuture(emptyList())
         }
 
         val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
+        val tasks = LinkedList<CompletableFuture<Unit>>()
 
         if (captures.isEmpty()) {
             throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
         }
 
         captures.forEach { capture ->
-            val loc = capture.toLocation(world, maxAttempt)
-            val entity: Entity
 
-            if (loc == null) {
-                script.print("Excessive attempt to spawn mob at: $spawnTag")
-                return@forEach
-            }
+            fun teleport(loc: Location?) {
+                val entity: Entity
 
-            try {
-                entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity
-                typeKey = entity.type.key
-
-                if (entity !is Mob) {
-                    entity.remove()
-                    throw IllegalArgumentException("This is not a Mob: $typeKey")
+                if (loc == null) {
+                    script.print("Excessive attempt to spawn mob at: $spawnTag")
+                    return
                 }
 
-                mobList.add(entity)
-            } catch (e: InvocationTargetException) {
-                (e.cause as? Exception)?.let {
-                    if (it::class.java.simpleName == "InvalidMobTypeException") {
-                        throw IllegalArgumentException("Unable to identify MythicMob: $name")
+                try {
+                    entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity
+                    typeKey = entity.type.key
+
+                    if (entity !is Mob) {
+                        entity.remove()
+                        throw IllegalArgumentException("This is not a Mob: $typeKey")
+                    }
+
+                    mobList.add(entity)
+                } catch (e: InvocationTargetException) {
+                    (e.cause as? Exception)?.let {
+                        if (it::class.java.simpleName == "InvalidMobTypeException") {
+                            throw IllegalArgumentException("Unable to identify MythicMob: $name")
+                        }
                     }
                 }
             }
+
+            when (capture) {
+                is AreaCapture -> {
+                    tasks.add(capture.toLocation(world, maxAttempt).handle {
+                        location, t ->
+
+                        if (t != null) {
+                            t.printStackTrace()
+                        } else {
+                            teleport(location)
+                        }
+                    })
+                }
+                is SpawnCapture -> {
+                    teleport(capture.toLocation(world))
+                }
+                else -> error("Illegal tag mode.")
+            }
         }
 
-        script.printDebug("Spawned ${mobList.size} $typeKey")
-        return mobList
+        return if (tasks.isNotEmpty()) {
+            CompletableFuture.allOf(*tasks.toTypedArray()).thenCompose {
+                script.printDebug("Spawned ${mobList.size} $typeKey")
+                CompletableFuture.completedFuture(mobList.toList())
+            }
+        } else {
+            script.printDebug("Spawned ${mobList.size} $typeKey")
+            CompletableFuture.completedFuture(mobList.toList())
+        }
     }
 
     override fun despawnEntities(type: EntityType): Int {

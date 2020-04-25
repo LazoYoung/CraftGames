@@ -21,7 +21,7 @@ class BlockCapture(
         return builder.removeSuffix(",").toString()
     }
 
-    override fun toLocation(world: World, maxAttempt: Int): Location {
+    fun toLocation(world: World): Location {
         return Location(world, x.toDouble(), y.toDouble(), z.toDouble())
     }
 

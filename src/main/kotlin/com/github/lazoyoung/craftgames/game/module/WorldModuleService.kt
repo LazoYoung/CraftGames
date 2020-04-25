@@ -71,8 +71,6 @@ class WorldModuleService(private val game: Game) : WorldModule {
         getWorldBorder().setCenter(capture.x.toDouble(), capture.z.toDouble())
     }
 
-    override fun setMobCapacity(max: Int) {}
-
     override fun setDifficulty(difficulty: Difficulty) {
         this.difficulty = difficulty
     }
@@ -249,25 +247,33 @@ class WorldModuleService(private val game: Game) : WorldModule {
     fun teleportSpawn(playerData: PlayerData, index: Int?): CompletableFuture<Boolean> {
         val scheduler = Bukkit.getScheduler()
         val player = playerData.getPlayer()
-        val location = Module.getPlayerModule(game).getSpawnpoint(playerData, index)
+        val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
+        val future = Module.getPlayerModule(game).getSpawnpoint(playerData, index)
 
-        return player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                .handleAsync { result, t ->
-                    if (t != null) {
-                        t.printStackTrace()
-                        return@handleAsync false
-                    } else {
-                        scheduler.runTask(Main.instance, Runnable {
-                            val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
-
-                            player.isInvulnerable = true
-                            scheduler.runTaskLater(Main.instance, Runnable {
-                                player.isInvulnerable = false
-                            }, Timer(TimeUnit.TICK, gracePeriod).toTick())
-                        })
-                        return@handleAsync result
-                    }
-                }
+        return future.exceptionally { t ->
+            t.printStackTrace()
+            null
+        }.thenComposeAsync {
+            return@thenComposeAsync if (it == null) {
+                CompletableFuture.completedFuture(false)
+            } else {
+                player.teleportAsync(it, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                        .handleAsync { result, t ->
+                            if (t != null) {
+                                t.printStackTrace()
+                                return@handleAsync false
+                            } else {
+                                scheduler.runTask(Main.instance, Runnable {
+                                    player.isInvulnerable = true
+                                    scheduler.runTaskLater(Main.instance, Runnable {
+                                        player.isInvulnerable = false
+                                    }, Timer(TimeUnit.TICK, gracePeriod).toTick())
+                                })
+                                return@handleAsync result
+                            }
+                        }
+            }
+        }
     }
 
     internal fun getWorld(): World {

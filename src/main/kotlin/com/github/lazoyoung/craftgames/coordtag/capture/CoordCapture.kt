@@ -1,8 +1,6 @@
 package com.github.lazoyoung.craftgames.coordtag.capture
 
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import org.bukkit.Location
-import org.bukkit.World
 
 abstract class CoordCapture(
         val mapID: String?,
@@ -29,6 +27,4 @@ abstract class CoordCapture(
     }
 
     abstract fun serialize(): String
-
-    abstract fun toLocation(world: World, maxAttempt: Int = 1): Location?
 }

@@ -7,6 +7,7 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
 interface MobModule {
@@ -43,7 +44,7 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, spawnTag: String): List<Mob>
+    fun spawnMob(type: String, spawnTag: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn vanilla mobs.
@@ -56,7 +57,7 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, name: String, spawnTag: String): List<Mob>
+    fun spawnMob(type: String, name: String, spawnTag: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn vanilla mobs.
@@ -70,7 +71,7 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, loot: LootTable, spawnTag: String): List<Mob>
+    fun spawnMob(type: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn vanilla mobs.
@@ -85,7 +86,7 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): List<Mob>
+    fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn MythicMobs.
@@ -98,7 +99,7 @@ interface MobModule {
      * @throws RuntimeException is thrown if plugin fails to access MythicMobs API.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMythicMob(name: String, level: Int, spawnTag: String): List<Mob>
+    fun spawnMythicMob(name: String, level: Int, spawnTag: String): CompletableFuture<List<Mob>>
 
     /**
      * Despawn specific [type][EntityType] of entities.

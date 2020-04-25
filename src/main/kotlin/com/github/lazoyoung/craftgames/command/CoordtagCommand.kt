@@ -217,7 +217,12 @@ class CoordtagCommand : CommandBase {
                     when (args.size) {
                         2 -> {
                             val capture = captures.random()
-                            val location = capture.toLocation(sender.world, maxAttempt)
+                            val location = when (capture) {
+                                is AreaCapture -> capture.toLocation(sender.world, maxAttempt).join()
+                                is BlockCapture -> capture.toLocation(sender.world)
+                                is SpawnCapture -> capture.toLocation(sender.world)
+                                else -> error("Unknown tag mode.")
+                            }
 
                             if (location != null) {
                                 sender.teleport(location)
@@ -234,7 +239,12 @@ class CoordtagCommand : CommandBase {
                             if (capture == null) {
                                 sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
                             } else {
-                                val location = capture.toLocation(sender.world, maxAttempt)
+                                val location = when (capture) {
+                                    is AreaCapture -> capture.toLocation(sender.world, maxAttempt).join()
+                                    is BlockCapture -> capture.toLocation(sender.world)
+                                    is SpawnCapture -> capture.toLocation(sender.world)
+                                    else -> error("Unknown tag mode.")
+                                }
 
                                 if (capture is AreaCapture) {
                                     val timer = Timer(TimeUnit.SECOND, 20)

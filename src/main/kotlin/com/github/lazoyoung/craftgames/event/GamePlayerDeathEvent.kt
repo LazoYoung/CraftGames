@@ -116,7 +116,7 @@ class GamePlayerDeathEvent(
      * @return The the next spawnpoint of this player.
      */
     fun getSpawnpoint(): Location {
-        return getPlayerModule().getSpawnpoint(getPlayerData(), null)
+        return getPlayerModule().getSpawnpoint(getPlayerData(), null).join()
     }
 
     /**

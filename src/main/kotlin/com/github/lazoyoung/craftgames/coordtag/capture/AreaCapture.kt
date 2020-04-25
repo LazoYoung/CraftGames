@@ -7,6 +7,7 @@ import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.scheduler.BukkitRunnable
+import java.util.concurrent.CompletableFuture
 import kotlin.random.Random
 import kotlin.random.nextInt
 
@@ -37,43 +38,65 @@ class AreaCapture(
         return builder.removeSuffix(",").toString()
     }
 
-    override fun toLocation(world: World, maxAttempt: Int): Location? {
+    fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 2.0): CompletableFuture<Location?> {
         this.maxAttempt = maxAttempt
-        return toLocation(1, world)
+        return toLocation(world, offsetY)
     }
 
-    private fun toLocation(attempt: Int, world: World): Location? {
-        if (attempt > maxAttempt) {
-            return null
-        }
-
-        val x = Random.nextInt(x1..x2)
+    private fun toLocation(world: World, offsetY: Double): CompletableFuture<Location?> {
+        var x = Random.nextInt(x1..x2)
         var y = y2
-        val z = Random.nextInt(z1..z2)
+        var z = Random.nextInt(z1..z2)
         var block: Block
         var pocket = 0
+        var attempt = 1
+        val future = CompletableFuture<Location?>()
 
-        while (true) {
-            block = world.getBlockAt(x, y--, z)
+        object : BukkitRunnable() {
+            override fun run() {
+                block = world.getBlockAt(x, y--, z)
 
-            when (block.type) {
-                Material.LAVA, Material.FIRE, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE -> {
-                    return toLocation(attempt + 1, world)
-                }
-                else -> if (block.isPassable) {
-                    pocket++
-                } else if (pocket > 1) {
-                    return when (block.type) {
-                        Material.CACTUS, Material.MAGMA_BLOCK, Material.CAMPFIRE -> {
-                            toLocation(attempt + 1, world)
+                when (block.type) {
+                    Material.LAVA, Material.FIRE, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE -> {
+                        if (++attempt > maxAttempt) {
+                            this.cancel()
+                        } else {
+                            x = Random.nextInt(x1..x2)
+                            y = y2
+                            z = Random.nextInt(z1..z2)
                         }
-                        else -> {
-                            Location(world, x.toDouble(), y + 1.0, z.toDouble())
+                    }
+                    else -> if (block.isPassable) {
+                        pocket++
+                    } else if (pocket > 1) {
+                        when (block.type) {
+                            Material.CACTUS, Material.MAGMA_BLOCK, Material.CAMPFIRE -> {
+                                if (++attempt > maxAttempt) {
+                                    this.cancel()
+                                } else {
+                                    x = Random.nextInt(x1..x2)
+                                    y = y2
+                                    z = Random.nextInt(z1..z2)
+                                }
+                            }
+                            else -> {
+                                future.complete(
+                                        Location(world, x.toDouble(), y + offsetY, z.toDouble())
+                                )
+                                this.cancel()
+                            }
                         }
                     }
                 }
             }
-        }
+
+            override fun cancel() {
+                super.cancel()
+                future.complete(null)
+            }
+        }.runTaskTimer(Main.instance, 0L, 1L)
+
+        return future
     }
 
     /**
