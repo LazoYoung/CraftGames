@@ -2,9 +2,8 @@ package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.internal.listener.EntityListener
+import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.listener.GameListener
-import com.github.lazoyoung.craftgames.internal.listener.WorldListener
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import com.github.lazoyoung.loottablefix.LootTablePatch
@@ -99,8 +98,7 @@ class Main : JavaPlugin(), CommandExecutor {
         forceJoinCmd.tabCompleter = accessExecutor
         voteCmd.tabCompleter = voteExecutor
         kitCmd.tabCompleter = kitExecutor
-        manager.registerEvents(EntityListener(), this)
-        manager.registerEvents(WorldListener(), this)
+        manager.registerEvents(ServerListener(), this)
         manager.registerEvents(GameListener(), this)
         messenger.registerOutgoingPluginChannel(this, "BungeeCord")
         messenger.registerIncomingPluginChannel(this, "BungeeCord", MessengerUtil())

@@ -8,12 +8,10 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import org.bukkit.Bukkit
-import org.bukkit.GameMode
-import org.bukkit.Location
-import org.bukkit.NamespacedKey
+import org.bukkit.*
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.loot.LootTable
 import org.bukkit.potion.PotionEffect
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -176,7 +174,10 @@ class ItemModuleService(private val game: Game) : ItemModule {
             /* Read inventory items */
             val invSize = wrapper.readInt()
             for (i in 0 until invSize) {
-                inv.setItem(i, wrapper.readObject() as? ItemStack)
+                val itemStack = wrapper.readObject() as? ItemStack
+
+                inv.setItem(i, itemStack)
+                computeItemStack(itemStack)
             }
 
             /* Read potion effects */
@@ -272,6 +273,22 @@ class ItemModuleService(private val game: Game) : ItemModule {
             Game.Phase.LOBBY -> allowKit
             Game.Phase.PLAYING -> allowKitRespawn && player.gameMode == GameMode.SPECTATOR
             else -> false
+        }
+    }
+
+    /**
+     * Fix filled_map, etc.
+     */
+    private fun computeItemStack(itemStack: ItemStack?) {
+        when (itemStack?.type) {
+            Material.FILLED_MAP -> {
+                val mapMeta = itemStack.itemMeta as MapMeta
+
+                if (mapMeta.hasMapView()) {
+                    mapMeta.mapView?.setWorld(Module.getWorldModule(game).getWorld())
+                }
+            }
+            else -> {}
         }
     }
 }

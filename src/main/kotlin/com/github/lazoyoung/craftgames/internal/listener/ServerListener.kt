@@ -25,9 +25,20 @@ import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.player.*
+import org.bukkit.event.world.WorldInitEvent
 import org.bukkit.inventory.PlayerInventory
 
-class EntityListener : Listener {
+class ServerListener : Listener {
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun onWorldLoad(event: WorldInitEvent) {
+        for (game in Game.find()) {
+            if (event.world.name == game.map.worldName) {
+                event.world.keepSpawnInMemory = false
+                break
+            }
+        }
+    }
 
     @EventHandler
     fun onEntitySpawn(event: EntitySpawnEvent) {
