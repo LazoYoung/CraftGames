@@ -1,7 +1,13 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
+import me.libraryaddict.disguise.disguisetypes.MiscDisguise
+import me.libraryaddict.disguise.disguisetypes.MobDisguise
+import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
 import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import java.util.function.Consumer
 
@@ -25,7 +31,51 @@ interface PlayerModule {
      */
     fun isOnline(player: Player): Boolean
 
+    /**
+     * Eliminate a [player] out of game, consequently switching the player to spectator mode.
+     */
     fun eliminate(player: Player)
+
+    /**
+     * Disguise a [player] to another Player.
+     *
+     * This effectively changes the player's skin.
+     *
+     * @param player Player who are going to disguise.
+     * @param skinName Account name of the new skin's owner.
+     * @param selfVisible If true, disguise is not visible in self perspective.
+     * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
+     */
+    fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean): PlayerDisguise
+
+    /**
+     * Disguise a [player] to a Mob.
+     *
+     * @param player Player who are going to disguise.
+     * @param type Type of this Mob.
+     * @param isAdult Whether this Mob is an adult or a baby.
+     * @param selfVisible If true, disguise is not visible in self perspective.
+     * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
+     */
+    fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean): MobDisguise
+
+    /**
+     * Disguise a [player] to a FallingBlock.
+     *
+     * @param player Player who are going to disguise.
+     * @param material Type of this block.
+     * @param selfVisible If true, disguise is not visible in self perspective.
+     * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
+     */
+    fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean): MiscDisguise
+
+    /**
+     * Stop disguise of this [player].
+     *
+     * @param player Player who are going to stop disguise.
+     * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
+     */
+    fun undisguise(player: Player)
 
     /**
      * Set spawnpoint for the players associated in certain [type][PlayerType].

@@ -212,7 +212,6 @@ class ScriptModuleService internal constructor(
 
     internal fun terminate() {
         script.clear()
-        events.clear()
         tasks.forEach {
             try {
                 it.cancel()

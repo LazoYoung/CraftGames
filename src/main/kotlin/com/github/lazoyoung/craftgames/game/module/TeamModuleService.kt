@@ -57,7 +57,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
         return topScore
     }
 
-    /* FIXME
+    /* TODO Rewrite score calculation methods
     fun getTopTeamScore(objective: Objective): Int {
         val teams = scoreboard.teams
         val topTeams
@@ -169,7 +169,6 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     internal fun terminate() {
-        spawnTag.clear()
         scoreboard.objectives.forEach(Objective::unregister)
         scoreboard.teams.forEach(Team::unregister)
     }

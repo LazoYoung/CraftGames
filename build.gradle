@@ -22,14 +22,25 @@ repositories {
     jcenter()
     mavenLocal()
     mavenCentral()
-    maven { url 'https://jitpack.io' }
-    maven { url "https://repo.jenkins-ci.org/releases/" }
-    maven { url "https://papermc.io/repo/repository/maven-public/" }
-    maven { url "https://maven.enginehub.org/repo/" }
-    maven { url "https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-jsr223" }
+    maven { url = "https://jitpack.io" }
+    maven { url = "https://repo.jenkins-ci.org/releases/" }
+    maven { url = "https://papermc.io/repo/repository/maven-public/" }
     maven {
-        name "github"
-        url "https://maven.pkg.github.com/LazoYoung/LootTableFix"
+        // LibsDisguises
+        url = "http://repo.md-5.net/content/groups/public/"
+        allowInsecureProtocol = true
+    }
+    maven {
+        // ProtocolLib
+        name = "dmulloy2-repo"
+        url = "https://repo.dmulloy2.net/nexus/repository/public/"
+    }
+    maven { url = "https://maven.enginehub.org/repo/" }
+    maven { url = "https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-jsr223" }
+    maven {
+        // LootTablePatch
+        name = "github"
+        url = "https://maven.pkg.github.com/LazoYoung/LootTableFix"
         credentials {
             username = getProperty("github.username") ?: "undefined"
             password = getProperty("github.token") ?: "undefined"
@@ -47,6 +58,7 @@ dependencies {
     compileOnly "com.github.lazoyoung:LootTableFix:1.0.3"
     compileOnly "com.sk89q.worldedit:worldedit-bukkit:7.1.0"
     compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    compileOnly "LibsDisguises:LibsDisguises:10.0.5"
 }
 
 idea.module {

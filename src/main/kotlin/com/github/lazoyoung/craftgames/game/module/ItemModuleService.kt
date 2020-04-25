@@ -8,6 +8,9 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import me.libraryaddict.disguise.DisguiseAPI
+import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
+import me.libraryaddict.disguise.utilities.parser.DisguiseParser
 import org.bukkit.*
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -18,6 +21,7 @@ import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.EOFException
 import java.io.IOException
 import java.nio.file.Files
 import java.util.*
@@ -188,6 +192,23 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 potionEffect = potionEffect.withDuration(Int.MAX_VALUE)
                 player.addPotionEffect(potionEffect)
             }
+
+            /* Read disguise state */
+            try {
+                val state = wrapper.readUTF()
+                if (state.isNotEmpty() && Main.libsDisguises) {
+                    val disguise = DisguiseParser.parseDisguise(state)
+                    val type = if (disguise.isPlayerDisguise) {
+                        (disguise as PlayerDisguise).name
+                    } else {
+                        disguise.type.entityType.key.toString()
+                    }
+
+                    disguise.entity = player
+                    Module.getPlayerModule(game).startDisguise(disguise, player, type)
+                }
+            } catch (e: EOFException) {}
+
         } catch (e: Exception) {
             e.printStackTrace()
             script.print("Failed to apply kit: $kitName")
@@ -226,6 +247,17 @@ class ItemModuleService(private val game: Game) : ItemModule {
             for (effect in effects) {
                 stream.writeObject(effect)
             }
+
+            /* Write disguise state */
+            var data = ""
+            if (Main.libsDisguises) {
+                val disguise = DisguiseAPI.getDisguise(player)
+
+                if (disguise?.isDisguiseInUse == true) {
+                    data = DisguiseParser.parseToString(disguise)
+                }
+            }
+            stream.writeUTF(data)
 
             // Flush to wrapper.
             stream.flush()

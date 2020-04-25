@@ -2,8 +2,8 @@ package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.listener.GameListener
+import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import com.github.lazoyoung.loottablefix.LootTablePatch
@@ -37,6 +37,8 @@ class Main : JavaPlugin(), CommandExecutor {
         var vaultEco: Economy? = null
             private set
         var lootTablePatch: LootTablePatch? = null
+            private set
+        var libsDisguises: Boolean = false
             private set
         lateinit var charset: Charset
             private set
@@ -156,20 +158,40 @@ class Main : JavaPlugin(), CommandExecutor {
 
     private fun loadDependency() {
         val services = Bukkit.getServicesManager()
+        var counter = 0
 
         try {
             val permissionClass = Class.forName("net.milkbowl.vault.permission.Permission")
             val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
             vaultPerm = services.getRegistration(permissionClass)?.provider as Permission?
             vaultEco = services.getRegistration(economyClass)?.provider as Economy?
-            Main.logger.info("Dependency loaded: Vault")
+            counter++
+            logger.info("Dependency found: Vault")
         } catch (e: ClassNotFoundException) {}
 
         try {
             val lootTablePatchClass = Class.forName("com.github.lazoyoung.loottablefix.LootTablePatch")
             lootTablePatch = services.getRegistration(lootTablePatchClass)?.provider as LootTablePatch?
-            Main.logger.info("Dependency loaded: LootTable Patch")
-
+            counter++
+            logger.info("Dependency found: LootTablePatch")
         } catch (e: ClassNotFoundException) {}
+
+        if (server.pluginManager.isPluginEnabled("LibsDisguises")) {
+            libsDisguises = true
+            counter++
+            logger.info("Dependency found: LibsDisguises")
+        }
+
+        when {
+            counter > 1 -> {
+                logger.info("$counter dependencies are loaded.")
+            }
+            counter == 1 -> {
+                logger.info("$counter dependency is loaded.")
+            }
+            else -> {
+                logger.info("No dependency is loaded.")
+            }
+        }
     }
 }

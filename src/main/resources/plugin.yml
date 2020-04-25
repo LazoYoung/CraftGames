@@ -4,7 +4,7 @@ author: LazoYoung
 website: https://github.com/LazoYoung/CraftGames
 api-version: '1.15'
 version: $version
-softdepend: [ WorldEdit, MythicMobs, Vault, LootTableFix ]
+softdepend: [ WorldEdit, MythicMobs, LibsDisguises, Vault, LootTableFix ]
 commands:
   craftgames:
     description: See all commands available in CraftGames.

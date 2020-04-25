@@ -92,8 +92,6 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
 
     internal fun terminate() {
         serviceTask?.cancel()
-        voted.clear()
-        votes.clear()
     }
 
     internal fun start() {

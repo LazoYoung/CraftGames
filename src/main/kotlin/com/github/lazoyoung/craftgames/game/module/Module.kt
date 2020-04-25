@@ -124,6 +124,7 @@ class Module internal constructor(val game: Game) {
 
                 Game.Phase.TERMINATE -> {
                     lobbyModule.terminate()
+                    playerModule.terminate()
                     teamModule.terminate()
                     gameModule.terminate()
                     scriptModule.terminate()

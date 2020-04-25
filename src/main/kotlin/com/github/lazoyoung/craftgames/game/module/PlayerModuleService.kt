@@ -17,12 +17,16 @@ import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import me.libraryaddict.disguise.disguisetypes.*
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.*
@@ -37,6 +41,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     private var playerSpawn: CoordTag? = null
     private var editorSpawn: CoordTag? = null
     private var spectatorSpawn: CoordTag? = null
+    private val disguises = HashMap<UUID, Disguise>()
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
     private val script = game.resource.script
 
@@ -96,6 +101,58 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             } else {
                 gameModule.finishGame(firstSurvivor, timer)
             }
+        }
+    }
+
+    override fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean): PlayerDisguise {
+        if (!Main.libsDisguises) {
+            throw DependencyNotFound("LibsDisguises is required.")
+        }
+
+        val disguise = PlayerDisguise(skinName)
+
+        disguise.entity = player
+        disguise.isSelfDisguiseVisible = selfVisible
+        startDisguise(disguise, player, skinName)
+        return disguise
+    }
+
+    override fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean): MobDisguise {
+        if (!Main.libsDisguises) {
+            throw DependencyNotFound("LibsDisguises is required.")
+        }
+
+        val disguiseType = DisguiseType.getType(type)
+        val disguise = MobDisguise(disguiseType, isAdult)
+
+        disguise.entity = player
+        disguise.isSelfDisguiseVisible = selfVisible
+        startDisguise(disguise, player, type.key.toString())
+        return disguise
+    }
+
+    override fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean): MiscDisguise {
+        if (!Main.libsDisguises) {
+            throw DependencyNotFound("LibsDisguises is required.")
+        }
+
+        val disguise = MiscDisguise(DisguiseType.FALLING_BLOCK, material)
+
+        disguise.entity = player
+        disguise.isSelfDisguiseVisible = selfVisible
+        startDisguise(disguise, player, material.key.toString())
+        return disguise
+    }
+
+    override fun undisguise(player: Player) {
+        if (!Main.libsDisguises) {
+            throw DependencyNotFound("LibsDisguises is required.")
+        }
+
+        disguises.computeIfPresent(player.uniqueId) { _, disguise ->
+            disguise.stopDisguise()
+            script.printDebug("Undisguised: ${player.name}")
+            null
         }
     }
 
@@ -229,6 +286,26 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L)
+    }
+
+    internal fun terminate() {
+        disguises.values.forEach {
+            it.stopDisguise()
+        }
+    }
+
+    internal fun startDisguise(disguise: Disguise, player: Player, target: String) {
+        disguises.compute(player.uniqueId) { _, presentDisguise ->
+            presentDisguise?.stopDisguise()
+
+            if (disguise.startDisguise()) {
+                script.printDebug("Disguised ${player.name} as $target.")
+            } else {
+                script.print("Failed to disguise ${player.name} as $target.")
+            }
+
+            disguise
+        }
     }
 
     /**
