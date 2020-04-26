@@ -3,12 +3,13 @@ package com.github.lazoyoung.craftgames.game.player
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.ConcurrentPlayerState
+import org.bukkit.GameMode
 import org.bukkit.entity.Player
 
 class Spectator private constructor(
         player: Player,
         private val game: Game
-): PlayerData(player, game) {
+): PlayerData(player, game, GameMode.SPECTATOR) {
 
     companion object {
         /**

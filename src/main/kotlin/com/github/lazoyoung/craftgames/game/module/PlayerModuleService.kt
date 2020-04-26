@@ -13,10 +13,7 @@ import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.player.GameEditor
-import com.github.lazoyoung.craftgames.game.player.GamePlayer
-import com.github.lazoyoung.craftgames.game.player.PlayerData
-import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import me.libraryaddict.disguise.disguisetypes.*
@@ -260,7 +257,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val gracePeriod = Main.getConfig()?.getLong("spawn-invincible", 60L)
                 ?: 60L
 
-        gamePlayer.restore(respawn = false, leave = false)
         player.gameMode = GameMode.SPECTATOR
 
         object : BukkitRunnable() {
@@ -278,7 +274,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
                 if (timer.subtract(frame).toSecond() < 0L) {
                     // Return to spawnpoint and gear up
-                    gamePlayer.restore(respawn = true, leave = false)
+                    gamePlayer.restore(RestoreMode.RESPAWN)
                     Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
                     ActionbarTask(player, period = frame, text = *arrayOf("&9&l> &a&lRESPAWN &9&l<"))
                             .start()

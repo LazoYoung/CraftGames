@@ -1,13 +1,14 @@
 package com.github.lazoyoung.craftgames.game.player
 
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.internal.exception.ConcurrentPlayerState
 import org.bukkit.entity.Player
 
 class GamePlayer private constructor(
         player: Player,
         private val game: Game
-): PlayerData(player, game) {
+): PlayerData(player, game, Module.getGameModule(game).defaultGameMode) {
 
     companion object {
         /**

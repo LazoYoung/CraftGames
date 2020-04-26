@@ -5,15 +5,13 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
-import com.github.lazoyoung.craftgames.game.player.GameEditor
-import com.github.lazoyoung.craftgames.game.player.GamePlayer
-import com.github.lazoyoung.craftgames.game.player.PlayerData
-import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.game.player.*
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
+import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -74,10 +72,15 @@ class ServerListener : Listener {
             }
         }
 
-        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
-            val relayEvent = GamePlayerInteractEvent(pdata, game, event)
+        if (game.phase == Game.Phase.PLAYING) {
+            if (pdata is GamePlayer) {
+                val relayEvent = GamePlayerInteractEvent(pdata, game, event)
+                Bukkit.getPluginManager().callEvent(relayEvent)
+            }
 
-            Bukkit.getPluginManager().callEvent(relayEvent)
+            if (event.player.gameMode == GameMode.SPECTATOR) {
+                event.setUseItemInHand(Event.Result.DENY)
+            }
         }
     }
 
@@ -150,7 +153,7 @@ class ServerListener : Listener {
         val player = event.player
 
         try {
-            PlayerData.getOffline(player)?.restore(respawn = false, leave = true)
+            PlayerData.getOffline(player)?.restore(RestoreMode.LEAVE)
         } catch (e: Exception) {
             e.printStackTrace()
             Main.logger.severe("Failed to read data for ${player.name}")

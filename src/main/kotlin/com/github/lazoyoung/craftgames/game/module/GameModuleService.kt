@@ -11,6 +11,7 @@ import com.github.lazoyoung.craftgames.event.GameTimeoutEvent
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.game.player.RestoreMode
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.chat.TextComponent
@@ -179,10 +180,10 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
 
             val future = if (p is GamePlayer) {
-                p.restore(respawn = true, leave = false)
+                p.restore(RestoreMode.RESPAWN)
                 worldModule.teleportSpawn(p, index++)
             } else {
-                p.restore(respawn = false, leave = false)
+                p.restore(RestoreMode.JOIN)
                 worldModule.teleportSpawn(p, null)
             }
 

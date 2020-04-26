@@ -2,7 +2,7 @@ package com.github.lazoyoung.craftgames
 
 import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.internal.listener.GameListener
+import com.github.lazoyoung.craftgames.internal.listener.ScriptListener
 import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
@@ -101,7 +101,7 @@ class Main : JavaPlugin(), CommandExecutor {
         voteCmd.tabCompleter = voteExecutor
         kitCmd.tabCompleter = kitExecutor
         manager.registerEvents(ServerListener(), this)
-        manager.registerEvents(GameListener(), this)
+        manager.registerEvents(ScriptListener(), this)
         messenger.registerOutgoingPluginChannel(this, "BungeeCord")
         messenger.registerIncomingPluginChannel(this, "BungeeCord", MessengerUtil())
     }

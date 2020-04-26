@@ -8,7 +8,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 
-class GameListener : Listener {
+class ScriptListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameInit(event: GameInitEvent) {

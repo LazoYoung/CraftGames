@@ -15,6 +15,7 @@ import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.event.block.Action
@@ -28,7 +29,7 @@ import java.util.function.Consumer
 class GameEditor private constructor(
         player: Player,
         private val game: Game
-): PlayerData(player, game) {
+): PlayerData(player, game, GameMode.CREATIVE) {
 
     val mapID = game.map.id
 

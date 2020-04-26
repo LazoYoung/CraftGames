@@ -13,6 +13,7 @@ import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootContext
 import org.bukkit.loot.LootTable
+import org.bukkit.potion.PotionEffect
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
@@ -23,28 +24,53 @@ import java.nio.file.Files
 import java.util.*
 import kotlin.collections.HashMap
 
+enum class RestoreMode {
+    JOIN, RESPAWN, LEAVE
+}
+
 open class PlayerData {
     internal var keepInventory: Boolean = false
     internal var itemReward: LootTable? = null
     internal var moneyReward: Double = 0.0
     private val player: Player
     private var game: Game?
+    private val defaultGameMode: GameMode
     private lateinit var restoreFile: File
     private lateinit var restoreGameMode: GameMode
     private lateinit var restoreLocation: Location
-    private var restoreItems = ArrayList<ItemStack?>()
+    private var restoreHealth: Double = 20.0
+    private var restoreLevel: Int = 0
+    private var restoreExperience: Float = 0f
+    private val restorePotionEffects = LinkedList<PotionEffect>()
+    private val restoreItems = LinkedList<ItemStack?>()
 
-    internal constructor(player: Player, game: Game) {
+    internal constructor(player: Player, game: Game, defaultGameMode: GameMode) {
         this.player = player
         this.game = game
+        this.defaultGameMode = defaultGameMode
     }
 
-    private constructor(player: Player, file: File, gameMode: GameMode, location: Location, invSlot: List<ItemStack?>) {
+    private constructor(
+            player: Player,
+            file: File,
+            gameMode: GameMode,
+            location: Location,
+            health: Double,
+            level: Int,
+            experience: Float,
+            potionEffects: List<PotionEffect>,
+            invSlot: List<ItemStack?>
+    ) {
         this.player = player
         this.game = null
+        this.defaultGameMode = gameMode
         this.restoreFile = file
         this.restoreGameMode = gameMode
         this.restoreLocation = location
+        this.restoreHealth = health
+        this.restoreLevel = level
+        this.restoreExperience = experience
+        this.restorePotionEffects.addAll(potionEffects)
         this.restoreItems.addAll(invSlot)
     }
 
@@ -82,8 +108,10 @@ open class PlayerData {
                     val byteArray = Files.readAllBytes(restoreFile.toPath())
                     val stream = ByteArrayInputStream(Base64.getDecoder().decode(byteArray))
                     val wrapper = BukkitObjectInputStream(stream)
-                    val gameMode = wrapper.readObject() as GameMode
                     var location: Location
+                    val effects = ArrayList<PotionEffect>()
+                    val invSlot = ArrayList<ItemStack?>()
+                    val gameMode = wrapper.readObject() as GameMode
 
                     try {
                         location = wrapper.readObject() as Location
@@ -95,7 +123,15 @@ open class PlayerData {
                         location = LocationUtil.getExitFallback(player.world.name)
                     }
 
-                    val invSlot = ArrayList<ItemStack?>()
+                    val health = wrapper.readDouble()
+                    val level = wrapper.readInt()
+                    val experience = wrapper.readFloat()
+                    val effSize = wrapper.readInt()
+
+                    for (i in 0 until effSize) {
+                        effects.add(wrapper.readObject() as PotionEffect)
+                    }
+
                     val invSize = wrapper.readInt()
 
                     for (i in 0 until invSize) {
@@ -103,7 +139,8 @@ open class PlayerData {
                     }
 
                     wrapper.close()
-                    return PlayerData(player, restoreFile, gameMode, location, invSlot)
+                    return PlayerData(player, restoreFile, gameMode,
+                            location, health, level, experience, effects, invSlot)
                 }
             }
 
@@ -118,7 +155,7 @@ open class PlayerData {
     fun leaveGame() {
         game?.let {
             it.leave(this)
-            restore(respawn = false, leave = true)
+            restore(RestoreMode.LEAVE)
             unregister()
 
             if (moneyReward > 0.0) {
@@ -164,50 +201,63 @@ open class PlayerData {
     }
 
     /**
-     * Restore this player's state to get ready for new phase.
+     * Restore player's attributes according to [mode].
      *
-     * @param respawn if true, kit is equipped to this player if applicable.
-     * @param leave if true, it's restored back to the point before he/she joined the game.
-     * @throws IllegalArgumentException is thrown if [respawn] and [leave] are both true.
+     * [RestoreMode.JOIN] - Every attributes are reset: max-health, health, hunger, potion effect, etc.
+     *
+     * [RestoreMode.RESPAWN] - Attributes are kept except health, hunger being reset.
+     * Kit is equipped to this player if applicable.
+     *
+     * [RestoreMode.LEAVE] - Attributes are restored to the point where this player issued /join.
+     *
+     * @param mode Defines restore mode.
      */
-    fun restore(respawn: Boolean, leave: Boolean) {
-        val maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)
-        val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
-        val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
-
-        // Reset player state
-        game?.let { player.gameMode = Module.getGameModule(getGame()).defaultGameMode }
-        maxHealth?.defaultValue?.let { maxHealth.baseValue = it }
-        flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
-        walkSpeed?.defaultValue?.let { walkSpeed.baseValue = it }
+    fun restore(mode: RestoreMode) {
+        val maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)!!
+        player.health = maxHealth.value
         player.foodLevel = 20
-        player.saturation = 5.0f
-        player.exhaustion = 0.0f
-        player.activePotionEffects.forEach { e -> player.removePotionEffect(e.type) }
+        player.saturation = 5f
+        player.exhaustion = 0f
+        player.activePotionEffects.forEach { player.removePotionEffect(it.type) }
 
-        if (!(respawn && keepInventory)) {
-            player.inventory.clear()
-        }
-
-        if (respawn && leave) {
-            throw IllegalArgumentException()
-        } else if (respawn && !keepInventory) {
-            Module.getItemModule(getGame()).applyKit(player)
-        } else if (leave) {
-            player.gameMode = restoreGameMode
-            player.teleportAsync(restoreLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                    .exceptionally { it.printStackTrace(); false }
-
-            for ((index, item) in restoreItems.withIndex()) {
-                player.inventory.setItem(index, item)
+        when (mode) {
+            RestoreMode.JOIN -> {
+                val flySpeed = player.getAttribute(Attribute.GENERIC_FLYING_SPEED)
+                val walkSpeed = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
+                maxHealth.baseValue = maxHealth.defaultValue
+                flySpeed?.defaultValue?.let { flySpeed.baseValue = it }
+                walkSpeed?.defaultValue?.let { walkSpeed.baseValue = it }
+                player.gameMode = defaultGameMode
+                player.level = 0
+                player.exp = 0f
+                player.inventory.clear()
             }
+            RestoreMode.RESPAWN -> {
+                if (!keepInventory) {
+                    Module.getItemModule(getGame()).applyKit(player)
+                }
+            }
+            RestoreMode.LEAVE -> {
+                player.inventory.clear()
+                player.gameMode = restoreGameMode
+                player.health = restoreHealth
+                player.level = restoreLevel
+                player.exp = restoreExperience
+                player.addPotionEffects(restorePotionEffects)
+                player.teleportAsync(restoreLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                        .exceptionally { it.printStackTrace(); false }
 
-            try {
-                Files.deleteIfExists(restoreFile.toPath())
-            } catch (e: IOException) {
-                e.printStackTrace()
-            } catch (e: SecurityException) {
-                e.printStackTrace()
+                for ((index, item) in restoreItems.withIndex()) {
+                    player.inventory.setItem(index, item)
+                }
+
+                try {
+                    Files.deleteIfExists(restoreFile.toPath())
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                }
             }
         }
     }
@@ -219,10 +269,16 @@ open class PlayerData {
      */
     internal fun captureState(migrate: PlayerData? = null) {
         if (migrate != null) {
+            this.restoreItems.clear()
+            this.restorePotionEffects.clear()
+            this.restoreItems.addAll(migrate.restoreItems)
+            this.restorePotionEffects.addAll(migrate.restorePotionEffects)
             this.restoreFile = migrate.restoreFile
-            this.restoreItems = migrate.restoreItems
             this.restoreGameMode = migrate.restoreGameMode
             this.restoreLocation = migrate.restoreLocation
+            this.restoreHealth = migrate.restoreHealth
+            this.restoreLevel = migrate.restoreLevel
+            this.restoreExperience = migrate.restoreExperience
             this.itemReward = migrate.itemReward
             this.moneyReward = migrate.moneyReward
             this.keepInventory = migrate.keepInventory
@@ -230,16 +286,30 @@ open class PlayerData {
         }
 
         val inv = player.inventory
+        val effects = player.activePotionEffects
         val wrapper = ByteArrayOutputStream()
         var stream: BukkitObjectOutputStream? = null
         this.restoreFile = getDataFile(player.uniqueId)
         this.restoreGameMode = player.gameMode
         this.restoreLocation = player.location
+        this.restoreHealth = player.health
+        this.restoreLevel = player.level
+        this.restoreExperience = player.exp
 
         try {
             stream = BukkitObjectOutputStream(wrapper)
             stream.writeObject(player.gameMode)
             stream.writeObject(player.location)
+            stream.writeDouble(player.health)
+            stream.writeInt(player.level)
+            stream.writeFloat(player.exp)
+            stream.writeInt(effects.size)
+
+            for (effect in effects) {
+                restorePotionEffects.add(effect)
+                stream.writeObject(effect)
+            }
+
             stream.writeInt(inv.size)
 
             for (i in 0 until inv.size) {

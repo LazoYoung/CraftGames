@@ -8,15 +8,12 @@ import com.github.lazoyoung.craftgames.event.GameJoinEvent
 import com.github.lazoyoung.craftgames.event.GameJoinPostEvent
 import com.github.lazoyoung.craftgames.event.GameLeaveEvent
 import com.github.lazoyoung.craftgames.game.module.Module
-import com.github.lazoyoung.craftgames.game.player.GameEditor
-import com.github.lazoyoung.craftgames.game.player.GamePlayer
-import com.github.lazoyoung.craftgames.game.player.PlayerData
-import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import com.github.lazoyoung.craftgames.internal.util.LocationUtil
+import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
@@ -354,7 +351,7 @@ class Game(
             players.add(uid)
 
             if (phase == Phase.LOBBY) {
-                playerData.restore(respawn = false, leave = false)
+                playerData.restore(RestoreMode.JOIN)
                 Module.getLobbyModule(this).teleportSpawn(player)
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
                 ActionbarTask(
@@ -366,7 +363,8 @@ class Game(
                         )
                 ).start()
             } else if (phase == Phase.PLAYING) {
-                playerData.restore(respawn = true, leave = false)
+                playerData.restore(RestoreMode.JOIN)
+                playerData.restore(RestoreMode.RESPAWN)
                 Module.getWorldModule(this).teleportSpawn(playerData, null)
                 player.sendMessage("You joined the ongoing game: $name")
                 Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
@@ -415,7 +413,7 @@ class Game(
         }
 
         players.add(uid)
-        playerData.restore(respawn = false, leave = false)
+        playerData.restore(RestoreMode.JOIN)
         playerData.updateEditors()
         player.gameMode = GameMode.SPECTATOR
         player.sendMessage("You are now spectating $name.")
@@ -441,7 +439,7 @@ class Game(
 
         if (!event.isCancelled) {
             players.add(uid)
-            gameEditor.restore(respawn = false, leave = false)
+            gameEditor.restore(RestoreMode.JOIN)
             player.gameMode = GameMode.CREATIVE
             player.sendMessage(text)
             Module.getWorldModule(this).teleportSpawn(gameEditor, null)
