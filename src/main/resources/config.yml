@@ -1,3 +1,15 @@
+# Game Registration
+# Note: The root folder is equivalent to: plugins/CraftGames/
+# https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
+games:
+  example: # Title of sample game. Turn on 'install-sample' above to test it!
+    layout: Sample/example/layout.yml # Path to layout.yml
+
+
+# The prefix of generated world's directory name.
+world-label: game
+
+
 # Check your 'JVM property' if Mojibake still occurs: -Dfile.encoding=<charset>
 # https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
 file-encoding: UTF-8
@@ -11,41 +23,6 @@ install-sample: false
 spawn-invincible: 60
 
 
-# Script Settings
-script:
-
-  # Available engines: Groovy, JSR223
-  engine: Groovy
-
-  # Toggle verbose output to log file (for debugging purpose)
-  debug: false
-
-
-# The prefix of generated world's directory name.
-world-label: game
-
-
-# Performance Optimization
-optimization:
-
-  # Limit the number of mobs alive per each game.
-  mob-capacity: 100
-
-  # Limits the number of blocks in one schematic to be processed.
-  schematic-throttle: 10000
-
-  # Set how many particles are generated per 1 block while displaying area.
-  particle-resolution: 2
-
-  # Set maximum distance for particles to be visible.
-  particle-render-distance: 30
-
-  # Set maximum attempt to calculate safe area to spawn a mob/player
-  safezone-calculation:
-    mob-throttle: 3
-    player-throttle: 10
-
-
 # Default fallback location when leaving game.
 #exit-fallback:
 #  world: world
@@ -56,9 +33,32 @@ optimization:
 #  pitch: 0.0
 
 
-# Game Registration
-# Note: The root folder is equivalent to: plugins/CraftGames/
-# https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
-games:
-  example: # Title of sample game. Turn on 'install-sample' above to test it!
-    layout: Sample/example/layout.yml # Path to layout.yml
+# Script Control
+script:
+
+  # Available engines: Groovy, JSR223
+  engine: Groovy
+
+  # Toggle verbose output to log file (for debugging purpose)
+  debug: false
+
+
+# Performance Optimization
+optimization:
+
+  # Limit the number of mobs alive per each game. (Script can override this value)
+  mob-capacity: 200
+
+  # Limit the number of blocks that can be processed per each schematic.
+  schematic-throttle: 10000
+
+  # Set how many particles are generated per block to display area capture.
+  particle-resolution: 2
+
+  # Set visibility of artificial particles.
+  particle-render-distance: 30
+
+  # Set maximum attempt to calculate safe area before spawning a mob/player
+  safezone-calculation:
+    mob-throttle: 3
+    player-throttle: 10

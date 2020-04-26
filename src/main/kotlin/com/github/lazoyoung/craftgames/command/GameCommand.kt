@@ -243,7 +243,7 @@ class GameCommand : CommandBase {
             return command.aliases
 
         if (args.size == 1)
-            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "script", "kit")
+            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "kit")
 
         when (args[0].toLowerCase()) {
             "start" -> {
