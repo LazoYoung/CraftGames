@@ -4,9 +4,12 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.internal.util.LocationUtil
 import org.bukkit.GameMode
+import org.bukkit.Location
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Player
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootContext
 import org.bukkit.loot.LootTable
@@ -26,8 +29,9 @@ open class PlayerData {
     internal var moneyReward: Double = 0.0
     private val player: Player
     private var game: Game?
-    private var restoreFile: File? = null
-    private var restoreGameMode: GameMode? = null
+    private lateinit var restoreFile: File
+    private lateinit var restoreGameMode: GameMode
+    private lateinit var restoreLocation: Location
     private var restoreItems = ArrayList<ItemStack?>()
 
     internal constructor(player: Player, game: Game) {
@@ -35,11 +39,12 @@ open class PlayerData {
         this.game = game
     }
 
-    private constructor(player: Player, file: File, gameMode: GameMode, invSlot: List<ItemStack?>) {
+    private constructor(player: Player, file: File, gameMode: GameMode, location: Location, invSlot: List<ItemStack?>) {
         this.player = player
         this.game = null
         this.restoreFile = file
         this.restoreGameMode = gameMode
+        this.restoreLocation = location
         this.restoreItems.addAll(invSlot)
     }
 
@@ -77,8 +82,19 @@ open class PlayerData {
                     val byteArray = Files.readAllBytes(restoreFile.toPath())
                     val stream = ByteArrayInputStream(Base64.getDecoder().decode(byteArray))
                     val wrapper = BukkitObjectInputStream(stream)
-
                     val gameMode = wrapper.readObject() as GameMode
+                    var location: Location
+
+                    try {
+                        location = wrapper.readObject() as Location
+
+                        if (!location.isWorldLoaded) {
+                            error("World is not loaded.")
+                        }
+                    } catch (e: Exception) {
+                        location = LocationUtil.getExitFallback(player.world.name)
+                    }
+
                     val invSlot = ArrayList<ItemStack?>()
                     val invSize = wrapper.readInt()
 
@@ -87,7 +103,7 @@ open class PlayerData {
                     }
 
                     wrapper.close()
-                    return PlayerData(player, restoreFile, gameMode, invSlot)
+                    return PlayerData(player, restoreFile, gameMode, location, invSlot)
                 }
             }
 
@@ -178,22 +194,20 @@ open class PlayerData {
         } else if (respawn && !keepInventory) {
             Module.getItemModule(getGame()).applyKit(player)
         } else if (leave) {
-            val inv = player.inventory
+            player.gameMode = restoreGameMode
+            player.teleportAsync(restoreLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                    .exceptionally { it.printStackTrace(); false }
 
-            restoreGameMode?.let { player.gameMode = it }
+            for ((index, item) in restoreItems.withIndex()) {
+                player.inventory.setItem(index, item)
+            }
 
-            if (restoreFile != null) {
-                for ((index, item) in restoreItems.withIndex()) {
-                    inv.setItem(index, item)
-                }
-
-                try {
-                    Files.deleteIfExists(restoreFile!!.toPath())
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                } catch (e: SecurityException) {
-                    e.printStackTrace()
-                }
+            try {
+                Files.deleteIfExists(restoreFile.toPath())
+            } catch (e: IOException) {
+                e.printStackTrace()
+            } catch (e: SecurityException) {
+                e.printStackTrace()
             }
         }
     }
@@ -208,6 +222,7 @@ open class PlayerData {
             this.restoreFile = migrate.restoreFile
             this.restoreItems = migrate.restoreItems
             this.restoreGameMode = migrate.restoreGameMode
+            this.restoreLocation = migrate.restoreLocation
             this.itemReward = migrate.itemReward
             this.moneyReward = migrate.moneyReward
             this.keepInventory = migrate.keepInventory
@@ -217,24 +232,25 @@ open class PlayerData {
         val inv = player.inventory
         val wrapper = ByteArrayOutputStream()
         var stream: BukkitObjectOutputStream? = null
-        val itemStackList = ArrayList<ItemStack?>()
         this.restoreFile = getDataFile(player.uniqueId)
         this.restoreGameMode = player.gameMode
+        this.restoreLocation = player.location
 
         try {
             stream = BukkitObjectOutputStream(wrapper)
             stream.writeObject(player.gameMode)
+            stream.writeObject(player.location)
             stream.writeInt(inv.size)
 
             for (i in 0 until inv.size) {
                 val itemStack = inv.getItem(i)
 
-                itemStackList.add(itemStack)
+                restoreItems.add(itemStack)
                 stream.writeObject(itemStack)
             }
 
-            restoreFile!!.parentFile!!.mkdirs()
-            Files.write(restoreFile!!.toPath(), Base64.getEncoder().encode(wrapper.toByteArray()))
+            restoreFile.parentFile!!.mkdirs()
+            Files.write(restoreFile.toPath(), Base64.getEncoder().encode(wrapper.toByteArray()))
         } catch (e: Exception) {
             throw RuntimeException(e)
         } finally {
@@ -244,8 +260,6 @@ open class PlayerData {
                 throw RuntimeException(e)
             }
         }
-
-        this.restoreItems = itemStackList
     }
 
     private fun unregister() {

@@ -23,14 +23,20 @@ install-sample: false
 spawn-invincible: 60
 
 
-# Default fallback location when leaving game.
-#exit-fallback:
-#  world: world
-#  x: 0.0
-#  y: 70.0
-#  z: 0.0
-#  yaw: 0.0
-#  pitch: 0.0
+# Game-Exit Policy
+exit-policy:
+
+  # Should player return to the location where he issued /join command?
+  record-join-location: true
+
+  # Exit location to use if it isn't be resolved for any reason.
+  fallback:
+    world: world
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
 
 
 # Script Control

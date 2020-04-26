@@ -19,24 +19,22 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
 /**
- * @throws GameNotFound
+ * @throws GameNotFound is thrown if game cannot be resolved by [gameName].
  */
 class GameResource(val gameName: String) {
 
     lateinit var script: ScriptBase
     var lobbyMap: GameMap
     val mapRegistry = HashMap<String, GameMap>()
-
     internal val kitRoot: Path
     internal val kitData = HashMap<String, ByteArray>()
     private val kitFiles = HashMap<String, File>()
 
-    /** CoordTags configuration across all maps. **/
+    /** CoordTags configuration for every maps in this game. **/
     internal val tagConfig: YamlConfiguration
-
     private val tagFile: File
 
-    /** The root folder among all the resources in this game **/
+    /** The root folder for every resources in this game **/
     internal val root: Path
 
     init {
@@ -81,7 +79,7 @@ class GameResource(val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
-         * Load CoordTags, and kit.
+         * Load CoordTag, kit into memory.
          */
         val tagPath = layoutConfig.getString("coordinate-tags.file")
                 ?: throw FaultyConfiguration("coordinate-tags.file.path is not defined in ${layoutFile.toPath()}.")
@@ -116,7 +114,6 @@ class GameResource(val gameName: String) {
             }
         }
 
-        // Load tags into memory.
         CoordTag.reload(this)
 
         /*
