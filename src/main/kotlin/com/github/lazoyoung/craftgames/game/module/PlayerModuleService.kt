@@ -64,6 +64,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         return game.getPlayers().contains(player)
     }
 
+    @Suppress("DEPRECATION")
     override fun eliminate(player: Player) {
         val gamePlayer = PlayerData.get(player) as? GamePlayer
                 ?: throw IllegalArgumentException("Player ${player.name} is not online.")
@@ -79,27 +80,33 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             val gameModule = Module.getGameModule(game)
             val teamModule = Module.getTeamModule(game)
             val survivors = getLivingPlayers().minus(player)
-            val firstSurvivor = survivors.first()
-            val firstSurvivorTeam = teamModule.getPlayerTeam(firstSurvivor)
+            val firstSurvivor = survivors.firstOrNull()
+            val firstSurvivorTeam = firstSurvivor?.let { teamModule.getPlayerTeam(it) }
 
             if (survivors.size > 1) {
                 if (firstSurvivorTeam == null) {
-                    return
+                    return // Solo mode
                 }
 
                 survivors.minus(firstSurvivor).forEach {
                     if (firstSurvivorTeam.name != teamModule.getPlayerTeam(it)?.name) {
-                        return
+                        return // More than 2 teams alive
                     }
                 }
             }
 
             val timer = Timer(TimeUnit.SECOND, 5)
 
-            if (firstSurvivorTeam != null) {
-                gameModule.finishGame(firstSurvivorTeam, timer)
-            } else {
-                gameModule.finishGame(firstSurvivor, timer)
+            when {
+                firstSurvivorTeam != null -> {
+                    gameModule.finishGame(firstSurvivorTeam, timer)
+                }
+                firstSurvivor != null -> {
+                    gameModule.finishGame(firstSurvivor, timer)
+                }
+                else -> {
+                    gameModule.drawGame(timer)
+                }
             }
         }
     }
