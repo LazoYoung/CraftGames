@@ -95,6 +95,10 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     }
 
     internal fun start() {
+        if (game.editMode) {
+            return
+        }
+
         val world = game.resource.lobbyMap.world
                 ?: throw MapNotFound("Lobby world is not loaded!")
 
