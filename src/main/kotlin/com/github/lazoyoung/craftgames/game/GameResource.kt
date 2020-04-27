@@ -265,7 +265,7 @@ class GameResource(val gameName: String) {
             if (lootTableContainer != null) {
                 val lootTableDir = resourceDir.resolve("loot_tables")
 
-                check(lootTableDir.mkdirs()) {
+                check(lootTableDir.isDirectory || lootTableDir.mkdirs()) {
                     "Failed to create directory."
                 }
                 Files.newDirectoryStream(lootTableContainer).use {
