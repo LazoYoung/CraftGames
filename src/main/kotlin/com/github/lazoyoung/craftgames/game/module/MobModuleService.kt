@@ -8,7 +8,6 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
-import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Entity
@@ -30,7 +29,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.mob-throttle", 3) ?: 3
     private val script = game.resource.script
-    private var mythicMobsActive = false
+    private var mythicMobsActive = Main.mythicMobs
     private lateinit var apiHelper: Any
     private lateinit var spawnMethod: Method
     private lateinit var isMythicMobMethod: Method
@@ -40,7 +39,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
     private lateinit var removeMethod: Method
 
     init { // Reflect MythicMobs API
-        if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
+        if (mythicMobsActive) {
             try {
                 val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
                 val apiHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
@@ -54,8 +53,8 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
                 getEntityMethod = activeMobClass.getMethod("getEntity")
                 unregisterMethod = activeMobClass.getMethod("unregister")
                 removeMethod = abstractEntityClass.getMethod("remove")
-                mythicMobsActive = true
             } catch (e: Exception) {
+                mythicMobsActive = false
                 throw RuntimeException(e)
             }
         }

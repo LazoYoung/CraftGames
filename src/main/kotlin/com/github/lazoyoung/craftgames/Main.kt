@@ -38,6 +38,10 @@ class Main : JavaPlugin(), CommandExecutor {
             private set
         var lootTablePatch: LootTablePatch? = null
             private set
+        var worldEdit: Boolean = false
+            private set
+        var mythicMobs: Boolean = false
+            private set
         var libsDisguises: Boolean = false
             private set
         lateinit var charset: Charset
@@ -139,7 +143,18 @@ class Main : JavaPlugin(), CommandExecutor {
             }
 
             try {
-                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
+                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING).handle {
+                    result, t ->
+
+                    if (result) {
+                        logger.info("Sample files have been installed!")
+                    } else {
+                        t?.printStackTrace()
+                        logger.warning("Failed to install Sample files.")
+                    }
+
+                    config.set("install-sample", false)
+                }
             } catch (e: SecurityException) {
                 e.printStackTrace()
                 logger.severe("Access denied! Unable to install sample files.")
@@ -150,48 +165,41 @@ class Main : JavaPlugin(), CommandExecutor {
                 return
             }
 
-            logger.info("Sample files have been installed!")
-            config.set("install-sample", false)
             saveConfig()
         }
     }
 
     private fun loadDependency() {
+        val manager = Bukkit.getPluginManager()
         val services = Bukkit.getServicesManager()
-        var counter = 0
 
         try {
             val permissionClass = Class.forName("net.milkbowl.vault.permission.Permission")
             val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
             vaultPerm = services.getRegistration(permissionClass)?.provider as Permission?
             vaultEco = services.getRegistration(economyClass)?.provider as Economy?
-            counter++
-            logger.info("Dependency found: Vault")
+            logger.info("Vault is hooked.")
         } catch (e: ClassNotFoundException) {}
 
         try {
             val lootTablePatchClass = Class.forName("com.github.lazoyoung.loottablefix.LootTablePatch")
             lootTablePatch = services.getRegistration(lootTablePatchClass)?.provider as LootTablePatch?
-            counter++
-            logger.info("Dependency found: LootTablePatch")
+            logger.info("LootTablePatch is hooked.")
         } catch (e: ClassNotFoundException) {}
 
-        if (server.pluginManager.isPluginEnabled("LibsDisguises")) {
-            libsDisguises = true
-            counter++
-            logger.info("Dependency found: LibsDisguises")
+        if (manager.isPluginEnabled("WorldEdit")) {
+            worldEdit = true
+            logger.info("WorldEdit is hooked.")
         }
 
-        when {
-            counter > 1 -> {
-                logger.info("$counter dependencies are loaded.")
-            }
-            counter == 1 -> {
-                logger.info("$counter dependency is loaded.")
-            }
-            else -> {
-                logger.info("No dependency is loaded.")
-            }
+        if (manager.isPluginEnabled("MythicMobs")) {
+            mythicMobs = true
+            logger.info("MythicMobs is hooked.")
+        }
+
+        if (manager.isPluginEnabled("LibsDisguises")) {
+            libsDisguises = true
+            logger.info("LibsDisguises is hooked.")
         }
     }
 }

@@ -5,6 +5,7 @@ import java.io.IOException
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.*
+import java.util.concurrent.CompletableFuture
 
 class FileUtil {
     companion object {
@@ -13,12 +14,14 @@ class FileUtil {
          * @param source The root of the content to be cloned.
          * @param target Path to target directory.
          * @param options You may define the [copying behavior][CopyOption] if desired.
+         * @return a [CompletableFuture] that is completed with result (Boolean).
          * @throws IllegalArgumentException Thrown if source does not indicate a directory
          * @throws SecurityException Thrown if system denied access to any file.
          * @throws IOException Thrown if copy-paste I/O process has failed.
          */
-        fun cloneFileTree(source: Path, target: Path, vararg options: CopyOption?) {
+        fun cloneFileTree(source: Path, target: Path, vararg options: CopyOption?): CompletableFuture<Boolean> {
             val sourcePath = source.normalize()
+            val future = CompletableFuture<Boolean>()
 
             if (!Files.isDirectory(sourcePath))
                 throw IllegalArgumentException("source is not a directory!")
@@ -26,7 +29,9 @@ class FileUtil {
                 Files.createDirectory(target)
             }
 
-            Files.walkFileTree(sourcePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Int.MAX_VALUE, object : SimpleFileVisitor<Path>() {
+            Files.walkFileTree(sourcePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Int.MAX_VALUE,
+                    object : SimpleFileVisitor<Path>() {
+
                 override fun preVisitDirectory(dir: Path?, attr: BasicFileAttributes?): FileVisitResult {
                     if (dir == null)
                         return FileVisitResult.CONTINUE
@@ -39,32 +44,49 @@ class FileUtil {
                     try {
                         if (targetDir.toFile().listFiles().isNullOrEmpty())
                             Files.copy(dir, targetDir, *options)
-                    } catch (e: FileAlreadyExistsException) {
+                    } catch (exc: FileAlreadyExistsException) {
                         if (!Files.isDirectory(targetDir)) {
                             Main.logger.warning("Not a valid target: $targetDir")
                         }
-                        e.printStackTrace()
+                        future.completeExceptionally(exc)
                     }
                     return FileVisitResult.CONTINUE
                 }
 
                 override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
                     if (file != null) {
-                        val targetPath = when (sourcePath.parent) {
-                            null -> target.resolve(file.toString())
-                            else -> target.resolve(sourcePath.parent.relativize(file).toString())
+                        try {
+                            val targetPath = when (sourcePath.parent) {
+                                null -> target.resolve(file.toString())
+                                else -> target.resolve(sourcePath.parent.relativize(file).toString())
+                            }
+                            Main.logger.info("Copying file: ${file.fileName} -> ${targetPath.normalize()}")
+                            Files.copy(file, targetPath, *options)
+                        } catch (exc: Exception) {
+                            future.completeExceptionally(exc)
+                            Main.logger.warning("Failed to copy file: ${file.fileName}")
                         }
-                        Main.logger.info("Copying file: ${file.fileName} -> ${targetPath.normalize()}")
-                        Files.copy(file, targetPath, *options)
                     }
                     return FileVisitResult.CONTINUE
                 }
 
-                override fun visitFileFailed(file: Path?, exc: IOException?): FileVisitResult {
-                    Main.logger.warning("Failed to copy: ${file?.toRealPath().toString()}")
+                override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
+                    future.completeExceptionally(exc)
                     return FileVisitResult.TERMINATE
                 }
+
+                override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+                    if (exc != null) {
+                        future.completeExceptionally(exc)
+                    } else if (dir == sourcePath) {
+                        future.complete(true)
+                    }
+
+                    return super.postVisitDirectory(dir, exc)
+                }
             })
+
+            return future
         }
 
         /**
@@ -75,19 +97,22 @@ class FileUtil {
                 throw IllegalArgumentException("root is not a directory!")
 
             Files.walkFileTree(root, object : SimpleFileVisitor<Path>(), FileVisitor<Path> {
-                override fun postVisitDirectory(dir: Path?, exc: IOException?): FileVisitResult {
-                    Files.delete(dir!!)
+                override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+                    dir.toFile().setWritable(true, true)
+                    Files.delete(dir)
                     Main.logger.info("Delete folder: $dir")
                     return FileVisitResult.CONTINUE
                 }
 
-                override fun visitFile(file: Path?, attrs: BasicFileAttributes?): FileVisitResult {
-                    Files.delete(file!!)
+                override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                    file.toFile().setWritable(true, true)
+                    Files.delete(file)
                     Main.logger.info("Delete file: $file")
                     return FileVisitResult.CONTINUE
                 }
 
-                override fun visitFileFailed(file: Path?, exc: IOException?): FileVisitResult {
+                override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
+                    exc.printStackTrace()
                     Main.logger.warning("Failed to delete: $file")
                     return FileVisitResult.CONTINUE
                 }

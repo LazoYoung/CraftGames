@@ -82,7 +82,7 @@ class GameResource(val gameName: String) {
          * Load CoordTag, kit into memory.
          */
         val tagPath = layoutConfig.getString("coordinate-tags.file")
-                ?: throw FaultyConfiguration("coordinate-tags.file.path is not defined in ${layoutFile.toPath()}.")
+                ?: throw FaultyConfiguration("coordinate-tags.file is not defined in ${layoutFile.toPath()}.")
 
         tagFile = root.resolve(tagPath).toFile()
         tagFile.parentFile?.mkdirs()

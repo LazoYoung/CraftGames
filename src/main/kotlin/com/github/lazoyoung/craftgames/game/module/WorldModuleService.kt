@@ -186,7 +186,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun placeSchematics(tag: String, path: String, biomes: Boolean, entities: Boolean, ignoreAir: Boolean) {
-        if (!Bukkit.getPluginManager().isPluginEnabled("WorldEdit"))
+        if (!Main.worldEdit)
             throw DependencyNotFound("WorldEdit is required to place schematics.")
 
         val filePath = game.resource.root.resolve(path)
@@ -242,6 +242,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
      * matching with its [type][PlayerData].
      *
      * @param index Index of the spawnpoint capture. (Optional)
+     * @return a [CompletableFuture] that is completed with result (Boolean).
      * @throws UndefinedCoordTag If spawnpoint is not captured in this map, this is thrown.
      */
     fun teleportSpawn(playerData: PlayerData, index: Int?): CompletableFuture<Boolean> {

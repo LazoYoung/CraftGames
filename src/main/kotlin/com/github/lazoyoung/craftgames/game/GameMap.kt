@@ -97,23 +97,40 @@ class GameMap internal constructor(
                         )
                         val outcome = container.resolve(worldName)
 
-                        FileUtil.cloneFileTree(source, container)
+                        FileUtil.cloneFileTree(source, container).handleAsync {
+                            result, t ->
 
-                        // Deal with Bukkit as it doesn't like to have replicated worlds.
-                        outcome.toFile().resolve("uid.dat").delete()
+                            if (!result || t != null) {
+                                Main.logger.warning("Failed to clone world!")
 
-                        scheduler.runTask(plugin, Runnable {
-                            Files.move(
-                                    renamed, repository,
-                                    StandardCopyOption.ATOMIC_MOVE
-                            )
-                            loadWorld(worldName, game, container, regen, callback)
-                        })
+                                if (t != null) {
+                                    throw t
+                                } else {
+                                    scheduler.runTask(plugin, Runnable {
+                                        game.forceStop(error = true)
+                                    })
+                                    return@handleAsync false
+                                }
+                            }
+
+                            // Deal with Bukkit as it doesn't like to have replicated worlds.
+                            outcome.toFile().resolve("uid.dat").delete()
+
+                            scheduler.runTask(plugin, Runnable {
+                                Files.move(
+                                        renamed, repository,
+                                        StandardCopyOption.ATOMIC_MOVE
+                                )
+                                loadWorld(worldName, game, container, regen, callback)
+                            })
+                        }
                     } catch (e: IllegalArgumentException) {
                         if (e.message?.startsWith("source", true) == true) {
                             Main.logger.warning("World folder \'$repository\' inside ${game.name} is missing. Generating blank world...")
                         } else {
-                            game.forceStop(error = true)
+                            scheduler.runTask(plugin, Runnable {
+                                game.forceStop(error = true)
+                            })
                             throw RuntimeException("$container doesn't seem to be the world container.", e)
                         }
                     } catch (e: SecurityException) {
@@ -198,7 +215,8 @@ class GameMap internal constructor(
             if (world == null) {
                 game.map = legacyMap
                 game.forceStop(error = true)
-                throw RuntimeException("Unable to load world $worldName for ${game.name}")
+                Main.logger.warning("Unable to load world $worldName for ${game.name}")
+                return@Runnable
             }
 
             // Apply gamerules and difficulty

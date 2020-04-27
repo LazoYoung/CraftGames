@@ -180,20 +180,45 @@ class GameEditor private constructor(
 
             renameTo = targetOrigin.fileName
 
-            fun cloneProcess(atomic: Boolean) {
-                FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
+            fun cloneProcess(atomicMove: Boolean) {
+                val future = FileUtil.cloneFileTree(source, target, StandardCopyOption.REPLACE_EXISTING)
 
-                if (atomic) {
-                    Files.move(target.resolve(source.fileName), target.resolve(renameTo), StandardCopyOption.ATOMIC_MOVE)
-                } else {
-                    Files.move(target.resolve(source.fileName), target.resolve(renameTo), StandardCopyOption.REPLACE_EXISTING)
+                fun process(result: Boolean, t: Throwable?) {
+                    if (!result || t != null) {
+                        t?.printStackTrace()
+                        gameModule.broadcast("&cFailed to save changes!")
+                        game.forceStop(error = true)
+                    } else {
+                        try {
+                            if (atomicMove) {
+                                Files.move(target.resolve(source.fileName), target.resolve(renameTo),
+                                        StandardCopyOption.ATOMIC_MOVE)
+                            } else {
+                                Files.move(target.resolve(source.fileName), target.resolve(renameTo),
+                                        StandardCopyOption.REPLACE_EXISTING)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            gameModule.broadcast("&cFailed to save changes!")
+                            game.forceStop(error = true)
+                            return
+                        }
+
+                        gameModule.broadcast("&aChanges are saved!")
+                        informIncompleteTags(player)
+                        game.close()
+                    }
                 }
 
-                scheduler.runTask(plugin, Runnable {
-                    gameModule.broadcast("&aChanges are saved!")
-                    informIncompleteTags(player)
-                    game.close()
-                })
+                if (atomicMove) {
+                    future.handleAsync { result, t ->
+                        scheduler.runTask(plugin, Runnable { process(result, t) })
+                    }
+                } else {
+                    future.handle { result, t ->
+                        scheduler.runTask(plugin, Runnable { process(result, t) })
+                    }
+                }
             }
 
             // Clone map files to disk
@@ -201,9 +226,7 @@ class GameEditor private constructor(
                 try {
                     cloneProcess(true)
                 } catch (e: AtomicMoveNotSupportedException) {
-                    scheduler.runTask(plugin, Runnable {
-                        cloneProcess(false)
-                    })
+                    cloneProcess(false)
                     Main.logger.warning("Failed to process files in atomic move.")
                 }
             })
