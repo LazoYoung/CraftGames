@@ -1,17 +1,30 @@
 # Game Registration
 # Note: The root folder is equivalent to: plugins/CraftGames/
-# https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell
+# Reference: https://en.wikipedia.org/wiki/Path_(computing)
 games:
   example: # Title of sample game. Turn on 'install-sample' above to test it!
     layout: Sample/example/layout.yml # Path to layout.yml
 
 
+# Data-pack Settings
+datapack:
+
+  # Define a format version. Use 'auto' to make plugin decide this for you.
+  # Reference: https://minecraft.gamepedia.com/Tutorials/Creating_a_resource_pack#pack_format
+  format-version: auto
+
+  # Plugin will generate a datapack for internal use.
+  # WARNING: Existing datapack is replaced if it overlaps name.
+  internal-pack-name: craftgames
+
+
 # The prefix of generated world's directory name.
+# WARNING: Existing world is replaced if its name overlaps with this label.
 world-label: game
 
 
 # Check your 'JVM property' if Mojibake still occurs: -Dfile.encoding=<charset>
-# https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
+# Reference: https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
 file-encoding: UTF-8
 
 

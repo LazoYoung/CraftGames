@@ -4,6 +4,7 @@ author: LazoYoung
 website: https://github.com/LazoYoung/CraftGames
 api-version: '1.15'
 version: $version
+load: POSTWORLD
 softdepend: [ WorldEdit, MythicMobs, LibsDisguises, Vault, LootTableFix ]
 commands:
   craftgames:

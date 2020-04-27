@@ -18,5 +18,8 @@ kit:
 script:
   path: script
   main: core.groovy
+datapack:
+  loot-tables:
+    path: datapack/loot_tables
 coordinate-tags:
   file: data/coordinate-tags.yml

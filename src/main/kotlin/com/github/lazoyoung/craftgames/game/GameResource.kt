@@ -10,6 +10,8 @@ import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
+import com.github.lazoyoung.craftgames.internal.util.DatapackUtil
+import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.File
@@ -17,6 +19,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 /**
  * @throws GameNotFound is thrown if game cannot be resolved by [gameName].
@@ -29,6 +32,8 @@ class GameResource(val gameName: String) {
     internal val kitRoot: Path
     internal val kitData = HashMap<String, ByteArray>()
     private val kitFiles = HashMap<String, File>()
+    private val namespace = gameName.toLowerCase()
+    private val lootTableContainer: Path?
 
     /** CoordTags configuration for every maps in this game. **/
     internal val tagConfig: YamlConfiguration
@@ -42,14 +47,14 @@ class GameResource(val gameName: String) {
          * Read layout.yml
          */
         var fileReader: BufferedReader? = null
-        val layoutFile: File
         val layoutConfig: YamlConfiguration
-        val layoutPathStr = Main.getConfig()?.getString("games.$gameName.layout")
+        val layoutPathname = Main.getConfig()?.getString("games.$gameName.layout")
                 ?: throw GameNotFound("Game layout is not defined in config.yml")
-        layoutFile = Main.instance.dataFolder.resolve(layoutPathStr)
+        val layoutFile = Main.instance.dataFolder.resolve(layoutPathname)
+        val layoutPath = layoutFile.toPath()
 
-        if (layoutPathStr.startsWith('_')) {
-            throw FaultyConfiguration("Layout path has illegal character: $layoutPathStr (Underscore)")
+        if (layoutPathname.startsWith('_')) {
+            throw FaultyConfiguration("Layout path cannot start with underscore character: $layoutPathname")
         }
 
         try {
@@ -62,9 +67,9 @@ class GameResource(val gameName: String) {
             root.toFile().setWritable(true, true)
             layoutConfig = YamlConfiguration.loadConfiguration(fileReader)
         } catch (e: IOException) {
-            throw FaultyConfiguration("Unable to read ${layoutFile.toPath()}.", e)
+            throw FaultyConfiguration("Unable to read $layoutPath.", e)
         } catch (e: IllegalArgumentException) {
-            throw FaultyConfiguration("File is empty: ${layoutFile.toPath()}")
+            throw FaultyConfiguration("File is empty: $layoutPath")
         } catch (e: InvalidPathException) {
             throw RuntimeException("Failed to resolve layout path.", e)
         } finally {
@@ -79,24 +84,29 @@ class GameResource(val gameName: String) {
         var lobbyMap: GameMap? = null
 
         /*
-         * Load CoordTag, kit into memory.
+         * Load coordinate tags, kits, datapack into memory.
          */
+        val lootTablePath = layoutConfig.getString("datapack.loot-tables.path")
         val tagPath = layoutConfig.getString("coordinate-tags.file")
-                ?: throw FaultyConfiguration("coordinate-tags.file is not defined in ${layoutFile.toPath()}.")
+                ?: throw FaultyConfiguration("coordinate-tags.file is not defined in $layoutPath.")
+        val kitPath = layoutConfig.getString("kit.path")
+                ?: throw FaultyConfiguration("Kit must have a path in $layoutPath")
 
+        lootTableContainer = if (lootTablePath != null) {
+            root.resolve(lootTablePath)
+        } else {
+            null
+        }
         tagFile = root.resolve(tagPath).toFile()
         tagFile.parentFile?.mkdirs()
-
-        val kitPath = layoutConfig.getString("kit.path") ?: throw FaultyConfiguration("Kit must have a path in ${layoutFile.toPath()}")
 
         if (!tagFile.isFile && !tagFile.createNewFile())
             throw RuntimeException("Unable to create file: ${tagFile.toPath()}")
         if (tagFile.extension != "yml")
-            throw FaultyConfiguration("This file has wrong extension: ${tagFile.name} (Rename it to .yml)")
+            throw FaultyConfiguration("File extension is illegal: ${tagFile.name} (Replace with .yml)")
 
         tagConfig = YamlConfiguration.loadConfiguration(tagFile)
         kitRoot = root.resolve(kitPath)
-
         kitRoot.toFile().let {
             it.mkdirs()
             it.listFiles()?.forEach { file ->
@@ -113,7 +123,6 @@ class GameResource(val gameName: String) {
                 }
             }
         }
-
         CoordTag.reload(this)
 
         /*
@@ -141,7 +150,7 @@ class GameResource(val gameName: String) {
             }
 
             if (mapID == null) {
-                Main.logger.warning("Entry \'id\' of map is missing in ${layoutFile.toPath()}")
+                Main.logger.warning("Entry \'id\' of map is missing in $layoutPath")
                 continue
             }
 
@@ -149,7 +158,7 @@ class GameResource(val gameName: String) {
                 alias = mapID
 
             if (rawPath == null) {
-                Main.logger.warning("Entry 'path' of $mapID is missing in ${layoutFile.toPath()}")
+                Main.logger.warning("Entry 'path' of $mapID is missing in $layoutPath")
                 continue
             }
 
@@ -183,9 +192,9 @@ class GameResource(val gameName: String) {
          * Load scripts from config
          */
         val scriptPathStr = layoutConfig.getString("script.path")
-                ?: throw FaultyConfiguration("Script path is not defined in ${layoutFile.toPath()}")
+                ?: throw FaultyConfiguration("Script path is not defined in $layoutPath")
         val scriptMainStr = layoutConfig.getString("script.main")
-                ?: throw FaultyConfiguration("Main script path is not defined in ${layoutFile.toPath()}")
+                ?: throw FaultyConfiguration("Main script path is not defined in $layoutPath")
         val scriptPath = root.resolve(scriptPathStr)
         val scriptMain = scriptPath.resolve(scriptMainStr).toFile()
 
@@ -243,5 +252,35 @@ class GameResource(val gameName: String) {
             throw MapNotFound("$gameName doesn't have a map.")
         }
         return map
+    }
+
+    internal fun loadDatapack(): Boolean {
+        try {
+            val packName = DatapackUtil.getInternalPackName()
+            val packDir = DatapackUtil.getPackDirectory(Bukkit.getWorlds().first(), packName)
+                    ?: DatapackUtil.createPack(packName, true)
+            val resourceDir = packDir.resolve("data").resolve(namespace)
+
+            // Clone loot tables into datapack.
+            if (lootTableContainer != null) {
+                val lootTableDir = resourceDir.resolve("loot_tables")
+
+                check(lootTableDir.mkdirs()) {
+                    "Failed to create directory."
+                }
+                Files.newDirectoryStream(lootTableContainer).use {
+                    it.forEach { entry ->
+                        val entryTarget = lootTableDir.toPath().resolve(lootTableContainer.relativize(entry))
+                        Files.copy(entry, entryTarget, StandardCopyOption.REPLACE_EXISTING)
+                    }
+                }
+            }
+
+            Bukkit.reloadData()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        }
+        return true
     }
 }

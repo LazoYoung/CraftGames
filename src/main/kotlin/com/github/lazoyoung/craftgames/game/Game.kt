@@ -161,7 +161,6 @@ class Game(
         fun openNew(name: String, editMode: Boolean, mapID: String? = null, consumer: Consumer<Game>? = null) {
             val resource = GameResource(name)
             val game = Game(name, -1, editMode, resource)
-            val initEvent = GameInitEvent(game)
 
             try {
                 resource.script.execute()
@@ -171,26 +170,33 @@ class Game(
                 throw ScriptException("Cannot evaluate script.")
             }
 
-            Bukkit.getPluginManager().callEvent(initEvent)
+            game.phase = Phase.GENERATE
+            assignID(game)
 
-            if (initEvent.isCancelled) {
-                game.forceStop(error = true)
-                throw RuntimeException("Game failed to init.")
-            } else {
-                game.phase = Phase.GENERATE
-                assignID(game)
+            fun postGenerate() {
+                val initEvent = GameInitEvent(game)
+                Bukkit.getPluginManager().callEvent(initEvent)
 
-                if (mapID == null) {
-                    game.resource.lobbyMap.generate(game, Consumer {
-                        game.updatePhase(Phase.LOBBY)
-                        consumer?.accept(game)
-                    })
-                } else {
-                    val map = game.resource.mapRegistry[mapID]
-                            ?: throw MapNotFound("Map $mapID does not exist for game: $name.")
-
-                    map.generate(game, Consumer { consumer?.accept(game) })
+                if (initEvent.isCancelled || !resource.loadDatapack()) {
+                    game.forceStop(error = true)
+                    throw RuntimeException("Game failed to init.")
                 }
+            }
+
+            if (mapID == null) {
+                game.resource.lobbyMap.generate(game, Consumer {
+                    postGenerate()
+                    game.updatePhase(Phase.LOBBY)
+                    consumer?.accept(game)
+                })
+            } else {
+                val map = game.resource.mapRegistry[mapID]
+                        ?: throw MapNotFound("Map $mapID does not exist for game: $name.")
+
+                map.generate(game, Consumer {
+                    postGenerate()
+                    consumer?.accept(game)
+                })
             }
         }
 
