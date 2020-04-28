@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.LobbyModule
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -67,7 +68,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
      * @throws MapNotFound is thrown if mapName doesn't indicate any existing map
      */
     fun voteMap(player: Player, vote: Int = 1, mapName: String): Boolean {
-        if (game.editMode || game.phase != Game.Phase.LOBBY || voted.contains(player.uniqueId))
+        if (game.editMode || game.phase != GamePhase.LOBBY || voted.contains(player.uniqueId))
             return false
 
         if (!Game.getMapNames(game.name, false).contains(mapName))

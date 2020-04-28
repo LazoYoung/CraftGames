@@ -6,6 +6,7 @@ import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import me.libraryaddict.disguise.DisguiseAPI
@@ -302,8 +303,8 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
     internal fun canSelectKit(player: Player): Boolean {
         return when (game.phase) {
-            Game.Phase.LOBBY -> allowKit
-            Game.Phase.PLAYING -> allowKitRespawn && player.gameMode == GameMode.SPECTATOR
+            GamePhase.LOBBY -> allowKit
+            GamePhase.PLAYING -> allowKitRespawn && player.gameMode == GameMode.SPECTATOR
             else -> false
         }
     }

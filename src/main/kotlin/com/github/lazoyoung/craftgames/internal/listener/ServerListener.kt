@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.*
 import org.bukkit.Bukkit
@@ -43,7 +44,7 @@ class ServerListener : Listener {
         val mob = event.entity as? Mob ?: return
         val game = Game.getByWorld(mob.world) ?: return
 
-        if (game.phase == Game.Phase.PLAYING) {
+        if (game.phase == GamePhase.PLAYING) {
             val mobModule = Module.getMobModule(game)
 
             if (mob.world.entityCount >= mobModule.mobCap) {
@@ -72,7 +73,7 @@ class ServerListener : Listener {
             }
         }
 
-        if (game.phase == Game.Phase.PLAYING) {
+        if (game.phase == GamePhase.PLAYING) {
             if (pdata is GamePlayer) {
                 val relayEvent = GamePlayerInteractEvent(pdata, game, event)
                 Bukkit.getPluginManager().callEvent(relayEvent)
@@ -94,7 +95,7 @@ class ServerListener : Listener {
         val pdata = PlayerData.get(event.whoClicked.uniqueId) ?: return
         val game = pdata.getGame()
 
-        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+        if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
             if (event.action != InventoryAction.NOTHING) {
                 event.isCancelled = Module.getItemModule(game).lockInventory
             }
@@ -106,7 +107,7 @@ class ServerListener : Listener {
         val pdata = PlayerData.get(event.whoClicked.uniqueId) ?: return
         val game = pdata.getGame()
 
-        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+        if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
             event.isCancelled = Module.getItemModule(game).lockInventory
         }
     }
@@ -116,7 +117,7 @@ class ServerListener : Listener {
         val pdata = PlayerData.get(event.player) ?: return
         val game = pdata.getGame()
 
-        if (pdata is GamePlayer && game.phase == Game.Phase.PLAYING) {
+        if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
             event.isCancelled = !Module.getItemModule(game).allowItemDrop
         }
     }
@@ -174,7 +175,7 @@ class ServerListener : Listener {
         if (game.editMode) {
             Module.getWorldModule(game).teleportSpawn(playerData, null)
         }
-        else if (playerData is GamePlayer && game.phase == Game.Phase.PLAYING) {
+        else if (playerData is GamePlayer && game.phase == GamePhase.PLAYING) {
             val playerModule = Module.getPlayerModule(game)
             val relayEvent = GamePlayerDeathEvent(playerData, game, event)
 
@@ -242,7 +243,7 @@ class ServerListener : Listener {
                 ?: return
         val game = killer.getGame()
 
-        if (game.phase == Game.Phase.PLAYING) {
+        if (game.phase == GamePhase.PLAYING) {
             Bukkit.getPluginManager().callEvent(
                     GamePlayerKillEvent(killer, entity, game)
             )

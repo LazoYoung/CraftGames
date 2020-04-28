@@ -13,6 +13,7 @@ import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -261,7 +262,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
         object : BukkitRunnable() {
             override fun run() {
-                if (game.phase != Game.Phase.PLAYING || !playerModule.isOnline(player)) {
+                if (game.phase != GamePhase.PLAYING || !playerModule.isOnline(player)) {
                     this.cancel()
                     return
                 }

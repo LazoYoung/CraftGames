@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.PlayerData
+import com.github.lazoyoung.craftgames.internal.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -13,7 +14,6 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.util.*
-import java.util.function.Consumer
 
 class GameAccessCommand : CommandBase {
 
@@ -46,7 +46,7 @@ class GameAccessCommand : CommandBase {
                     2 -> {
                         val arg = args.last()
                         val id = arg.toIntOrNull()
-                        val game = if (id != null) {
+                        var game = if (id != null) {
                             Game.getByID(id)
                         } else {
                             Game.find(arg, false).firstOrNull()
@@ -55,9 +55,8 @@ class GameAccessCommand : CommandBase {
                         if (game != null) {
                             forceJoin(sender, selector, game)
                         } else try {
-                            Game.openNew(arg, false, consumer = Consumer {
-                                forceJoin(sender, selector, it)
-                            })
+                            game = Game.openNew(arg, false)
+                            forceJoin(sender, selector, game)
                             return true
                         } catch (e: GameNotFound) {
                             sender.sendMessage("\u00A7eNo such game exist: $arg")
@@ -86,9 +85,8 @@ class GameAccessCommand : CommandBase {
                         if (gameReg.isEmpty()) {
                             sender.sendMessage("There's no game available.")
                         } else try {
-                            Game.openNew(gameReg.random(), editMode = false, mapID = null, consumer = Consumer {
-                                it.joinPlayer(sender)
-                            })
+                            Game.openNew(gameReg.random(), editMode = false, mapID = null)
+                                    .joinPlayer(sender)
                         } catch (e: Exception) {
                             e.printStackTrace()
                             sender.sendMessage(*ComponentBuilder(e.localizedMessage).color(ChatColor.RED).create())
@@ -101,9 +99,8 @@ class GameAccessCommand : CommandBase {
                     val game = Game.find(args[0], false).firstOrNull { it.canJoin(sender) }
 
                     if (game == null) {
-                        Game.openNew(args[0], editMode = false, mapID = null, consumer = Consumer{
-                            it.joinPlayer(sender)
-                        })
+                        Game.openNew(args[0], editMode = false, mapID = null)
+                                .joinPlayer(sender)
                     } else {
                         game.joinPlayer(sender)
                     }
@@ -120,7 +117,13 @@ class GameAccessCommand : CommandBase {
 
                 when {
                     player is GameEditor -> {
-                        player.saveAndClose()
+                        val game = player.getGame()
+
+                        if (game.players.size <= 1) {
+                            player.saveAndClose()
+                        } else {
+                            player.leaveGame()
+                        }
                     }
                     player != null -> {
                         player.leaveGame()
@@ -205,7 +208,7 @@ class GameAccessCommand : CommandBase {
             } else {
                 val cause = game.getRejectCause(p)!!
 
-                if (cause != Game.JoinRejection.PLAYING) {
+                if (cause != GameJoinRejectedException.Cause.PLAYING_THIS) {
                     blocked[p.name] = cause.name
                 }
             }

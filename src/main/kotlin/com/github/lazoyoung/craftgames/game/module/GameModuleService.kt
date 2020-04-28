@@ -9,6 +9,7 @@ import com.github.lazoyoung.craftgames.event.GameFinishEvent
 import com.github.lazoyoung.craftgames.event.GameStartEvent
 import com.github.lazoyoung.craftgames.event.GameTimeoutEvent
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.RestoreMode
@@ -129,7 +130,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun finishGame(winner: Team, timer: Timer) {
-        if (game.phase != Game.Phase.PLAYING)
+        if (game.phase != GamePhase.PLAYING)
             return
 
         val winners = Module.getTeamModule(game).getPlayers(winner)
@@ -143,7 +144,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun finishGame(winner: Player, timer: Timer) {
-        if (game.phase != Game.Phase.PLAYING)
+        if (game.phase != GamePhase.PLAYING)
             return
 
         // Fire event
@@ -156,7 +157,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     @Deprecated("This is for internal use.")
     override fun drawGame(timer: Timer) {
-        if (game.phase != Game.Phase.PLAYING)
+        if (game.phase != GamePhase.PLAYING)
             return
 
         // Fire event
@@ -220,7 +221,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
                 if (livingPlayers.isEmpty() || timer.toSecond() < 0) {
                     Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
 
-                    if (game.phase != Game.Phase.FINISH) {
+                    if (game.phase != GamePhase.FINISH) {
                         drawGame(Timer(TimeUnit.SECOND, 5))
                     }
 

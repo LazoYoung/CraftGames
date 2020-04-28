@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
@@ -33,7 +34,7 @@ class GameEditor private constructor(
 
     val mapID = game.map.id
 
-    internal var mainActionbar: ActionbarTask? = null
+    private var mainActionbar: ActionbarTask? = null
     private var blockPrompt: Consumer<Block>? = null
     private var areaPrompt: BiConsumer<Block, Action>? = null
     private var block1: Block? = null
@@ -68,17 +69,14 @@ class GameEditor private constructor(
             }
 
             if (present == null) {
-                Game.openNew(gameName, editMode = true, mapID = mapSel, consumer = Consumer { game ->
-                    val instance = GameEditor(player, game)
-                    registry[pid] = instance
-
-                    instance.captureState()
-                    game.joinEditor(instance)
-                })
+                val game = Game.openNew(gameName, editMode = true, mapID = mapSel)
+                val instance = GameEditor(player, game)
+                registry[pid] = instance
+                instance.captureState()
+                game.joinEditor(instance)
             } else {
                 val instance = GameEditor(player, present)
                 registry[pid] = instance
-
                 instance.captureState()
                 present.joinEditor(instance)
             }
@@ -149,16 +147,26 @@ class GameEditor private constructor(
      * @throws RuntimeException Thrown if it's unable to save map for some reason.
      */
     fun saveAndClose() {
+
+        if (game.phase == GamePhase.TERMINATE) {
+            player.sendMessage("\u00A7cGame is already closing.")
+        } else {
+            game.updatePhase(GamePhase.TERMINATE)
+        }
+
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val source = game.map.worldPath
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
         val gameModule = Module.getGameModule(game)
-        val player = getPlayer()
+        val actionbar = ActionbarTask(
+                player = player,
+                repeat = true,
+                text = *arrayOf("&eSaving files! Please wait...")
+        ).start()
 
         mainActionbar?.clear()
-        gameModule.broadcast("&e${player.displayName} closed the session.")
-        gameModule.broadcast("&eSaving files! Please wait...")
+        gameModule.broadcast("&e${player.displayName} is closing the session.")
 
         // Save world
         try {
@@ -186,6 +194,7 @@ class GameEditor private constructor(
                 fun process(result: Boolean, t: Throwable?) {
                     if (!result || t != null) {
                         t?.printStackTrace()
+                        actionbar.clear()
                         gameModule.broadcast("&cFailed to save changes!")
                         game.forceStop(error = true)
                     } else {
@@ -199,11 +208,13 @@ class GameEditor private constructor(
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
+                            actionbar.clear()
                             gameModule.broadcast("&cFailed to save changes!")
                             game.forceStop(error = true)
                             return
                         }
 
+                        actionbar.clear()
                         gameModule.broadcast("&aChanges are saved!")
                         informIncompleteTags(player)
                         game.close()
@@ -231,6 +242,7 @@ class GameEditor private constructor(
                 }
             })
         } catch (e: Exception) {
+            actionbar.clear()
             throw RuntimeException("Unable to clone world files.", e)
         }
     }
@@ -280,6 +292,36 @@ class GameEditor private constructor(
                     .event(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/ctag suppress $gameName $tagName true"))
 
             player.sendMessage(*builder.create())
+        }
+    }
+
+    internal fun updateActionbar() {
+        val coopList = game.getPlayers().map { get(it) }
+                .filterIsInstance(GameEditor::class.java).shuffled()
+
+        coopList.forEach { editor ->
+            val memberList = coopList.filterNot { it.getPlayer() == editor.getPlayer() }
+
+            var text = arrayOf(
+                    "&b&lEDIT MODE &r&b(&e${editor.mapID} &bin &e${game.name}&b)",
+                    "&aType &b/game save &ato save and close this session.",
+                    "&aYou may &b/leave &awithout closing it for other editors."
+            )
+
+            if (memberList.isNotEmpty()) {
+                text = text.plus(memberList.joinToString(
+                        prefix = "&aEditors with you: &r",
+                        limit = 3,
+                        transform = { it.getPlayer().displayName }
+                ))
+            }
+
+            editor.mainActionbar?.clear()
+            editor.mainActionbar = ActionbarTask(
+                    player = editor.getPlayer(),
+                    repeat = true,
+                    text = *text
+            ).start()
         }
     }
 }

@@ -32,7 +32,7 @@ open class PlayerData {
     internal var keepInventory: Boolean = false
     internal var itemReward: LootTable? = null
     internal var moneyReward: Double = 0.0
-    private val player: Player
+    internal val player: Player
     private var game: Game?
     private val defaultGameMode: GameMode
     private lateinit var restoreFile: File

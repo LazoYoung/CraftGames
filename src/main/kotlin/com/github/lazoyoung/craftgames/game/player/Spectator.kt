@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.game.player
 
-import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.ConcurrentPlayerState
 import org.bukkit.GameMode
@@ -37,35 +36,6 @@ class Spectator private constructor(
      */
     override fun getGame(): Game {
         return game
-    }
-
-    internal fun updateEditors() {
-        val coopList = game.getPlayers().map { get(it) }
-                .filterIsInstance(GameEditor::class.java).shuffled()
-
-        coopList.forEach { editor ->
-            val memberList = coopList.filterNot { it.getPlayer() == editor.getPlayer() }
-
-            var text = arrayOf(
-                    "&b&lEDIT MODE &r&b(&e${editor.mapID} &bin &e${game.name}&b)",
-                    "&aType &b/game save &r&ato save changes and exit."
-            )
-
-            if (memberList.isNotEmpty()) {
-                text = text.plus(memberList.joinToString(
-                        prefix = "&aCooperator: &r",
-                        limit = 3,
-                        transform = { it.getPlayer().displayName }
-                ))
-            }
-
-            editor.mainActionbar?.clear()
-            editor.mainActionbar = ActionbarTask(
-                    player = editor.getPlayer(),
-                    repeat = true,
-                    text = *text
-            ).start()
-        }
     }
 
 }

@@ -4,6 +4,8 @@ import com.github.lazoyoung.craftgames.api.module.*
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GamePhase
+import com.github.lazoyoung.craftgames.game.GameTask
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
@@ -19,7 +21,6 @@ class Module internal constructor(val game: Game) {
     private val scriptModule = ScriptModuleService(game)
     private val worldModule = WorldModuleService(game)
     private val itemModule = ItemModuleService(game)
-    private var terminateSignal = false
 
     init {
         try {
@@ -107,35 +108,22 @@ class Module internal constructor(val game: Game) {
         }
     }
 
-    internal fun update() {
-        if (terminateSignal)
-            return
+    internal fun registerTasks() {
+        GameTask(game, GamePhase.LOBBY).schedule {
+            lobbyModule.start()
+        }
 
-        try {
-            when (game.phase) {
-                Game.Phase.LOBBY -> {
-                    lobbyModule.start()
-                }
+        GameTask(game, GamePhase.PLAYING).schedule {
+            lobbyModule.terminate()
+            gameModule.start()
+        }
 
-                Game.Phase.PLAYING -> {
-                    lobbyModule.terminate()
-                    gameModule.start()
-                }
-
-                Game.Phase.TERMINATE -> {
-                    lobbyModule.terminate()
-                    playerModule.terminate()
-                    teamModule.terminate()
-                    gameModule.terminate()
-                    scriptModule.terminate()
-                }
-
-                else -> {}
-            }
-        } catch (e: Exception) {
-            terminateSignal = true
-            e.printStackTrace()
-            game.forceStop(async = true, error = true)
+        GameTask(game, GamePhase.TERMINATE).schedule {
+            lobbyModule.terminate()
+            playerModule.terminate()
+            teamModule.terminate()
+            gameModule.terminate()
+            scriptModule.terminate()
         }
     }
 

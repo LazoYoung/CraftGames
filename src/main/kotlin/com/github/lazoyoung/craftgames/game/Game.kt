@@ -10,6 +10,7 @@ import com.github.lazoyoung.craftgames.event.GameLeaveEvent
 import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.internal.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.util.LocationUtil
@@ -22,61 +23,37 @@ import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import javax.script.ScriptException
+import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
 
 class Game(
         val name: String,
-
         internal var id: Int,
-
-        /** Is this game in Edit Mode? **/
         internal var editMode: Boolean,
-
-        /** Configurable resources **/
         internal val resource: GameResource
 ) {
-    enum class Phase {
-        /** Game is being initialized. **/
-        INIT,
-
-        /** Map is being generated. **/
-        GENERATE,
-
-        /** Players are waiting for game to start. **/
-        LOBBY,
-
-        /** Game-play is in progress. **/
-        PLAYING,
-
-        /** Game has finished. Ceremony is in progress. **/
-        FINISH,
-
-        /** Game is being terminated. **/
-        TERMINATE
-    }
-
-    enum class JoinRejection(val message: String) {
-        PLAYING("You're already playing this game."),
-        FULL("The game is terminating."),
-        IN_GAME("The game is full."),
-        GENERATING("The game has already started."),
-        TERMINATING("The game is still loading."),
-        NO_PERMISSION("You're not permitted to join this game.")
-    }
-
     /** List of players (regardless of PlayerState) **/
     internal val players = LinkedList<UUID>()
 
     /** The state of game progress **/
-    var phase = Phase.INIT
+    var phase = GamePhase.INIT
 
     /** All kind of modules **/
     val module = Module(this)
 
     /** Map Handler **/
     var map = resource.lobbyMap
+
+    internal val taskList = ArrayList<GameTask>()
+    private var taskFailed = false
+
+    init {
+        module.registerTasks()
+        updatePhase(GamePhase.INIT)
+    }
 
     companion object {
 
@@ -151,16 +128,30 @@ class Game(
          * @param name Classifies the type of game
          * @param editMode The game is in editor mode, if true.
          * @param mapID The map in which the game will take place.
-         * @param consumer Returns the new instance once it's ready.
          * @throws GameNotFound No such game exists by given [name].
          * @throws MapNotFound No such map exists by given [mapID].
          * @throws FaultyConfiguration Configuration is not complete.
          * @throws RuntimeException Unexpected issue has arrised.
          * @throws ScriptException Cannot evaluate script.
          */
-        fun openNew(name: String, editMode: Boolean, mapID: String? = null, consumer: Consumer<Game>? = null) {
+        fun openNew(name: String, editMode: Boolean, mapID: String? = null): Game {
             val resource = GameResource(name)
             val game = Game(name, -1, editMode, resource)
+            val postGenerate = Consumer<World> {
+                val initEvent = GameInitEvent(game)
+                Bukkit.getPluginManager().callEvent(initEvent)
+
+                if (initEvent.isCancelled || !resource.loadDatapack()) {
+                    game.forceStop(error = true)
+                    throw RuntimeException("Game failed to init.")
+                }
+
+                if (editMode) {
+                    game.updatePhase(GamePhase.EDIT)
+                } else {
+                    game.updatePhase(GamePhase.LOBBY)
+                }
+            }
 
             try {
                 resource.script.execute()
@@ -170,34 +161,17 @@ class Game(
                 throw ScriptException("Cannot evaluate script.")
             }
 
-            game.phase = Phase.GENERATE
+            game.phase = GamePhase.GENERATE
             assignID(game)
 
-            fun postGenerate() {
-                val initEvent = GameInitEvent(game)
-                Bukkit.getPluginManager().callEvent(initEvent)
-
-                if (initEvent.isCancelled || !resource.loadDatapack()) {
-                    game.forceStop(error = true)
-                    throw RuntimeException("Game failed to init.")
-                }
-            }
-
             if (mapID == null) {
-                game.resource.lobbyMap.generate(game, Consumer {
-                    postGenerate()
-                    game.updatePhase(Phase.LOBBY)
-                    consumer?.accept(game)
-                })
+                game.resource.lobbyMap.generate(game, postGenerate)
             } else {
-                val map = game.resource.mapRegistry[mapID]
+                game.resource.mapRegistry[mapID]?.generate(game, postGenerate)
                         ?: throw MapNotFound("Map $mapID does not exist for game: $name.")
-
-                map.generate(game, Consumer {
-                    postGenerate()
-                    consumer?.accept(game)
-                })
             }
+
+            return game
         }
 
         internal fun purge(game: Game) {
@@ -277,7 +251,7 @@ class Game(
 
             map.description.forEach(gameModule::broadcast)
             result?.accept(this)
-            updatePhase(Phase.PLAYING)
+            updatePhase(GamePhase.PLAYING)
         })
     }
 
@@ -306,25 +280,40 @@ class Game(
 
     /**
      * This function explains why you can't join this game.
-     * @return A [JoinRejection] unless you can join (in that case null is returned).
+     * @return A [GameJoinRejectedException.Cause] unless you can join (in that case null is returned).
      */
-    fun getRejectCause(player: Player): JoinRejection? {
+    fun getRejectCause(player: Player): GameJoinRejectedException.Cause? {
         val service = Module.getGameModule(this)
+        val joinPerm = Bukkit.getPluginCommand("join")!!.permission!!
+        val editPerm = Bukkit.getPluginCommand("game")!!.permission!!
 
         return if (players.contains(player.uniqueId)) {
-            JoinRejection.PLAYING
-        } else if (!player.hasPermission(Bukkit.getPluginCommand("join")!!.permission!!)) {
-            JoinRejection.NO_PERMISSION
-        } else if (phase == Phase.INIT || phase == Phase.GENERATE) {
-            JoinRejection.GENERATING
-        } else if (!service.canJoinAfterStart && phase == Phase.PLAYING) {
-            JoinRejection.IN_GAME
+            GameJoinRejectedException.Cause.PLAYING_THIS
+        } else if (PlayerData.get(player) != null) {
+            GameJoinRejectedException.Cause.PLAYING_OTHER
+        } else if (!player.hasPermission(joinPerm) || editMode && !player.hasPermission(editPerm)) {
+            GameJoinRejectedException.Cause.NO_PERMISSION
         } else if (players.count() >= service.maxPlayer) {
-            JoinRejection.FULL
-        } else if (phase == Phase.TERMINATE) {
-            JoinRejection.TERMINATING
+            GameJoinRejectedException.Cause.FULL
         } else {
-            null
+            when (phase) {
+                GamePhase.FINISH, GamePhase.TERMINATE -> {
+                    GameJoinRejectedException.Cause.TERMINATING
+                }
+                GamePhase.INIT, GamePhase.GENERATE, GamePhase.LOBBY -> {
+                    null
+                }
+                GamePhase.PLAYING -> {
+                    if (service.canJoinAfterStart) {
+                        null
+                    } else {
+                        GameJoinRejectedException.Cause.GAME_IN_PROGRESS
+                    }
+                }
+                else -> {
+                    GameJoinRejectedException.Cause.UNKNOWN
+                }
+            }
         }
     }
 
@@ -332,105 +321,104 @@ class Game(
         return getRejectCause(player) == null
     }
 
-    fun joinPlayer(player: Player): Boolean {
-        if (canJoin(player)) {
+    /**
+     * Make the [player] join this game.
+     *
+     * Caller is responsible for handling the [outcome][CompletableFuture].
+     */
+    fun joinPlayer(player: Player) {
+        val future = CompletableFuture<Boolean>()
+
+        if (!canJoin(player)) {
+            future.completeExceptionally(
+                    GameJoinRejectedException(player, getRejectCause(player)!!)
+            )
+        } else {
             val event = GameJoinEvent(this, player, PlayerType.PLAYER)
-            val postEvent = GameJoinPostEvent(this, player, PlayerType.PLAYER)
-            val uid = player.uniqueId
-            val playerData: GamePlayer
-            val warning = ComponentBuilder("Unable to join the game.").color(ChatColor.YELLOW).create()
+            val gamePlayer: GamePlayer
 
             Bukkit.getPluginManager().callEvent(event)
 
             if (event.isCancelled) {
-                player.sendMessage(*warning)
-                return false
+                return
             } else try {
-                playerData = GamePlayer.register(player, this)
+                gamePlayer = GamePlayer.register(player, this)
             } catch (e: RuntimeException) {
                 e.printStackTrace()
-                player.sendMessage(*warning)
-                return false
+                future.completeExceptionally(
+                        GameJoinRejectedException(player, GameJoinRejectedException.Cause.ERROR)
+                )
+                return
             }
 
-            resource.saveToDisk(false)
-            players.add(uid)
+            enterGame(gamePlayer, future) {
+                resource.saveToDisk(false)
+                players.add(player.uniqueId)
 
-            if (phase == Phase.LOBBY) {
-                playerData.restore(RestoreMode.JOIN)
-                Module.getLobbyModule(this).teleportSpawn(player)
-                Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
-                ActionbarTask(
-                        player = player,
-                        text = *arrayOf(
-                                "&aWelcome to &f$name&a!",
-                                "&aPlease wait until the game starts.",
-                                "&6CraftGames &7is developed by &fLazoYoung&7."
-                        )
-                ).start()
-            } else if (phase == Phase.PLAYING) {
-                playerData.restore(RestoreMode.JOIN)
-                playerData.restore(RestoreMode.RESPAWN)
-                Module.getWorldModule(this).teleportSpawn(playerData, null)
-                player.sendMessage("You joined the ongoing game: $name")
-                Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
-                ActionbarTask(
-                        player = player,
-                        text = *arrayOf("&aWelcome to &f$name&a!", "&aThis game was started a while ago.")
-                ).start()
+                if (phase == GamePhase.LOBBY) {
+                    gamePlayer.restore(RestoreMode.JOIN)
+                    Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
+                    ActionbarTask(
+                            player = player,
+                            text = *arrayOf(
+                                    "&aWelcome to &f$name&a!",
+                                    "&aPlease wait until the game starts.",
+                                    "&6CraftGames &7is developed by &fLazoYoung&7."
+                            )
+                    ).start()
+                } else { // PLAYING
+                    gamePlayer.restore(RestoreMode.JOIN)
+                    gamePlayer.restore(RestoreMode.RESPAWN)
+                    player.sendMessage("You joined the ongoing game: $name")
+                    Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
+                    ActionbarTask(
+                            player = player,
+                            text = *arrayOf("&aWelcome to &f$name&a!", "&aThis game was started a while ago.")
+                    ).start()
+                }
             }
-
-            Bukkit.getPluginManager().callEvent(postEvent)
-            return true
-        } else {
-            player.sendMessage(*ComponentBuilder(getRejectCause(player)!!.message).color(ChatColor.YELLOW).create())
-            return false
         }
+
+        handleJoinException(future)
     }
 
     fun joinSpectator(player: Player) {
         val uid = player.uniqueId
-        val playerData: Spectator
+        val spectator: Spectator
         val event = GameJoinEvent(this, player, PlayerType.SPECTATOR)
-        val postEvent = GameJoinPostEvent(this, player, PlayerType.SPECTATOR)
-        val warning = ComponentBuilder("Unable to join the game.").color(ChatColor.YELLOW).create()
+        val future = CompletableFuture<Boolean>()
 
         Bukkit.getPluginManager().callEvent(event)
 
         if (event.isCancelled) {
-            player.sendMessage(*warning)
-            return
-        } else try {
-            playerData = Spectator.register(player, this)
-        } catch (e: RuntimeException) {
-            e.printStackTrace()
-            player.sendMessage(*warning)
-            return
+            future.complete(false)
+        } else {
+            try {
+                spectator = Spectator.register(player, this)
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                future.completeExceptionally(
+                        GameJoinRejectedException(player, GameJoinRejectedException.Cause.ERROR)
+                )
+                return
+            }
+
+            enterGame(spectator, future) {
+                players.add(uid)
+                spectator.restore(RestoreMode.JOIN)
+                player.gameMode = GameMode.SPECTATOR
+                player.sendMessage("You are now spectating $name.")
+            }
         }
 
-        when (phase) {
-            Phase.LOBBY -> {
-                Module.getLobbyModule(this).teleportSpawn(player)
-            }
-            Phase.PLAYING -> {
-                Module.getWorldModule(this).teleportSpawn(playerData, null)
-            }
-            else -> return
-        }
-
-        players.add(uid)
-        playerData.restore(RestoreMode.JOIN)
-        playerData.updateEditors()
-        player.gameMode = GameMode.SPECTATOR
-        player.sendMessage("You are now spectating $name.")
-        Bukkit.getPluginManager().callEvent(postEvent)
+        handleJoinException(future)
     }
 
     fun joinEditor(gameEditor: GameEditor) {
         val player = gameEditor.getPlayer()
         val uid = player.uniqueId
         val event = GameJoinEvent(this, player, PlayerType.EDITOR)
-        val postEvent = GameJoinPostEvent(this, player, PlayerType.EDITOR)
+        val future = CompletableFuture<Boolean>()
         val text = if (players.size == 0) {
             "You are now editing '${map.id}\'."
         } else {
@@ -443,20 +431,25 @@ class Game(
 
         Bukkit.getPluginManager().callEvent(event)
 
-        if (!event.isCancelled) {
-            players.add(uid)
-            gameEditor.restore(RestoreMode.JOIN)
-            player.gameMode = GameMode.CREATIVE
-            player.sendMessage(text)
-            Module.getWorldModule(this).teleportSpawn(gameEditor, null)
-            Bukkit.getPluginManager().callEvent(postEvent)
-            Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                if (player.location.add(0.0, -1.0, 0.0).block.isEmpty) {
-                    player.allowFlight = true
-                    player.isFlying = true
-                }
-            })
+        if (event.isCancelled) {
+            future.complete(false)
+        } else {
+            enterGame(gameEditor, future) {
+                players.add(uid)
+                gameEditor.restore(RestoreMode.JOIN)
+                gameEditor.updateActionbar()
+                player.gameMode = GameMode.CREATIVE
+                player.sendMessage(text)
+                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                    if (player.location.add(0.0, -1.0, 0.0).block.isEmpty) {
+                        player.allowFlight = true
+                        player.isFlying = true
+                    }
+                })
+            }
         }
+
+        handleJoinException(future)
     }
 
     fun getPlayers(): List<Player> {
@@ -482,48 +475,24 @@ class Game(
         }
 
         if (timer.toTick() > 0L) {
-            updatePhase(Phase.FINISH)
+            updatePhase(GamePhase.FINISH)
             Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
-                updatePhase(Phase.TERMINATE)
+                updatePhase(GamePhase.TERMINATE)
                 terminate()
             }, timer.toTick())
         } else {
-            if (phase != Phase.INIT) {
-                updatePhase(Phase.TERMINATE)
+            if (phase != GamePhase.INIT) {
+                updatePhase(GamePhase.TERMINATE)
             }
 
             terminate()
         }
     }
 
-    /**
-     * Change [Phase] of this game,
-     * triggering modules and world to be changed.
-     *
-     * @param phase The new game phase
-     */
-    internal fun updatePhase(phase: Phase) {
-        this.phase = phase
-        module.update()
-    }
-
     internal fun leave(playerData: PlayerData) {
         val player = playerData.getPlayer()
         val uid = player.uniqueId
         val event = GameLeaveEvent(this, player, playerData.getPlayerType())
-
-        // Clear data
-        MessageTask.clearAll(player)
-        ActionbarTask.clearAll(player)
-        module.ejectPlayer(playerData)
-        players.remove(uid)
-
-        exit(player)
-        player.sendMessage("You left the game.")
-        Bukkit.getPluginManager().callEvent(event)
-    }
-
-    private fun exit(player: Player) {
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
         val lobby = Module.getLobbyModule(this)
         val exitLoc = if (lobby.exitLoc != null) {
@@ -532,6 +501,11 @@ class Game(
             LocationUtil.getExitFallback(player.world.name)
         }
 
+        // Clear data
+        MessageTask.clearAll(player)
+        ActionbarTask.clearAll(player)
+        module.ejectPlayer(playerData)
+        players.remove(uid)
         player.teleport(exitLoc, cause)
 
         if (lobby.exitServer != null) {
@@ -540,6 +514,101 @@ class Game(
                     MessengerUtil.request(player, arrayOf("Connect", lobby.exitServer!!))
                 }
             })
+        }
+
+        Module.getGameModule(this).broadcast("&f${player.displayName} &6left the game.")
+        player.sendMessage("\u00A76You left game.")
+        Bukkit.getPluginManager().callEvent(event)
+    }
+
+    internal fun updatePhase(phase: GamePhase) {
+        this.phase = phase
+
+        try {
+            if (!taskFailed) {
+                val iter = taskList.iterator()
+
+                while (iter.hasNext()) {
+                    val task = iter.next()
+
+                    if (task.phase.contains(phase)) {
+                        task.execute()
+                        iter.remove()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Prevent possible infinite loop.
+            taskFailed = true
+            e.printStackTrace()
+            forceStop(error = true)
+        }
+    }
+
+    private fun enterGame(playerData: PlayerData, future: CompletableFuture<Boolean>, postLogic: () -> Unit) {
+        val player = playerData.getPlayer()
+        val event = GameJoinPostEvent(this, player, playerData.getPlayerType())
+        val actionbar = ActionbarTask(
+                player = player,
+                repeat = true,
+                period = Timer(TimeUnit.SECOND, 2),
+                text = *arrayOf("&6Loading game...", "&ePlease wait for a moment.")
+        ).start()
+
+        fun refinedPostLogic() {
+            // Teleport player
+            when (phase) {
+                GamePhase.LOBBY -> {
+                    Module.getLobbyModule(this).teleportSpawn(player)
+                }
+                GamePhase.PLAYING, GamePhase.EDIT -> {
+                    Module.getWorldModule(this).teleportSpawn(playerData, null)
+                }
+                else -> error("Illegal GamePhase.")
+            }
+
+            // Do post logic in respect to PlayerType.
+            postLogic()
+            actionbar.clear()
+            Bukkit.getPluginManager().callEvent(event)
+        }
+
+        when (phase) {
+            GamePhase.LOBBY, GamePhase.PLAYING -> {
+                refinedPostLogic()
+            }
+            GamePhase.INIT, GamePhase.GENERATE -> {
+                // Wait until the game becomes ready.
+                GameTask(this, GamePhase.EDIT, GamePhase.LOBBY, GamePhase.PLAYING)
+                        .schedule {
+                            refinedPostLogic()
+                        }
+            }
+            else -> {
+                future.completeExceptionally(
+                        GameJoinRejectedException(player, GameJoinRejectedException.Cause.ERROR, playerData)
+                )
+            }
+        }
+
+        future.complete(true)
+    }
+
+    private fun handleJoinException(future: CompletableFuture<Boolean>) {
+        future.handleAsync { result, t ->
+            if (t != null || !result) {
+                if (t is GameJoinRejectedException) {
+                    Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                        t.informPlayer()
+                    })
+
+                    if (t.rejectCause == GameJoinRejectedException.Cause.ERROR) {
+                        t.printStackTrace()
+                    }
+                } else {
+                    t?.printStackTrace()
+                }
+            }
         }
     }
 }

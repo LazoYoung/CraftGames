@@ -37,7 +37,7 @@ commands:
     usage: 'Usage: /kit [name]'
     permission: craftgames.player.kit
   game:
-    description: Manage games.
+    description: Manage or edit games.
     usage: 'Type /game to see command list.'
     permission: craftgames.admin.manage
   ctag:
