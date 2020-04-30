@@ -1,11 +1,11 @@
 name: CraftGames
 main: com.github.lazoyoung.craftgames.Main
 author: LazoYoung
+version: $version
 website: https://github.com/LazoYoung/CraftGames
 api-version: '1.15'
-version: $version
 load: POSTWORLD
-softdepend: [ WorldEdit, MythicMobs, LibsDisguises, Vault, LootTableFix ]
+softdepend: [ LootTableFix, WorldEdit, Citizens, MythicMobs, LibsDisguises, Vault ]
 commands:
   craftgames:
     description: See all commands available in CraftGames.

@@ -4,7 +4,6 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -36,8 +35,8 @@ class VoteCommand : CommandBase {
 
         try {
             val player = pdata.getPlayer()
-            val lobby = Module.getLobbyModule(pdata.getGame())
-            val text = if (lobby.voteMap(player, mapName = args[0])) {
+            val lobbyService = pdata.getGame().getLobbyService()
+            val text = if (lobbyService.voteMap(player, mapName = args[0])) {
                 "&aYou voted for ${args[0]}!"
             } else {
                 "&eYou have voted already."

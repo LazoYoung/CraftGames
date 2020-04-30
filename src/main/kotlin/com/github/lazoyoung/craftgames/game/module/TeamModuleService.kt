@@ -44,7 +44,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     override fun getTopPlayerScore(objective: Objective): Score {
-        val players = Module.getPlayerModule(game).getLivingPlayers()
+        val players = game.getPlayerService().getLivingPlayers()
         var topScore = objective.getScore(players.first().name)
 
         players.forEach {
@@ -127,7 +127,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     override fun assignPlayers(number: Int, team: Team) {
-        Module.getPlayerModule(game).getLivingPlayers()
+        game.getPlayerService().getLivingPlayers()
                 .filter { scoreboard.getEntryTeam(it.name) == null }
                 .shuffled().take(number)
                 .forEach{ assignPlayer(it, team) }
@@ -137,7 +137,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
         if (ratio < 0f || ratio > 1f)
             throw IllegalArgumentException("Ratio out of range: $ratio")
 
-        val set = Module.getPlayerModule(game).getLivingPlayers()
+        val set = game.getPlayerService().getLivingPlayers()
                 .filter { scoreboard.getEntryTeam(it.name) == null }.shuffled()
         val drops = (set.size * (1f - ratio)).roundToInt()
         val assignee = set.drop(drops)
@@ -146,7 +146,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     override fun setKit(team: Team, vararg kits: String) {
-        val itemModule = Module.getItemModule(game)
+        val itemModule = game.getItemService()
         val kitMap = HashMap<String, ByteArray>()
 
         for (kitName in kits) {
@@ -161,7 +161,7 @@ class TeamModuleService(private val game: Game) : TeamModule {
     }
 
     override fun setSpawnpoint(team: Team, spawnTag: String) {
-        this.spawnTag[team.name] = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA)
+        this.spawnTag[team.name] = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA)
     }
 
     internal fun getSpawnpoint(player: Player): CoordTag? {

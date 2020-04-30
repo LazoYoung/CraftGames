@@ -4,7 +4,6 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.module.WorldModuleService
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
@@ -203,7 +202,7 @@ class GameMap internal constructor(
             val gen = WorldCreator(worldName)
             val world: World?
             val legacyMap = game.map
-            val worldModule: WorldModuleService = Module.getWorldModule(game)
+            val worldService = game.getWorldService()
 
             // Assign worldName so that WorldInitEvent detects new world.
             this.worldName = worldName
@@ -220,10 +219,10 @@ class GameMap internal constructor(
             }
 
             // Apply gamerules and difficulty
-            worldModule.gamerules.forEach { (rule, value) ->
+            worldService.gamerules.forEach { (rule, value) ->
                 world.setGameRuleValue(rule, value)
             }
-            world.difficulty = worldModule.difficulty
+            world.difficulty = worldService.difficulty
 
             fun init() {
                 val futures = LinkedList<CompletableFuture<Chunk>>()

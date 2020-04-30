@@ -7,7 +7,7 @@ import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.event.GameJoinEvent
 import com.github.lazoyoung.craftgames.event.GameJoinPostEvent
 import com.github.lazoyoung.craftgames.event.GameLeaveEvent
-import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.module.*
 import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameJoinRejectedException
@@ -35,17 +35,17 @@ class Game(
         internal var editMode: Boolean,
         internal val resource: GameResource
 ) {
-    /** List of players (regardless of PlayerState) **/
-    internal val players = LinkedList<UUID>()
-
     /** The state of game progress **/
     var phase = GamePhase.INIT
 
     /** All kind of modules **/
-    val module = Module(this)
+    val module = ModuleService(this)
 
-    /** Map Handler **/
+    /** Current map **/
     var map = resource.lobbyMap
+
+    /** List of players (regardless of PlayerState) **/
+    internal val players = LinkedList<UUID>()
 
     internal val taskList = ArrayList<GameTask>()
     private var taskFailed = false
@@ -167,8 +167,9 @@ class Game(
             if (mapID == null) {
                 game.resource.lobbyMap.generate(game, postGenerate)
             } else {
-                game.resource.mapRegistry[mapID]?.generate(game, postGenerate)
+                game.map = game.resource.mapRegistry[mapID]
                         ?: throw MapNotFound("Map $mapID does not exist for game: $name.")
+                game.map.generate(game, postGenerate)
             }
 
             return game
@@ -220,16 +221,21 @@ class Game(
     }
 
     /**
-     * Leave the lobby (if present) and start the game.
+     * Close the lobby and start the game.
      *
      * @param mapID Select which map to play.
      * @param result Consume the generated world.
      * @throws MapNotFound is thrown if map is not found.
      * @throws RuntimeException is thrown if map generation was failed.
      * @throws FaultyConfiguration is thrown if map configuration is not valid.
+     * @throws IllegalStateException is thrown if [GamePhase] is not lobby.
      */
     fun start(mapID: String?, votes: Int? = null, result: Consumer<Game>? = null) {
-        val gameModule = Module.getGameModule(this)
+        if (phase != GamePhase.LOBBY) {
+            error("Game isn't in lobby phase.")
+        }
+
+        val gameModule = getGameService()
         val thisMap = if (mapID == null) {
             resource.getRandomMap()
         } else {
@@ -283,7 +289,7 @@ class Game(
      * @return A [GameJoinRejectedException.Cause] unless you can join (in that case null is returned).
      */
     fun getRejectCause(player: Player): GameJoinRejectedException.Cause? {
-        val service = Module.getGameModule(this)
+        val service = getGameService()
         val joinPerm = Bukkit.getPluginCommand("join")!!.permission!!
         val editPerm = Bukkit.getPluginCommand("game")!!.permission!!
 
@@ -357,7 +363,7 @@ class Game(
 
                 if (phase == GamePhase.LOBBY) {
                     gamePlayer.restore(RestoreMode.JOIN)
-                    Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
+                    getGameService().broadcast("&f${player.displayName} &6joined the game.")
                     ActionbarTask(
                             player = player,
                             text = *arrayOf(
@@ -370,7 +376,7 @@ class Game(
                     gamePlayer.restore(RestoreMode.JOIN)
                     gamePlayer.restore(RestoreMode.RESPAWN)
                     player.sendMessage("You joined the ongoing game: $name")
-                    Module.getGameModule(this).broadcast("&f${player.displayName} &6joined the game.")
+                    getGameService().broadcast("&f${player.displayName} &6joined the game.")
                     ActionbarTask(
                             player = player,
                             text = *arrayOf("&aWelcome to &f$name&a!", "&aThis game was started a while ago.")
@@ -456,6 +462,38 @@ class Game(
         return players.mapNotNull { Bukkit.getPlayer(it) }
     }
 
+    fun getGameService(): GameModuleService {
+        return module.getGameModule() as GameModuleService
+    }
+
+    fun getTeamService(): TeamModuleService {
+        return module.getTeamModule() as TeamModuleService
+    }
+
+    fun getLobbyService(): LobbyModuleService {
+        return module.getLobbyModule() as LobbyModuleService
+    }
+
+    fun getPlayerService(): PlayerModuleService {
+        return module.getPlayerModule() as PlayerModuleService
+    }
+
+    fun getMobService(): MobModuleService {
+        return module.getMobModule() as MobModuleService
+    }
+
+    fun getScriptService(): ScriptModuleService {
+        return module.getScriptModule() as ScriptModuleService
+    }
+
+    fun getWorldService(): WorldModuleService {
+        return module.getWorldModule() as WorldModuleService
+    }
+
+    fun getItemService(): ItemModuleService {
+        return module.getItemModule() as ItemModuleService
+    }
+
     /**
      * Terminate the game.
      *
@@ -494,7 +532,7 @@ class Game(
         val uid = player.uniqueId
         val event = GameLeaveEvent(this, player, playerData.getPlayerType())
         val cause = PlayerTeleportEvent.TeleportCause.PLUGIN
-        val lobby = Module.getLobbyModule(this)
+        val lobby = getLobbyService()
         val exitLoc = if (lobby.exitLoc != null) {
             lobby.exitLoc!!
         } else {
@@ -516,7 +554,7 @@ class Game(
             })
         }
 
-        Module.getGameModule(this).broadcast("&f${player.displayName} &6left the game.")
+        getGameService().broadcast("&f${player.displayName} &6left the game.")
         player.sendMessage("\u00A76You left game.")
         Bukkit.getPluginManager().callEvent(event)
     }
@@ -559,10 +597,10 @@ class Game(
             // Teleport player
             when (phase) {
                 GamePhase.LOBBY -> {
-                    Module.getLobbyModule(this).teleportSpawn(player)
+                    getLobbyService().teleportSpawn(player)
                 }
                 GamePhase.PLAYING, GamePhase.EDIT -> {
-                    Module.getWorldModule(this).teleportSpawn(playerData, null)
+                    getWorldService().teleportSpawn(playerData, null)
                 }
                 else -> error("Illegal GamePhase.")
             }

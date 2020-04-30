@@ -4,7 +4,6 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.module.PlayerModuleService
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.bukkit.Location
@@ -30,18 +29,18 @@ class GamePlayerDeathEvent(
      *
      * Defaults to [GameModule.setCanRespawn]
      */
-    var canRespawn = Module.getGameModule(game).canRespawn
+    var canRespawn = game.getGameService().canRespawn
 
     /**
      * Decide to keep the items in inventory upon death.
      */
-    var keepInventory = Module.getGameModule(game).keepInventory
+    var keepInventory = game.getGameService().keepInventory
         private set
 
     /**
      * Decide to drop items on ground upon death.
      */
-    var dropItems = Module.getGameModule(game).dropItems
+    var dropItems = game.getGameService().dropItems
         private set
 
     companion object {
@@ -192,7 +191,7 @@ class GamePlayerDeathEvent(
     }
 
     private fun getPlayerModule(): PlayerModuleService {
-        return Module.getPlayerModule(getGame())
+        return getGame().getPlayerService()
     }
 
 }

@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.game.script.groovy
 
 import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.game.module.Module
+import com.github.lazoyoung.craftgames.game.module.ModuleService
 import groovy.transform.CompileDynamic
 import org.codehaus.groovy.ast.AnnotationNode
 import org.codehaus.groovy.ast.ClassNode
@@ -24,7 +24,7 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
     }
 
     override fun handleUnresolvedVariableExpression(vexp: VariableExpression): Boolean {
-        Module.getASTClassNode(vexp.name)?.let {
+        ModuleService.getASTClassNode(vexp.name)?.let {
             storeType(vexp, it)
             setHandled(true)
             return true

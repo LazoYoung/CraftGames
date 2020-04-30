@@ -10,7 +10,7 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
 
-class Module internal constructor(val game: Game) {
+class ModuleService internal constructor(val game: Game) : Module {
 
     private val script = game.resource.script
     private val gameModule = GameModuleService(game)
@@ -24,14 +24,15 @@ class Module internal constructor(val game: Game) {
 
     init {
         try {
-            script.bind("GameModule", gameModule as GameModule)
-            script.bind("TeamModule", teamModule as TeamModule)
-            script.bind("LobbyModule", lobbyModule as LobbyModule)
-            script.bind("PlayerModule", playerModule as PlayerModule)
-            script.bind("MobModule", mobModule as MobModule)
-            script.bind("ScriptModule", scriptModule as ScriptModule)
-            script.bind("WorldModule", worldModule as WorldModule)
-            script.bind("ItemModule", itemModule as ItemModule)
+            script.bind("Module", this as Module)
+            script.bind("GameModule", getGameModule())
+            script.bind("TeamModule", getTeamModule())
+            script.bind("LobbyModule", getLobbyModule())
+            script.bind("PlayerModule", getPlayerModule())
+            script.bind("MobModule", getMobModule())
+            script.bind("ScriptModule", getScriptModule())
+            script.bind("WorldModule", getWorldModule())
+            script.bind("ItemModule", getItemModule())
             script.startLogging()
             script.parse()
             CoordTag.reload(game.resource)
@@ -44,6 +45,7 @@ class Module internal constructor(val game: Game) {
     companion object {
         internal fun getASTClassNode(arg: String): ClassNode? {
             return when (arg) {
+                "Module" -> ClassHelper.make(Module::class.java)
                 "GameModule" -> ClassHelper.make(GameModule::class.java)
                 "TeamModule" -> ClassHelper.make(TeamModule::class.java)
                 "LobbyModule" -> ClassHelper.make(LobbyModule::class.java)
@@ -54,38 +56,6 @@ class Module internal constructor(val game: Game) {
                 "ItemModule" -> ClassHelper.make(ItemModule::class.java)
                 else -> null
             }
-        }
-
-        internal fun getGameModule(game: Game): GameModuleService {
-            return game.module.gameModule
-        }
-
-        internal fun getTeamModule(game: Game): TeamModuleService {
-            return game.module.teamModule
-        }
-
-        internal fun getLobbyModule(game: Game): LobbyModuleService {
-            return game.module.lobbyModule
-        }
-
-        internal fun getPlayerModule(game: Game): PlayerModuleService {
-            return game.module.playerModule
-        }
-
-        internal fun getMobModule(game: Game): MobModuleService {
-            return game.module.mobModule
-        }
-
-        internal fun getScriptModule(game: Game): ScriptModuleService {
-            return game.module.scriptModule
-        }
-
-        internal fun getWorldModule(game: Game): WorldModuleService {
-            return game.module.worldModule
-        }
-
-        internal fun getItemModule(game: Game): ItemModuleService {
-            return game.module.itemModule
         }
 
         /**
@@ -132,6 +102,38 @@ class Module internal constructor(val game: Game) {
             return
 
         gameModule.bossBar.removePlayer(playerData.getPlayer())
+    }
+
+    override fun getGameModule(): GameModule {
+        return gameModule
+    }
+
+    override fun getItemModule(): ItemModule {
+        return itemModule
+    }
+
+    override fun getLobbyModule(): LobbyModule {
+        return lobbyModule
+    }
+
+    override fun getMobModule(): MobModule {
+        return mobModule
+    }
+
+    override fun getPlayerModule(): PlayerModule {
+        return playerModule
+    }
+
+    override fun getScriptModule(): ScriptModule {
+        return scriptModule
+    }
+
+    override fun getTeamModule(): TeamModule {
+        return teamModule
+    }
+
+    override fun getWorldModule(): WorldModule {
+        return worldModule
     }
 
 }

@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.game.script
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.internal.exception.ScriptNotParsed
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -33,14 +32,15 @@ abstract class ScriptBase(
     /**
      * Compiles the script to achieve efficient executions in the future.
      *
-     * If you want to use invokeFunction(), you must do parse() in advance!
+     * If you want to use invokeFunction(), call this function in advance!
      */
     open fun parse() {
-        val tmpPath = Files.createTempFile(mainFile.name, null)
-        val reader = mainFile.copyTo(tmpPath.toFile(), overwrite = true).bufferedReader(Main.charset)
+        val tmpFile = Files.createTempFile(mainFile.name, null)
+        val reader = mainFile.copyTo(tmpFile.toFile(), overwrite = true).bufferedReader(Main.charset)
         val writer = mainFile.bufferedWriter(Main.charset)
         var line = reader.readLine()
 
+        // Get rid of invisible characters
         while (line != null) {
             val replaced = line.replace(Regex("\\p{Cf}"), "")
             line = reader.readLine()
@@ -52,27 +52,42 @@ abstract class ScriptBase(
 
         reader.close()
         writer.close()
-        Files.delete(tmpPath)
+        Files.delete(tmpFile)
     }
 
     /**
      * Executes the script by the file passed to constructor.
      *
-     * @throws ScriptNotParsed is thrown if engine requires the script to be [parse]d before execution.
+     * @throws IllegalStateException is thrown if this engine
+     * requires the script to be [parse]d before execution.
      * @throws Exception
      */
     abstract fun execute()
 
     /**
-     * Invokes the specific function defined at top-most context in the COMPILED SCRIPT.
+     * Invokes specific function defined at top-most context in the COMPILED SCRIPT.
      *
-     * @param name of the function to be invoked.
-     * @param args Array of argument objects to be passed.
+     * @param name Name of the function to invoke.
+     * @param args Array of arguments passed to this function.
      * @return The invocation result.
-     * @throws ScriptNotParsed is thrown if script isn't [parse]d yet.
-     * @throws Exception
+     * @throws IllegalStateException is thrown if this engine
+     * requires the script to be [parse]d before execution.
+     * @throws Exception Any exception may occur during script evaluation.
      */
-    abstract fun invokeFunction(name: String, args: Array<Any>? = null): Any?
+    abstract fun invokeFunction(name: String, vararg args: Any): Any?
+
+    /**
+     * Invokes specific function defined at top-most context in the given script.
+     *
+     * TODO /game execute (fileName) [key1:val1, key2:val2, ...]
+     *
+     * @param fileName Name of the script file to execute.
+     * @param binding Map paired with String(variable name) and Object(value) will be passed to script context.
+     * @return The execution result.
+     * @throws IllegalArgumentException is thrown if [fileName] doesn't indicate a script file.
+     * @throws Exception Any exception may occur during script evaluation.
+     */
+    abstract fun execute(fileName: String, binding: Map<String, Any>): Any?
 
     abstract fun clear()
 

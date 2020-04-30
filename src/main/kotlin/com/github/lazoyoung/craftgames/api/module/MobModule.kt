@@ -102,6 +102,11 @@ interface MobModule {
     fun spawnMythicMob(name: String, level: Int, spawnTag: String): CompletableFuture<List<Mob>>
 
     /**
+     * Spawn a Citizen NPC.
+     */
+    fun spawnNPC()
+
+    /**
      * Despawn specific [type][EntityType] of entities.
      *
      * @return Number of entities despawned.

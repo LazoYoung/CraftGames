@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.bukkit.ChatColor
@@ -20,9 +19,10 @@ class KitCommand : CommandBase {
         when (val pdata = PlayerData.get(sender)) {
             is GamePlayer -> {
                 val game = pdata.getGame()
+                val itemService = game.getItemService()
 
                 when {
-                    !(Module.getItemModule(game).canSelectKit(sender)) -> {
+                    !(itemService.canSelectKit(sender)) -> {
                         sender.sendMessage("You can't do this now.")
                     }
                     args.isEmpty() -> {
@@ -33,7 +33,7 @@ class KitCommand : CommandBase {
                         val name = args[0].toLowerCase()
 
                         try {
-                            Module.getItemModule(game).selectKit(name, sender)
+                            itemService.selectKit(name, sender)
                             ActionbarTask(sender, "&aSelected kit: &f$name").start()
                         } catch (e: IllegalArgumentException) {
                             sender.sendMessage(ChatColor.RED.toString().plus(e.localizedMessage))

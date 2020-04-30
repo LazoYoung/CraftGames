@@ -6,7 +6,6 @@ import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.GameResource
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -30,7 +29,7 @@ import java.util.function.Consumer
 class GameEditor private constructor(
         player: Player,
         private val game: Game
-): PlayerData(player, game, GameMode.CREATIVE) {
+) : PlayerData(player, game, GameMode.CREATIVE) {
 
     val mapID = game.map.id
 
@@ -150,6 +149,7 @@ class GameEditor private constructor(
 
         if (game.phase == GamePhase.TERMINATE) {
             player.sendMessage("\u00A7cGame is already closing.")
+            return
         } else {
             game.updatePhase(GamePhase.TERMINATE)
         }
@@ -158,7 +158,7 @@ class GameEditor private constructor(
         val plugin = Main.instance
         val source = game.map.worldPath
         val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
-        val gameModule = Module.getGameModule(game)
+        val gameService = game.getGameService()
         val actionbar = ActionbarTask(
                 player = player,
                 repeat = true,
@@ -166,7 +166,7 @@ class GameEditor private constructor(
         ).start()
 
         mainActionbar?.clear()
-        gameModule.broadcast("&e${player.displayName} is closing the session.")
+        gameService.broadcast("&e${player.displayName} is closing the session.")
 
         // Save world
         try {
@@ -195,7 +195,7 @@ class GameEditor private constructor(
                     if (!result || t != null) {
                         t?.printStackTrace()
                         actionbar.clear()
-                        gameModule.broadcast("&cFailed to save changes!")
+                        gameService.broadcast("&cFailed to save changes!")
                         game.forceStop(error = true)
                     } else {
                         try {
@@ -209,13 +209,13 @@ class GameEditor private constructor(
                         } catch (e: Exception) {
                             e.printStackTrace()
                             actionbar.clear()
-                            gameModule.broadcast("&cFailed to save changes!")
+                            gameService.broadcast("&cFailed to save changes!")
                             game.forceStop(error = true)
                             return
                         }
 
                         actionbar.clear()
-                        gameModule.broadcast("&aChanges are saved!")
+                        gameService.broadcast("&aChanges are saved!")
                         informIncompleteTags(player)
                         game.close()
                     }
@@ -304,16 +304,17 @@ class GameEditor private constructor(
 
             var text = arrayOf(
                     "&b&lEDIT MODE &r&b(&e${editor.mapID} &bin &e${game.name}&b)",
-                    "&aType &b/game save &ato save and close this session.",
-                    "&aYou may &b/leave &awithout closing it for other editors."
+                    "&aType &b/game save &ato save and close this session."
             )
 
             if (memberList.isNotEmpty()) {
-                text = text.plus(memberList.joinToString(
-                        prefix = "&aEditors with you: &r",
-                        limit = 3,
-                        transform = { it.getPlayer().displayName }
-                ))
+                val append = arrayOf(
+                        memberList.joinToString(
+                                prefix = "&aEditors with you: &r",
+                                limit = 3,
+                                transform = { it.getPlayer().displayName }),
+                        "&aYou may &b/leave &awithout closing it for others.")
+                text = text.plus(append)
             }
 
             editor.mainActionbar?.clear()

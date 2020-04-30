@@ -133,7 +133,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         if (game.phase != GamePhase.PLAYING)
             return
 
-        val winners = Module.getTeamModule(game).getPlayers(winner)
+        val winners = game.getTeamService().getPlayers(winner)
 
         // Fire event
         Bukkit.getPluginManager().callEvent(GameFinishEvent(game, GameResult.TEAM_WIN, winner, winners))
@@ -170,8 +170,8 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
 
     @Suppress("DEPRECATION")
     internal fun start() {
-        val playerModule = Module.getPlayerModule(game)
-        val worldModule = Module.getWorldModule(game)
+        val playerModule = game.getPlayerService()
+        val worldModule = game.getWorldService()
         val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
         var index = 0
 

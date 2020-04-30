@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.event
 
 import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.module.Module
 import org.bukkit.entity.Player
 import org.bukkit.event.HandlerList
 import org.bukkit.scoreboard.Team
@@ -32,7 +31,7 @@ class GameFinishEvent(
     }
 
     fun getLosers(): List<Player> {
-        return Module.getPlayerModule(getGame())
+        return getGame().getPlayerService()
                 .getLivingPlayers()
                 .filterNot { getWinners().contains(it) }
     }

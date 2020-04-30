@@ -35,6 +35,11 @@ repositories {
         name = "dmulloy2-repo"
         url = "https://repo.dmulloy2.net/nexus/repository/public/"
     }
+    maven {
+        // Citizens 2
+        name = "everything"
+        url = "https://repo.citizensnpcs.co/"
+    }
     maven { url = "https://maven.enginehub.org/repo/" }
     maven { url = "https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-jsr223" }
     maven {
@@ -57,8 +62,9 @@ dependencies {
     compileOnly "com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT"
     compileOnly "com.github.lazoyoung:LootTableFix:1.0.3"
     compileOnly "com.sk89q.worldedit:worldedit-bukkit:7.1.0"
-    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    compileOnly "net.citizensnpcs:citizens:2.0.26-SNAPSHOT"
     compileOnly "LibsDisguises:LibsDisguises:10.0.5"
+    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
 }
 
 idea.module {

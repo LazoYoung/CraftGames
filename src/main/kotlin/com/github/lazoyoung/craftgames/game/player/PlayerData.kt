@@ -3,7 +3,6 @@ package com.github.lazoyoung.craftgames.game.player
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.internal.util.LocationUtil
 import org.bukkit.GameMode
 import org.bukkit.Location
@@ -234,7 +233,7 @@ open class PlayerData {
             }
             RestoreMode.RESPAWN -> {
                 if (!keepInventory) {
-                    Module.getItemModule(getGame()).applyKit(player)
+                    getGame().getItemService().applyKit(player)
                 }
             }
             RestoreMode.LEAVE -> {

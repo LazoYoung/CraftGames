@@ -5,7 +5,6 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.*
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -45,9 +44,7 @@ class ServerListener : Listener {
         val game = Game.getByWorld(mob.world) ?: return
 
         if (game.phase == GamePhase.PLAYING) {
-            val mobModule = Module.getMobModule(game)
-
-            if (mob.world.entityCount >= mobModule.mobCap) {
+            if (mob.world.entityCount >= game.getMobService().mobCap) {
                 event.isCancelled = true
             }
         }
@@ -97,7 +94,7 @@ class ServerListener : Listener {
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
             if (event.action != InventoryAction.NOTHING) {
-                event.isCancelled = Module.getItemModule(game).lockInventory
+                event.isCancelled = game.getItemService().lockInventory
             }
         }
     }
@@ -108,7 +105,7 @@ class ServerListener : Listener {
         val game = pdata.getGame()
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
-            event.isCancelled = Module.getItemModule(game).lockInventory
+            event.isCancelled = game.getItemService().lockInventory
         }
     }
 
@@ -118,7 +115,7 @@ class ServerListener : Listener {
         val game = pdata.getGame()
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
-            event.isCancelled = !Module.getItemModule(game).allowItemDrop
+            event.isCancelled = !game.getItemService().allowItemDrop
         }
     }
 
@@ -128,7 +125,7 @@ class ServerListener : Listener {
         val pdata = PlayerData.get(player) ?: return
 
         if (pdata is GamePlayer && player.gameMode != GameMode.SPECTATOR) {
-            val worldModule = Module.getWorldModule(pdata.getGame())
+            val worldModule = pdata.getGame().getWorldService()
             val from = worldModule.getAreaNameAt(event.from)
             val to = worldModule.getAreaNameAt(event.to)
 
@@ -173,10 +170,10 @@ class ServerListener : Listener {
         val game = playerData.getGame()
 
         if (game.editMode) {
-            Module.getWorldModule(game).teleportSpawn(playerData, null)
+            game.getWorldService().teleportSpawn(playerData, null)
         }
         else if (playerData is GamePlayer && game.phase == GamePhase.PLAYING) {
-            val playerModule = Module.getPlayerModule(game)
+            val playerService = game.getPlayerService()
             val relayEvent = GamePlayerDeathEvent(playerData, game, event)
 
             // Call GamePlayerDeathEvent
@@ -193,7 +190,7 @@ class ServerListener : Listener {
 
                 if (deathMessage != null) {
                     event.deathMessage = null
-                    Module.getGameModule(game).broadcast(deathMessage)
+                    game.getGameService().broadcast(deathMessage)
                 }
 
                 if (keep || !drop) {
@@ -212,9 +209,9 @@ class ServerListener : Listener {
                     }
 
                     if (relayEvent.canRespawn) {
-                        playerModule.respawn(playerData)
+                        playerService.respawn(playerData)
                     } else {
-                        playerModule.eliminate(player)
+                        playerService.eliminate(player)
                     }
                 })
             }

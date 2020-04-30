@@ -52,7 +52,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun getPlayersInside(areaTag: String, callback: Consumer<List<Player>>) {
-        Module.getWorldModule(game).getEntitiesInside(areaTag, Consumer<List<Player>> {
+        game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Player>> {
             callback.accept(it)
             script.printDebug("Found ${it.size} players inside area: $areaTag")
         })
@@ -74,12 +74,12 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         player.sendTitle(Title(title, subTitle, 20, 80, 20))
         gamePlayer.toSpectator()
 
-        if (Module.getGameModule(game).lastManStanding) {
-            val gameModule = Module.getGameModule(game)
-            val teamModule = Module.getTeamModule(game)
+        if (game.getGameService().lastManStanding) {
+            val gameService = game.getGameService()
+            val teamService = game.getTeamService()
             val survivors = getLivingPlayers().minus(player)
             val firstSurvivor = survivors.firstOrNull()
-            val firstSurvivorTeam = firstSurvivor?.let { teamModule.getPlayerTeam(it) }
+            val firstSurvivorTeam = firstSurvivor?.let { teamService.getPlayerTeam(it) }
 
             if (survivors.size > 1) {
                 if (firstSurvivorTeam == null) {
@@ -87,7 +87,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 }
 
                 survivors.minus(firstSurvivor).forEach {
-                    if (firstSurvivorTeam.name != teamModule.getPlayerTeam(it)?.name) {
+                    if (firstSurvivorTeam.name != teamService.getPlayerTeam(it)?.name) {
                         return // More than 2 teams alive
                     }
                 }
@@ -97,13 +97,13 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
             when {
                 firstSurvivorTeam != null -> {
-                    gameModule.finishGame(firstSurvivorTeam, timer)
+                    gameService.finishGame(firstSurvivorTeam, timer)
                 }
                 firstSurvivor != null -> {
-                    gameModule.finishGame(firstSurvivor, timer)
+                    gameService.finishGame(firstSurvivor, timer)
                 }
                 else -> {
-                    gameModule.drawGame(timer)
+                    gameService.drawGame(timer)
                 }
             }
         }
@@ -162,7 +162,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun setSpawnpoint(type: PlayerType, spawnTag: String) {
-        val tag = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN)
+        val tag = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN)
 
         when (type) {
             PlayerType.PLAYER -> playerSpawn = tag
@@ -176,7 +176,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun overrideSpawnpoint(player: Player, tagName: String, index: Int) {
-        val tag = Module.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA)
+        val tag = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA)
 
         getSpawnpointByTag(tag, index).handle { location, t ->
             if (location == null || t != null) {
@@ -206,7 +206,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     fun getSpawnpoint(playerData: PlayerData, index: Int?): CompletableFuture<Location> {
         val uid = playerData.getPlayer().uniqueId
         val script = game.resource.script
-        val world = Module.getWorldModule(game).getWorld()
+        val world = game.getWorldService().getWorld()
         val personalSpawn = personalSpawn[uid]
         var future = CompletableFuture.supplyAsync {
             personalSpawn
@@ -217,7 +217,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             is Spectator -> spectatorSpawn
             is GamePlayer -> {
                 if (future.get() == null) {
-                    Module.getTeamModule(game).getSpawnpoint(playerData.getPlayer()) ?: playerSpawn
+                    game.getTeamService().getSpawnpoint(playerData.getPlayer()) ?: playerSpawn
                 } else {
                     null
                 }
@@ -252,9 +252,9 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         val player = gamePlayer.getPlayer()
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
-        val playerModule = Module.getPlayerModule(game)
+        val playerService = game.getPlayerService()
         val timer = respawnTimer[player.uniqueId]?.clone()
-                ?: Module.getGameModule(game).respawnTimer.clone()
+                ?: game.getGameService().respawnTimer.clone()
         val gracePeriod = Main.getConfig()?.getLong("spawn-invincible", 60L)
                 ?: 60L
 
@@ -262,7 +262,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
         object : BukkitRunnable() {
             override fun run() {
-                if (game.phase != GamePhase.PLAYING || !playerModule.isOnline(player)) {
+                if (game.phase != GamePhase.PLAYING || !playerService.isOnline(player)) {
                     this.cancel()
                     return
                 }
@@ -276,7 +276,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                 if (timer.subtract(frame).toSecond() < 0L) {
                     // Return to spawnpoint and gear up
                     gamePlayer.restore(RestoreMode.RESPAWN)
-                    Module.getWorldModule(game).teleportSpawn(gamePlayer, null)
+                    game.getWorldService().teleportSpawn(gamePlayer, null)
                     ActionbarTask(player, period = frame, text = *arrayOf("&9&l> &a&lRESPAWN &9&l<"))
                             .start()
 

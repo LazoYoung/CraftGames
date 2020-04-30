@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.module.Module
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
@@ -176,6 +175,7 @@ class GameCommand : CommandBase {
                 }
 
                 game = playerData.getGame()
+                val itemService = game.getItemService()
 
                 if (args.size < 2)
                     return false
@@ -191,8 +191,8 @@ class GameCommand : CommandBase {
                         if (args.size > 2) {
                             try {
                                 val name = args[2]
-                                Module.getItemModule(game).selectKit(name, sender)
-                                Module.getItemModule(game).applyKit(sender)
+                                itemService.selectKit(name, sender)
+                                itemService.applyKit(sender)
                                 ActionbarTask(sender, "&aKit \'$name\' has been applied.").start()
                             } catch (e: IllegalArgumentException) {
                                 sender.sendMessage("That kit does not exist!")
@@ -206,7 +206,7 @@ class GameCommand : CommandBase {
                         if (args.size > 2) {
                             val name = args[2]
 
-                            Module.getItemModule(game).saveKit(name, sender)
+                            itemService.saveKit(name, sender)
                             ActionbarTask(sender, "&aKit \'$name\' has been saved.").start()
                         } else {
                             sender.sendMessage("Provide the name of kit!")
@@ -218,7 +218,7 @@ class GameCommand : CommandBase {
                             try {
                                 val name = args[2]
 
-                                Module.getItemModule(game).deleteKit(name)
+                                itemService.deleteKit(name)
                                 ActionbarTask(sender, "&aKit \'$name\' has been removed.").start()
                             } catch (e: IllegalArgumentException) {
                                 sender.sendMessage("\u00A7eThat kit does not exist!")

@@ -54,7 +54,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     override fun spawnItem(tag: String, itemStack: ItemStack) {
         val map = game.map
         val world = map.world ?: throw MapNotFound()
-        val ctag = Module.getRelevantTag(game, tag, TagMode.SPAWN, TagMode.BLOCK)
+        val ctag = ModuleService.getRelevantTag(game, tag, TagMode.SPAWN, TagMode.BLOCK)
         var counter = 0
 
         if (ctag.mode == TagMode.SPAWN) { // SpawnCapture
@@ -119,7 +119,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
     override fun selectKit(name: String?, player: Player) {
         val uid = player.uniqueId
-        val team = Module.getTeamModule(game).getPlayerTeam(player)
+        val team = game.getTeamService().getPlayerTeam(player)
 
         when {
             name == null -> {
@@ -153,7 +153,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
         if (kitName != null) {
             byteArr = kitSel[uid]!!.second
         } else {
-            val team = Module.getTeamModule(game).getPlayerTeam(player)?.name
+            val team = game.getTeamService().getPlayerTeam(player)?.name
 
             if (team != null && teamKit.containsKey(team)) {
                 val kitMap = teamKit[team]!!
@@ -206,7 +206,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
                     }
 
                     disguise.entity = player
-                    Module.getPlayerModule(game).startDisguise(disguise, player, type)
+                    game.getPlayerService().startDisguise(disguise, player, type)
                 }
             } catch (e: EOFException) {}
 
@@ -318,7 +318,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
                 val mapMeta = itemStack.itemMeta as MapMeta
 
                 if (mapMeta.hasMapView()) {
-                    mapMeta.mapView?.setWorld(Module.getWorldModule(game).getWorld())
+                    mapMeta.mapView?.setWorld(game.getWorldService().getWorld())
                 }
             }
             else -> {}

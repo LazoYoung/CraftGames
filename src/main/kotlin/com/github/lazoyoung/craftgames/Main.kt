@@ -7,6 +7,7 @@ import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
 import com.github.lazoyoung.loottablefix.LootTablePatch
+import net.citizensnpcs.api.CitizensAPI
 import net.milkbowl.vault.economy.Economy
 import net.milkbowl.vault.permission.Permission
 import org.bukkit.Bukkit
@@ -26,27 +27,29 @@ import java.util.logging.Logger
 class Main : JavaPlugin(), CommandExecutor {
 
     companion object {
+        lateinit var instance: Main
+            private set
         lateinit var pluginFolder: File
             private set
         lateinit var dataFolder: File
             private set
-        lateinit var instance: Main
+        lateinit var charset: Charset
             private set
-        var vaultPerm: Permission? = null
-            private set
-        var vaultEco: Economy? = null
+        lateinit var logger: Logger
             private set
         var lootTablePatch: LootTablePatch? = null
             private set
         var worldEdit: Boolean = false
             private set
+        var citizens: Boolean = false
+            private set
         var mythicMobs: Boolean = false
             private set
         var libsDisguises: Boolean = false
             private set
-        lateinit var charset: Charset
+        var vaultPerm: Permission? = null
             private set
-        lateinit var logger: Logger
+        var vaultEco: Economy? = null
             private set
 
         internal fun getConfig(): FileConfiguration? {
@@ -174,14 +177,6 @@ class Main : JavaPlugin(), CommandExecutor {
         val services = Bukkit.getServicesManager()
 
         try {
-            val permissionClass = Class.forName("net.milkbowl.vault.permission.Permission")
-            val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
-            vaultPerm = services.getRegistration(permissionClass)?.provider as Permission?
-            vaultEco = services.getRegistration(economyClass)?.provider as Economy?
-            logger.info("Vault is hooked.")
-        } catch (e: ClassNotFoundException) {}
-
-        try {
             val lootTablePatchClass = Class.forName("com.github.lazoyoung.loottablefix.LootTablePatch")
             lootTablePatch = services.getRegistration(lootTablePatchClass)?.provider as LootTablePatch?
             logger.info("LootTablePatch is hooked.")
@@ -192,6 +187,12 @@ class Main : JavaPlugin(), CommandExecutor {
             logger.info("WorldEdit is hooked.")
         }
 
+        try {
+            CitizensAPI.getPlugin()
+            citizens = true
+            logger.info("Citizens is hooked.")
+        } catch (e: IllegalStateException) {}
+
         if (manager.isPluginEnabled("MythicMobs")) {
             mythicMobs = true
             logger.info("MythicMobs is hooked.")
@@ -201,5 +202,13 @@ class Main : JavaPlugin(), CommandExecutor {
             libsDisguises = true
             logger.info("LibsDisguises is hooked.")
         }
+
+        try {
+            val permissionClass = Class.forName("net.milkbowl.vault.permission.Permission")
+            val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
+            vaultPerm = services.getRegistration(permissionClass)?.provider as Permission?
+            vaultEco = services.getRegistration(economyClass)?.provider as Economy?
+            logger.info("Vault is hooked.")
+        } catch (e: ClassNotFoundException) {}
     }
 }

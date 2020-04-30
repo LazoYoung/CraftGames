@@ -64,7 +64,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun setBorderCenter(blockTag: String, index: Int) {
-        val tag = Module.getRelevantTag(game, blockTag, TagMode.BLOCK)
+        val tag = ModuleService.getRelevantTag(game, blockTag, TagMode.BLOCK)
         val capture = tag.getCaptures(getMapID())
                 .filterIsInstance(BlockCapture::class.java)[index]
 
@@ -115,7 +115,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     override fun fillContainers(blockTag: String, loot: LootTable) {
         val world = getWorld()
         val mapID = game.map.id
-        val ctag = Module.getRelevantTag(game, blockTag, TagMode.BLOCK)
+        val ctag = ModuleService.getRelevantTag(game, blockTag, TagMode.BLOCK)
         val captures = ctag.getCaptures(mapID)
 
         if (captures.isEmpty()) {
@@ -145,7 +145,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
     override fun fillBlocks(tag: String, material: Material) {
         val world = getWorld()
-        val coordTag = Module.getRelevantTag(game, tag, TagMode.AREA, TagMode.BLOCK)
+        val coordTag = ModuleService.getRelevantTag(game, tag, TagMode.AREA, TagMode.BLOCK)
         val captures = coordTag.getCaptures(game.map.id)
         var counter = 0
 
@@ -249,7 +249,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
         val scheduler = Bukkit.getScheduler()
         val player = playerData.getPlayer()
         val gracePeriod = Main.getConfig()?.getLong("spawn.invincible", 60L) ?: 60L
-        val future = Module.getPlayerModule(game).getSpawnpoint(playerData, index)
+        val future = game.getPlayerService().getSpawnpoint(playerData, index)
 
         return future.exceptionally { t ->
             t.printStackTrace()
@@ -282,8 +282,8 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     internal inline fun <reified T : Entity> getEntitiesInside(areaTag: String, callback: Consumer<List<T>>) {
-        val world = Module.getWorldModule(game).getWorld()
-        val tag = Module.getRelevantTag(game, areaTag, TagMode.AREA)
+        val world = game.getWorldService().getWorld()
+        val tag = ModuleService.getRelevantTag(game, areaTag, TagMode.AREA)
         val captures = tag.getCaptures(game.map.id)
                 .filterIsInstance(AreaCapture::class.java)
         val futureMap = LinkedHashMap<CompletableFuture<Chunk>, AreaCapture>()

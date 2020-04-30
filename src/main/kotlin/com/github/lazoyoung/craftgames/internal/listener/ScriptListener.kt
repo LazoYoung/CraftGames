@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.internal.listener
 
 import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.event.*
-import com.github.lazoyoung.craftgames.game.module.Module
 import org.bukkit.event.Cancellable
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -74,7 +73,7 @@ class ScriptListener : Listener {
         val game = event.getGame()
 
         try {
-            Module.getScriptModule(game).events[type]?.accept(event)
+            game.getScriptService().events[type]?.accept(event)
         } catch (e: Exception) {
             game.resource.script.writeStackTrace(e)
             game.forceStop(error = true)

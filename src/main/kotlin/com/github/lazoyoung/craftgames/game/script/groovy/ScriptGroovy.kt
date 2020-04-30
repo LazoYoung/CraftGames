@@ -2,11 +2,11 @@ package com.github.lazoyoung.craftgames.game.script.groovy
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.script.ScriptBase
-import com.github.lazoyoung.craftgames.internal.exception.ScriptNotParsed
 import groovy.lang.Binding
 import groovy.lang.Script
 import groovy.transform.CompileStatic
 import groovy.util.GroovyScriptEngine
+import groovy.util.ResourceException
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import java.io.*
@@ -25,11 +25,11 @@ class ScriptGroovy(
     private var engine = GroovyScriptEngine(arrayOf(path.toUri().toURL()))
     private val bindings = Binding()
     private var script: Script? = null
+    // TODO Separate external scripts output
     private var printWriter: PrintWriter? = null
-    private val uri: URI = mainFile.toURI()
 
     init {
-        registry[uri] = this
+        registry[mainFile.toURI()] = this
     }
 
     override fun bind(arg: String, obj: Any) {
@@ -78,19 +78,35 @@ class ScriptGroovy(
 
     override fun execute() {
         if (script == null) {
-            throw ScriptNotParsed()
+            error("Cannot execute script which isn't parsed yet.")
         }
 
         script!!.run()
+        printDebug("Script execution is complete.")
     }
 
-    override fun invokeFunction(name: String, args: Array<Any>?): Any? {
+    @Suppress("UNCHECKED_CAST")
+    override fun execute(fileName: String, binding: Map<String, Any>): Any? {
+        printDebug("Executing $fileName")
+
+        try {
+            val map = binding.toMutableMap()
+            map.putAll(bindings.variables as Map<out String, Any>)
+
+            return engine.createScript(fileName, Binding(map)).run()
+        } catch (e: ResourceException) {
+            throw IllegalArgumentException("This is not a groovy file: $fileName")
+        }
+    }
+
+    override fun invokeFunction(name: String, vararg args: Any): Any? {
+        printDebug("Executing function \'$name\' in ${mainFile.name}")
         return script?.invokeMethod(name, args)
     }
 
     override fun clear() {
         printWriter?.close()
         bindings.variables.clear()
-        registry.remove(uri)
+        registry.clear()
     }
 }

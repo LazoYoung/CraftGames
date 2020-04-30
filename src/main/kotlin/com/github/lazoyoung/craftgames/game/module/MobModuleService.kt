@@ -65,7 +65,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
     }
 
     override fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>) {
-        Module.getWorldModule(game).getEntitiesInside(areaTag, Consumer<List<Mob>> {
+        game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Mob>> {
             callback.accept(it)
 
             script.printDebug(it.joinToString(
@@ -82,14 +82,14 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
     override fun spawnMob(type: String, spawnTag: String): CompletableFuture<List<Mob>> {
         val mapID = game.map.id
-        val worldModule = Module.getWorldModule(game)
+        val worldModule = game.getWorldService()
         val world = worldModule.getWorld()
 
         if (world.entityCount >= mobCap) {
             return CompletableFuture.completedFuture(emptyList())
         }
 
-        val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
+        val captures = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
         val typeKey = entityType.key
@@ -180,14 +180,13 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
 
         val mapID = game.map.id
-        val worldModule = Module.getWorldModule(game)
-        val world = worldModule.getWorld()
+        val world = game.getWorldService().getWorld()
 
         if (world.entityCount >= mobCap) {
             return CompletableFuture.completedFuture(emptyList())
         }
 
-        val captures = Module.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
+        val captures = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
         val tasks = LinkedList<CompletableFuture<Unit>>()
@@ -255,8 +254,12 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
     }
 
+    override fun spawnNPC() {
+        TODO("Not yet implemented")
+    }
+
     override fun despawnEntities(type: EntityType): Int {
-        val world = Module.getWorldModule(game).getWorld()
+        val world = game.getWorldService().getWorld()
         var counter = 0
 
         world.entities.forEach {
@@ -275,7 +278,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
-        val world = Module.getWorldModule(game).getWorld()
+        val world = game.getWorldService().getWorld()
         var counter = 0
 
         world.livingEntities.forEach {

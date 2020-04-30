@@ -105,7 +105,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
 
         world.pvp = false
         world.difficulty = Difficulty.PEACEFUL
-        this.minimum = Module.getGameModule(game).minPlayer
+        this.minimum = game.getGameService().minPlayer
 
         startTimer()
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
@@ -114,7 +114,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     private fun startTimer() {
         serviceTask = object : BukkitRunnable() {
             override fun run() {
-                val count = Module.getPlayerModule(game).getLivingPlayers().size
+                val count = game.getPlayerService().getLivingPlayers().size
 
                 if (count == 0) {
                     game.forceStop(error = false)
@@ -131,12 +131,12 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
                 }
 
                 if (--timer <= 0) {
-                    val playerCount = Module.getPlayerModule(game).getLivingPlayers().size
-                    val minimum = Module.getGameModule(game).minPlayer
+                    val playerCount = game.getPlayerService().getLivingPlayers().size
+                    val minimum = game.getGameService().minPlayer
                     val voteList = LinkedList(votes.entries)
 
                     if (playerCount < minimum) {
-                        Module.getGameModule(game).broadcast("&eNot enough players to start! Waiting for more...")
+                        game.getGameService().broadcast("&eNot enough players to start! Waiting for more...")
                     } else {
                         Collections.sort(voteList, Comparator { o1, o2 ->
                             val comp = (o1.value - o2.value) * -1
@@ -175,7 +175,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
                 if (timer.toInt() % 60 == 0 || timer < 60 && valid.contains(timer.toInt())) {
                     val format = Timer(TimeUnit.SECOND, timer).format(true)
 
-                    Module.getGameModule(game).broadcast("&6Game starts in $format.")
+                    game.getGameService().broadcast("&6Game starts in $format.")
                 }
             }
         }
