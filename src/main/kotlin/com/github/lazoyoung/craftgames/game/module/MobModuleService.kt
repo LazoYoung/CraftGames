@@ -28,7 +28,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.mob-throttle", 3) ?: 3
-    private val script = game.resource.script
+    private val script = game.resource.gameScript
     private var mythicMobsActive = Main.mythicMobs
     private lateinit var apiHelper: Any
     private lateinit var spawnMethod: Method

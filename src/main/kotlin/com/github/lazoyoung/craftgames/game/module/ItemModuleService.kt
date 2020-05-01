@@ -35,7 +35,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     private var allowKit = true
     private var allowKitRespawn = false
     private val resource = game.resource
-    private val script = resource.script
+    private val script = resource.gameScript
     internal val teamKit = HashMap<String, Map<String, ByteArray>>()
     private val kitSel = HashMap<UUID, Pair<String, ByteArray>>()
     private var defaultKit: Pair<String, ByteArray>?

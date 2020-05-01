@@ -1,11 +1,10 @@
 package com.github.lazoyoung.craftgames.game.script
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.game.script.groovy.ScriptGroovy
-import com.github.lazoyoung.craftgames.game.script.jsr223.ScriptGroovyLegacy
+import com.github.lazoyoung.craftgames.game.script.groovy.GameScriptGroovy
+import com.github.lazoyoung.craftgames.game.script.jsr223.GameScriptGroovyLegacy
 import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import java.io.File
-import java.nio.file.Path
 
 class ScriptFactory {
     enum class Engine {
@@ -17,8 +16,7 @@ class ScriptFactory {
          * @throws ScriptEngineNotFound is thrown if either file extension or script engine is not valid.
          * @throws RuntimeException is thrown if plugin fails to load script
          */
-        fun get(path: Path, main: File) : ScriptBase {
-            val script = main.name
+        fun get(file: File) : GameScript {
             val engine: Engine
             val engineName = Main.getConfig()
                     ?.getString("script.engine", "Groovy")?.toUpperCase()
@@ -30,20 +28,20 @@ class ScriptFactory {
                 throw ScriptEngineNotFound("Unknown engine: $engineName")
             }
 
-            return when (main.extension) {
+            return when (file.extension) {
                 "groovy" -> try {
                     when (engine) {
                         Engine.GROOVY -> {
-                            ScriptGroovy(path, main)
+                            GameScriptGroovy(file)
                         }
                         Engine.JSR223 -> {
-                            ScriptGroovyLegacy(path, main)
+                            GameScriptGroovyLegacy(file)
                         }
                     }
                 } catch (e: Exception) {
-                    throw RuntimeException("Failed to load script: $script", e)
+                    throw RuntimeException("Failed to load script: ${file.name}", e)
                 }
-                else -> throw ScriptEngineNotFound("Unsupported script: $script")
+                else -> throw ScriptEngineNotFound("Unsupported script: ${file.name}")
             }
         }
     }

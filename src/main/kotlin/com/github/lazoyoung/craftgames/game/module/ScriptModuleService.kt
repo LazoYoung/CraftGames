@@ -6,6 +6,8 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.script.GameScript
+import com.github.lazoyoung.craftgames.game.script.ScriptFactory
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.LivingEntity
@@ -14,6 +16,7 @@ import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.*
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.function.Consumer
 
@@ -23,7 +26,7 @@ class ScriptModuleService internal constructor(
 
     internal val events = HashMap<EventType, Consumer<in GameEvent>>()
     private val resource = game.resource
-    private val script = resource.script
+    private val script = resource.gameScript
     private val tasks = ArrayList<BukkitTask>()
 
     override fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>) {
@@ -53,6 +56,13 @@ class ScriptModuleService internal constructor(
 
     override fun setLogVerbosity(verbose: Boolean) {
         script.debug = verbose
+    }
+
+    override fun getScript(fileName: String): GameScript {
+        val file = resource.scriptRoot.resolve(fileName)
+
+        require(Files.isRegularFile(file))
+        return ScriptFactory.get(file.toFile())
     }
 
     override fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask {

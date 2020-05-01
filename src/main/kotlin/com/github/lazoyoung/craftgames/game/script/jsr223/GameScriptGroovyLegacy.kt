@@ -1,22 +1,16 @@
 package com.github.lazoyoung.craftgames.game.script.jsr223
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.game.script.ScriptBase
+import com.github.lazoyoung.craftgames.game.script.GameScript
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
 import java.io.*
-import java.nio.file.Files
-import java.nio.file.Path
 import javax.script.*
 import javax.script.ScriptContext.ENGINE_SCOPE
 
-class ScriptGroovyLegacy(
-        path: Path,
-        mainFile: File
-) : ScriptBase(path, mainFile, regex = "^Script\\d+\\.groovy$".toRegex()) {
+class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groovy$".toRegex()) {
     private val engine = GroovyScriptEngineFactory().scriptEngine
     private var script: CompiledScript? = null
-    private val reader = mainFile.bufferedReader(Main.charset)
-    // TODO Separate external script output
+    private val reader = file.bufferedReader(Main.charset)
     private var logger: PrintWriter? = null
     private val context = SimpleScriptContext()
     private val bindings: Bindings
@@ -33,7 +27,7 @@ class ScriptGroovyLegacy(
 
     override fun startLogging() {
         val format = getFilenameFormat()
-        val logFile = logPath.resolve("Log_$format.txt").toFile()
+        val logFile = logRoot.resolve("Log_$format.txt")
         val writer = OutputStreamWriter(FileOutputStream(logFile, true), Main.charset)
         logFile.mkdirs()
         logFile.createNewFile()
@@ -69,32 +63,12 @@ class ScriptGroovyLegacy(
             engine.eval(reader)
         }
 
-        printDebug("Executing function \'$name\' in ${mainFile.name}")
+        printDebug("Executing function \'$name\' in ${file.name}")
         return if (args.isEmpty()) {
             (script!!.engine as Invocable).invokeFunction(name)
         } else {
             (script!!.engine as Invocable).invokeFunction(name, args)
         }
-    }
-
-    override fun execute(fileName: String, binding: Map<String, Any>): Any? {
-        val file = path.resolve(fileName)
-
-        require(Files.isRegularFile(file) && fileName.endsWith(".groovy")) {
-            "This is not a groovy file: $fileName"
-        }
-
-        val tmpEngine = GroovyScriptEngineFactory().scriptEngine
-        val tmpContext = SimpleScriptContext()
-        val tmpBindings = tmpEngine.createBindings()
-        tmpEngine.setBindings(tmpBindings, ENGINE_SCOPE)
-        tmpEngine.context = tmpContext
-        context.writer = logger
-        tmpBindings.putAll(bindings.toMap())
-        tmpBindings.putAll(binding)
-
-        printDebug("Executing function \'$name\' in $fileName")
-        tmpEngine.eval(file.toFile().bufferedReader(), SimpleBindings(map))
     }
 
     override fun clear() {

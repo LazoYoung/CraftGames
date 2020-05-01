@@ -53,7 +53,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
 
     internal var difficulty = Difficulty.NORMAL
     internal val gamerules = HashMap<String, String>()
-    private val script = game.resource.script
+    private val script = game.resource.gameScript
 
     override fun getMapID(): String {
         return game.map.id

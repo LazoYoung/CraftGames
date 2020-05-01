@@ -6,7 +6,7 @@ interface EventModule {
 
     /**
      * Monitor command execution inside this game.
-     * Command format: /cgscript execute (args...)
+     * TODO: Replace this with /game script (fileName) execute [key1:val1, key2:val2, ...]
      *
      * @param callback The event will trigger this function.
      * [Consumer] accepts an array of [String] (equivalent to command arguments),

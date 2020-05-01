@@ -41,7 +41,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     private var spectatorSpawn: CoordTag? = null
     private val disguises = HashMap<UUID, Disguise>()
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
-    private val script = game.resource.script
+    private val script = game.resource.gameScript
 
     override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
@@ -205,7 +205,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
     fun getSpawnpoint(playerData: PlayerData, index: Int?): CompletableFuture<Location> {
         val uid = playerData.getPlayer().uniqueId
-        val script = game.resource.script
+        val script = game.resource.gameScript
         val world = game.getWorldService().getWorld()
         val personalSpawn = personalSpawn[uid]
         var future = CompletableFuture.supplyAsync {

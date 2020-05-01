@@ -12,7 +12,7 @@ import org.codehaus.groovy.ast.ClassNode
 
 class ModuleService internal constructor(val game: Game) : Module {
 
-    private val script = game.resource.script
+    private val script = game.resource.gameScript
     private val gameModule = GameModuleService(game)
     private val teamModule = TeamModuleService(game)
     private val lobbyModule = LobbyModuleService(game)

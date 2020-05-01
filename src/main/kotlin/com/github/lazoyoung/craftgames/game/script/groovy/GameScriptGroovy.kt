@@ -1,35 +1,29 @@
 package com.github.lazoyoung.craftgames.game.script.groovy
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.game.script.ScriptBase
+import com.github.lazoyoung.craftgames.game.script.GameScript
 import groovy.lang.Binding
 import groovy.lang.Script
 import groovy.transform.CompileStatic
 import groovy.util.GroovyScriptEngine
-import groovy.util.ResourceException
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import java.io.*
 import java.net.URI
-import java.nio.file.Path
 
-class ScriptGroovy(
-        path: Path,
-        mainFile: File
-) : ScriptBase(path, mainFile, regex = "^${mainFile.name}$".toRegex()) {
+class GameScriptGroovy(file: File) : GameScript(file, "^${file.name}$".toRegex()) {
 
     companion object {
-        internal val registry = HashMap<URI, ScriptGroovy>()
+        internal val registry = HashMap<URI, GameScriptGroovy>()
     }
 
-    private var engine = GroovyScriptEngine(arrayOf(path.toUri().toURL()))
+    private var engine = GroovyScriptEngine(arrayOf(file.toURI().toURL()))
     private val bindings = Binding()
     private var script: Script? = null
-    // TODO Separate external scripts output
     private var printWriter: PrintWriter? = null
 
     init {
-        registry[mainFile.toURI()] = this
+        registry[file.toURI()] = this
     }
 
     override fun bind(arg: String, obj: Any) {
@@ -39,7 +33,7 @@ class ScriptGroovy(
     override fun startLogging() {
         try {
             val format = getFilenameFormat()
-            val logFile = logPath.resolve("Log_$format.txt").toFile()
+            val logFile = logRoot.resolve("Log_$format.txt")
             val fileStream: FileOutputStream
 
             logFile.parentFile?.mkdirs()
@@ -73,7 +67,7 @@ class ScriptGroovy(
         imports.addImport("Material", "org.bukkit.Material")
         engine.config.addCompilationCustomizers(imports)
         engine.config.addCompilationCustomizers(transform)
-        script = engine.createScript(mainFile.name, bindings)
+        script = engine.createScript(file.name, bindings)
     }
 
     override fun execute() {
@@ -85,22 +79,8 @@ class ScriptGroovy(
         printDebug("Script execution is complete.")
     }
 
-    @Suppress("UNCHECKED_CAST")
-    override fun execute(fileName: String, binding: Map<String, Any>): Any? {
-        printDebug("Executing $fileName")
-
-        try {
-            val map = binding.toMutableMap()
-            map.putAll(bindings.variables as Map<out String, Any>)
-
-            return engine.createScript(fileName, Binding(map)).run()
-        } catch (e: ResourceException) {
-            throw IllegalArgumentException("This is not a groovy file: $fileName")
-        }
-    }
-
     override fun invokeFunction(name: String, vararg args: Any): Any? {
-        printDebug("Executing function \'$name\' in ${mainFile.name}")
+        printDebug("Executing function \'$name\' in ${file.name}")
         return script?.invokeMethod(name, args)
     }
 

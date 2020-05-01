@@ -4,7 +4,7 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
-import com.github.lazoyoung.craftgames.game.script.ScriptBase
+import com.github.lazoyoung.craftgames.game.script.GameScript
 import com.github.lazoyoung.craftgames.game.script.ScriptFactory
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
@@ -16,17 +16,14 @@ import org.bukkit.configuration.file.YamlConfiguration
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
+import java.nio.file.*
 
 /**
  * @throws GameNotFound is thrown if game cannot be resolved by [gameName].
  */
 class GameResource(val gameName: String) {
 
-    lateinit var script: ScriptBase
+    lateinit var gameScript: GameScript
     var lobbyMap: GameMap
     val mapRegistry = HashMap<String, GameMap>()
     internal val kitRoot: Path
@@ -34,6 +31,7 @@ class GameResource(val gameName: String) {
     private val kitFiles = HashMap<String, File>()
     private val namespace = gameName.toLowerCase()
     private val lootTableContainer: Path?
+    internal val scriptRoot: Path
 
     /** CoordTags configuration for every maps in this game. **/
     internal val tagConfig: YamlConfiguration
@@ -193,24 +191,26 @@ class GameResource(val gameName: String) {
          */
         val scriptPathStr = layoutConfig.getString("script.path")
                 ?: throw FaultyConfiguration("Script path is not defined in $layoutPath")
-        val scriptMainStr = layoutConfig.getString("script.main")
+        val mainScriptStr = layoutConfig.getString("script.main")
                 ?: throw FaultyConfiguration("Main script path is not defined in $layoutPath")
-        val scriptPath = root.resolve(scriptPathStr)
-        val scriptMain = scriptPath.resolve(scriptMainStr).toFile()
+        scriptRoot = root.resolve(scriptPathStr)
+        val mainScript = scriptRoot.resolve(mainScriptStr)
 
         try {
-            if (!Files.isDirectory(scriptPath)) {
-                Files.createDirectory(scriptPath)
+            try {
+                Files.createDirectories(scriptRoot)
+            } catch (e: FileAlreadyExistsException) {
+                Files.delete(scriptRoot)
+                Files.createDirectories(scriptRoot)
             }
-            if (!scriptMain.isFile) {
-                scriptMain.createNewFile()
-            }
+
+            Files.createFile(mainScript)
         } catch (e: SecurityException) {
             throw RuntimeException("Failed to create script: $scriptPathStr", e)
-        }
+        } catch (e: FileAlreadyExistsException) {}
 
         try {
-            script = ScriptFactory.get(scriptPath, scriptMain)
+            gameScript = ScriptFactory.get(mainScript.toFile())
         } catch (e: ScriptEngineNotFound) {
             Main.logger.warning(e.localizedMessage)
         }

@@ -15,12 +15,12 @@ import java.net.URI
 class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
     : AbstractTypeCheckingExtension(typeCheckingVisitor) {
 
-    private var script: ScriptGroovy? = null
+    private var gameScript: GameScriptGroovy? = null
 
     init {
         super.debug = false
         val uri = URI(typeCheckingVisitor.typeCheckingContext.source.name)
-        script = ScriptGroovy.registry[uri]
+        gameScript = GameScriptGroovy.registry[uri]
     }
 
     override fun handleUnresolvedVariableExpression(vexp: VariableExpression): Boolean {
@@ -101,7 +101,7 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
     ): MutableList<MethodNode> {
         val nodeList = ArrayList<MethodNode>()
 
-        script?.printDebug("Resolving method: ${receiver.name}.$name${argumentList.text}")
+        gameScript?.printDebug("Resolving method: ${receiver.name}.$name${argumentList.text}")
 
         loop@ for (methodNode in receiver.getMethods(name)) {
             if (methodNode.parameters.size != argumentTypes.size) {
@@ -141,17 +141,17 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
     }
 
     override fun makeDynamic(call: MethodCall, returnType: ClassNode): MethodNode {
-        script?.printDebug("Turning " + call.text +" into a dynamic method call returning " + returnType.toString(false))
+        gameScript?.printDebug("Turning " + call.text +" into a dynamic method call returning " + returnType.toString(false))
         return super.makeDynamic(call, returnType)
     }
 
     override fun makeDynamic(pexp: PropertyExpression, returnType: ClassNode) {
-        script?.printDebug("Turning '" + pexp.text + "' into a dynamic property access of type " + returnType.toString(false))
+        gameScript?.printDebug("Turning '" + pexp.text + "' into a dynamic property access of type " + returnType.toString(false))
         super.makeDynamic(pexp, returnType)
     }
 
     override fun makeDynamic(vexp: VariableExpression, returnType: ClassNode) {
-        script?.printDebug("Turning '"+vexp.text +"' into a dynamic variable access of type "+returnType.toString(false))
+        gameScript?.printDebug("Turning '"+vexp.text +"' into a dynamic variable access of type "+returnType.toString(false))
         super.makeDynamic(vexp, returnType)
     }
 

@@ -3,6 +3,8 @@ package com.github.lazoyoung.craftgames.api.module
 import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.event.GameEvent
+import com.github.lazoyoung.craftgames.game.script.GameScript
+import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
 import org.bukkit.entity.LivingEntity
@@ -58,6 +60,15 @@ interface ScriptModule {
      * Set whether or not to print out debugging message inside script log.
      */
     fun setLogVerbosity(verbose: Boolean)
+
+    /**
+     * Get [GameScript] of the file with given [fileName].
+     *
+     * @throws IllegalArgumentException is thrown if the file indicated by [fileName] does not exist.
+     * @throws ScriptEngineNotFound is thrown if either file extension or script engine is invalid.
+     * @throws RuntimeException is thrown if plugin fails to load script
+     */
+    fun getScript(fileName: String): GameScript
 
     /**
      * Repeat to execute [task][Runnable].

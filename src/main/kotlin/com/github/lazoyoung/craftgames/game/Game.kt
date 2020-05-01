@@ -154,9 +154,9 @@ class Game(
             }
 
             try {
-                resource.script.execute()
+                resource.gameScript.execute()
             } catch (e: Exception) {
-                resource.script.writeStackTrace(e)
+                resource.gameScript.writeStackTrace(e)
                 game.forceStop(error = true)
                 throw ScriptException("Cannot evaluate script.")
             }

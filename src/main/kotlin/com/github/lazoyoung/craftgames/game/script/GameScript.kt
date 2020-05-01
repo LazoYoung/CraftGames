@@ -8,18 +8,15 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
 
-abstract class ScriptBase(
-        protected val path: Path,
-        protected val mainFile: File,
+abstract class GameScript(
+        protected val file: File,
         private val regex: Regex
 ) {
     var debug = Main.getConfig()?.getBoolean("script.debug", false) ?: false
-    protected val name: String = mainFile.nameWithoutExtension
-    protected val logPath: Path = path.resolve("log")
+    protected val name: String = file.nameWithoutExtension
+    protected val logRoot: File = requireNotNull(file.parentFile).resolve("log")
 
     abstract fun bind(arg: String, obj: Any)
-
-    abstract fun startLogging()
 
     abstract fun print(message: String)
 
@@ -35,9 +32,9 @@ abstract class ScriptBase(
      * If you want to use invokeFunction(), call this function in advance!
      */
     open fun parse() {
-        val tmpFile = Files.createTempFile(mainFile.name, null)
-        val reader = mainFile.copyTo(tmpFile.toFile(), overwrite = true).bufferedReader(Main.charset)
-        val writer = mainFile.bufferedWriter(Main.charset)
+        val tmpFile = Files.createTempFile(file.name, null)
+        val reader = file.copyTo(tmpFile.toFile(), overwrite = true).bufferedReader(Main.charset)
+        val writer = file.bufferedWriter(Main.charset)
         var line = reader.readLine()
 
         // Get rid of invisible characters
@@ -76,25 +73,14 @@ abstract class ScriptBase(
      */
     abstract fun invokeFunction(name: String, vararg args: Any): Any?
 
-    /**
-     * Invokes specific function defined at top-most context in the given script.
-     *
-     * TODO /game execute (fileName) [key1:val1, key2:val2, ...]
-     *
-     * @param fileName Name of the script file to execute.
-     * @param binding Map paired with String(variable name) and Object(value) will be passed to script context.
-     * @return The execution result.
-     * @throws IllegalArgumentException is thrown if [fileName] doesn't indicate a script file.
-     * @throws Exception Any exception may occur during script evaluation.
-     */
-    abstract fun execute(fileName: String, binding: Map<String, Any>): Any?
+    internal abstract fun startLogging()
 
-    abstract fun clear()
+    internal abstract fun clear()
 
     internal fun writeStackTrace(e: Exception): Path {
         val format = getFilenameFormat()
-        val errorPath = logPath.resolve("Error_$format.txt")
-        val writer = OutputStreamWriter(FileOutputStream(errorPath.toFile(), true), Main.charset)
+        val errorFile = logRoot.resolve("Error_$format.txt")
+        val writer = OutputStreamWriter(FileOutputStream(errorFile, true), Main.charset)
         val error = PrintWriter(BufferedWriter(writer))
 
         error.println("Stacktrace of script code:")
@@ -107,7 +93,7 @@ abstract class ScriptBase(
         } else {
             e.stackTrace.plus(e.cause?.stackTrace ?: emptyArray())
                     .find { regex.matches(it.fileName ?: "") }
-                    ?.let { error.println("   at ${mainFile.name}:${it.lineNumber}") }
+                    ?.let { error.println("   at ${file.name}:${it.lineNumber}") }
                     ?: error.println("    N/A")
         }
         error.println()
@@ -116,9 +102,9 @@ abstract class ScriptBase(
         e.printStackTrace(error)
         e.cause?.printStackTrace(error)
         error.close()
-        Main.logger.severe("Failed to evaluate \'${mainFile.name}\' script!")
-        Main.logger.severe("Stacktrace location: $errorPath")
-        return errorPath
+        Main.logger.severe("Failed to evaluate \'${file.name}\' script!")
+        Main.logger.severe("Stacktrace location: ${errorFile.path}")
+        return errorFile.toPath()
     }
 
     internal fun getFilenameFormat(): String {
