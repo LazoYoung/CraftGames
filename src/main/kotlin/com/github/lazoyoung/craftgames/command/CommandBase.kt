@@ -61,12 +61,12 @@ interface CommandBase : TabExecutor {
      * This allows users to input string with spacing characters.
      *
      * For instance, let's suppose that a user dispatched a command like this:
-     * /test "I love pizza." 'Minecraft' apple pie
+     * /test mood:"I love pizza." '39 music' apple pie
      *
      * These arguments will be translated into a [String] array:
-     * "I love pizza.", "Minecraft", "apple", and "pie".
+     * "mood:I love pizza.", "39 music", "apple", "pie".
      *
-     * Note that quotation marks are trimmed in result.
+     * Note that quotation marks will be trimmed in result.
      *
      * @throws IllegalArgumentException is thrown syntax error is found.
      */
@@ -76,12 +76,11 @@ interface CommandBase : TabExecutor {
 
         loop@ for (i in args.indices) {
             val argument = args[i]
-            val quoteMarks = charArrayOf('\'', '\"')
             val quotes = TreeMap<Int, Char>()
             var lastIndex = -1
 
             while (true) {
-                lastIndex = argument.indexOfAny(quoteMarks, ++lastIndex)
+                lastIndex = argument.indexOfAny(charArrayOf('\'', '\"'), ++lastIndex)
 
                 if (lastIndex !in 0..argument.lastIndex) {
                     break
@@ -94,7 +93,9 @@ interface CommandBase : TabExecutor {
                 when (quotes.size) {
                     0 -> openQuote = openQuote.plus(" ").plus(argument)
                     1 -> {
-                        openQuote = openQuote.plus(" ").plus(argument.substring(0, quotes.firstKey()))
+                        openQuote = openQuote
+                                .plus(" ").plus(argument)
+                                .replace("\'", "").replace("\"", "")
                         joinedList.add(openQuote)
                         openQuote = null
                     }
@@ -105,7 +106,7 @@ interface CommandBase : TabExecutor {
             } else {
                 when (quotes.size) {
                     0 -> joinedList.add(argument)
-                    1 -> openQuote = argument.substring(quotes.firstKey() + 1)
+                    1 -> openQuote = argument
                     2 -> {
                         val first = quotes.pollFirstEntry()
                         val last = quotes.pollFirstEntry()
@@ -113,7 +114,7 @@ interface CommandBase : TabExecutor {
                         require(first.value == last.value) {
                             "Conflict of quotation marks: $argument"
                         }
-                        joinedList.add(argument.substring(first.key + 1, last.key))
+                        joinedList.add(argument.replace("\'", "").replace("\"", ""))
                     }
                     else -> {
                         throw IllegalArgumentException("Quotation marks are too many: $argument")
