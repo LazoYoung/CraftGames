@@ -50,10 +50,19 @@ class CoordtagCommand : CommandBase {
                 }
 
                 val components = PageElement.getPageComponents(
-                        PageElement("◎ /ctag create (tag) <mode>", "Create a new tag in specific mode.", "/ctag create"),
-                        PageElement("◎ /ctag capture (tag)", "Capture the current coordinate for specific tag", "/ctag capture"),
-                        PageElement("◎ /ctag remove (tag)", "Wipe out the whole tag.", "/ctag remove"),
-                        PageElement("◎ /ctag tp (tag) [index]", "Teleport to one of the captures defined in this tag.", "/ctag tp")
+                        PageElement("◎ /ctag create (tag) <mode>",
+                                "Create a new tag.",
+                                "/ctag create "),
+                        PageElement("◎ /ctag capture (tag)",
+                                "Capture current coordinate.",
+                                "/ctag capture "),
+                        PageElement("◎ /ctag remove (tag) [index]",
+                                "Wipe out the whole tag. You may supply &eindex\n"
+                                        + "&rif you need to delete a specific capture only.",
+                                "/ctag remove "),
+                        PageElement("◎ /ctag tp (tag) [index]",
+                                "Teleport to one of captures defined in the tag.",
+                                "/ctag tp ")
                 )
 
                 sender.sendMessage(

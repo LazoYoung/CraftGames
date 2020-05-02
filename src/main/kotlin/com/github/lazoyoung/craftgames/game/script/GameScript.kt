@@ -1,6 +1,8 @@
 package com.github.lazoyoung.craftgames.game.script
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.module.Module
+import com.github.lazoyoung.craftgames.game.module.ModuleService
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -28,8 +30,6 @@ abstract class GameScript(
 
     /**
      * Compiles the script to achieve efficient executions in the future.
-     *
-     * If you want to use invokeFunction(), call this function in advance!
      */
     open fun parse() {
         val tmpFile = Files.createTempFile(file.name, null)
@@ -52,23 +52,39 @@ abstract class GameScript(
         Files.delete(tmpFile)
     }
 
+    fun injectModules(module: ModuleService) {
+        bind("Module", module as Module)
+        bind("GameModule", module.getGameModule())
+        bind("TeamModule", module.getTeamModule())
+        bind("LobbyModule", module.getLobbyModule())
+        bind("PlayerModule", module.getPlayerModule())
+        bind("MobModule", module.getMobModule())
+        bind("ScriptModule", module.getScriptModule())
+        bind("WorldModule", module.getWorldModule())
+        bind("ItemModule", module.getItemModule())
+    }
+
     /**
-     * Executes the script by the file passed to constructor.
+     * Executes entire script.
+     *
+     * Some script engine specification requires [injectModules] before execution.
      *
      * @throws IllegalStateException is thrown if this engine
-     * requires the script to be [parse]d before execution.
-     * @throws Exception
+     * requires the script to be [injectModules]d before execution.
+     * @throws Exception Any exception may occur during script evaluation.
      */
-    abstract fun execute()
+    abstract fun run()
 
     /**
      * Invokes specific function defined at top-most context in the COMPILED SCRIPT.
+     *
+     * Some script engine specification requires [injectModules] before execution.
      *
      * @param name Name of the function to invoke.
      * @param args Array of arguments passed to this function.
      * @return The invocation result.
      * @throws IllegalStateException is thrown if this engine
-     * requires the script to be [parse]d before execution.
+     * requires the script to be [injectModules]d before execution.
      * @throws Exception Any exception may occur during script evaluation.
      */
     abstract fun invokeFunction(name: String, vararg args: Any): Any?

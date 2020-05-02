@@ -210,7 +210,7 @@ class GameResource(val gameName: String) {
         } catch (e: FileAlreadyExistsException) {}
 
         try {
-            gameScript = ScriptFactory.get(mainScript.toFile())
+            gameScript = ScriptFactory.get(mainScript)
         } catch (e: ScriptEngineNotFound) {
             Main.logger.warning(e.localizedMessage)
         }

@@ -62,7 +62,7 @@ class ScriptModuleService internal constructor(
         val file = resource.scriptRoot.resolve(fileName)
 
         require(Files.isRegularFile(file))
-        return ScriptFactory.get(file.toFile())
+        return ScriptFactory.get(file)
     }
 
     override fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask {

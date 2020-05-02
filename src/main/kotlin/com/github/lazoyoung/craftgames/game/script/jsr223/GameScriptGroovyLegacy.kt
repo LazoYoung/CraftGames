@@ -46,7 +46,7 @@ class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groov
         printDebug("Script parse is complete.")
     }
 
-    override fun execute() {
+    override fun run() {
         if (script != null) {
             script!!.eval()
         } else {

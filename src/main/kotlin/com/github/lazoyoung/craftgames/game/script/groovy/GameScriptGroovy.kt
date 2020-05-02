@@ -27,7 +27,7 @@ class GameScriptGroovy(file: File) : GameScript(file, "^${file.name}$".toRegex()
     }
 
     override fun bind(arg: String, obj: Any) {
-        bindings.setVariable(arg, obj)
+        bindings.setProperty(arg, obj)
     }
 
     override fun startLogging() {
@@ -70,7 +70,7 @@ class GameScriptGroovy(file: File) : GameScript(file, "^${file.name}$".toRegex()
         script = engine.createScript(file.name, bindings)
     }
 
-    override fun execute() {
+    override fun run() {
         if (script == null) {
             error("Cannot execute script which isn't parsed yet.")
         }

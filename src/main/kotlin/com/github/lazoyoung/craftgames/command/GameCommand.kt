@@ -6,45 +6,83 @@ import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.Spectator
+import com.github.lazoyoung.craftgames.game.script.ScriptFactory
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
-import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import java.nio.file.Files
 import java.util.function.Consumer
+import java.util.regex.Pattern
 
 class GameCommand : CommandBase {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (args.isEmpty() || args[0].equals("help", true)) {
-            sender.sendMessage(
-                    *ComponentBuilder()
-                            .append(BORDER_STRING, RESET_FORMAT)
-                            .append("\nGame Command Manual (Page 1/1)\n\n", RESET_FORMAT)
-                            .append("◎ /game start [map]\n", RESET_FORMAT)
-                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Start the current game.\nYou may choose a map to play.").create()))
-                            .event(ClickEvent(SUGGEST_CMD, "/game start"))
-                            .append("◎ /game stop [id]\n", RESET_FORMAT)
-                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Stop the running game.").create()))
-                            .event(ClickEvent(SUGGEST_CMD, "/game stop"))
-                            .append("◎ /game edit (title) (map)\n", RESET_FORMAT)
-                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Start editor mode.").create()))
-                            .event(ClickEvent(SUGGEST_CMD, "/game edit"))
-                            .append("◎ /game save\n", RESET_FORMAT)
-                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Leave editor mode.\nChanges are saved to disk.").create()))
-                            .event(ClickEvent(SUGGEST_CMD, "/game save"))
-                            .append("◎ /game kit <list/select/save/delete> (name)\n", RESET_FORMAT)
-                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Save or delete a kit inventory.").create()))
-                            .event(ClickEvent(SUGGEST_CMD, "/game kit "))
-                            .append(PREV_NAV_END, RESET_FORMAT)
-                            .append(PAGE_NAV, RESET_FORMAT)
-                            .append(NEXT_NAV_END, RESET_FORMAT)
-                            .append(BORDER_STRING, RESET_FORMAT)
-                            .create()
-            )
+        if (args.isEmpty() || args[0] == "help") {
+
+            val page = try {
+                args[1].toInt()
+            } catch (e: Exception) {
+                1
+            }
+
+            when (page) {
+                1 -> sender.sendMessage(
+                        *ComponentBuilder()
+                                .append(BORDER_STRING, RESET_FORMAT)
+                                .append("\nGame Command Manual (Page 1/2)\n\n", RESET_FORMAT)
+                                .append(PageElement.getPageComponents(
+                                        PageElement("◎ /game start [map]",
+                                                "Start the current game.\n" +
+                                                        "You may choose a map to play.",
+                                                "/game start "),
+                                        PageElement("◎ /game stop [id]",
+                                                "Stop a running game.",
+                                                "/game stop "),
+                                        PageElement("◎ /game edit (title) (map)",
+                                                "Start editor mode.\n" +
+                                                        "Modify game elements or build map.",
+                                                "/game edit "),
+                                        PageElement("◎ /game save",
+                                                "Leave editor mode.\n" +
+                                                        "Changes are saved to disk.",
+                                                "/game save")
+
+                                ))
+                                .append(PREV_NAV_END, RESET_FORMAT)
+                                .append(PAGE_NAV, RESET_FORMAT)
+                                .append(NEXT_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/game help 2"))
+                                .append(BORDER_STRING, RESET_FORMAT)
+                                .create()
+                )
+                2 -> sender.sendMessage(
+                        *ComponentBuilder()
+                                .append(BORDER_STRING, RESET_FORMAT)
+                                .append("\nGame Command Manual (Page 2/2)\n\n", RESET_FORMAT)
+                                .append(PageElement.getPageComponents(
+                                        PageElement("◎ /game kit <list/select/save/delete> (name)",
+                                                "Save or delete a kit inventory.",
+                                                "/game kit "),
+                                        PageElement("◎ /game script (file) run [(property_name:value)...]",
+                                                "Execute an entire script.\n" +
+                                                        "You may supply optional properties.",
+                                                "/game script test.groovy run test:true"),
+                                        PageElement("◎ /game script (file) invoke (function) [argument...]",
+                                                "Invoke a function defined in a script.\n" +
+                                                        "&eSupplying appropriate argument(s) is mendatory!",
+                                                "/game script test.groovy invoke test 123 \"Hello, world!\"")
+                                ))
+                                .append(PREV_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/game help 1"))
+                                .append(PAGE_NAV, RESET_FORMAT)
+                                .append(NEXT_NAV_END, RESET_FORMAT)
+                                .append(BORDER_STRING, RESET_FORMAT)
+                                .create()
+                )
+            }
+
             return true
         }
 
@@ -152,12 +190,12 @@ class GameCommand : CommandBase {
                     return true
                 }
 
-                val playerData = PlayerData.get(sender)
+                val gameEditor = PlayerData.get(sender) as? GameEditor
 
-                if (playerData !is GameEditor) {
+                if (gameEditor?.isOnline() != true) {
                     sender.sendMessage("You must be in editor mode.")
                 } else {
-                    playerData.saveAndClose()
+                    gameEditor.saveAndClose()
                 }
             }
             "kit" -> {
@@ -167,14 +205,14 @@ class GameCommand : CommandBase {
                 }
 
                 val game: Game
-                val playerData = PlayerData.get(sender)
+                val gameEditor = PlayerData.get(sender) as? GameEditor
 
-                if (playerData !is GameEditor) {
+                if (gameEditor?.isOnline() != true) {
                     sender.sendMessage("You must be in editor mode.")
                     return true
                 }
 
-                game = playerData.getGame()
+                game = gameEditor.getGame()
                 val itemService = game.getItemService()
 
                 if (args.size < 2)
@@ -232,6 +270,99 @@ class GameCommand : CommandBase {
                     }
                 }
             }
+            "script" -> {
+                if (sender !is Player) {
+                    sender.sendMessage("This cannot be done from console.")
+                    return true
+                }
+
+                val gameEditor = PlayerData.get(sender) as? GameEditor
+
+                if (gameEditor?.isOnline() != true) {
+                    sender.sendMessage("You must be in editor mode.")
+                    return true
+                }
+
+                if (args.size < 3) {
+                    return false
+                }
+
+                val game = gameEditor.getGame()
+                val script = try {
+                    ScriptFactory.get(game.resource.scriptRoot.resolve(args[1]))
+                } catch (e: Exception) {
+                    sender.sendMessage("\u00A7c${e.localizedMessage}")
+                    return true
+                }
+
+                try {
+                    if (args[2] == "run") {
+                        if (args.size > 3) {
+                            val propArgs = try {
+                                joinStringFromArguments(args.drop(3).toTypedArray())
+                            } catch (e: IllegalArgumentException) {
+                                sender.sendMessage("\u00A7cSyntax error. ${e.localizedMessage}")
+                                return true
+                            }
+
+                            for (propArg in propArgs) {
+                                val prop = propArg.split(Pattern.compile(":"), 2)
+
+                                if (prop.size < 2) {
+                                    sender.sendMessage("Wrong property syntax: $propArg")
+                                    return false
+                                } else {
+                                    val name = prop[0]
+                                    val value = translateStringToPrimitive(prop[1])
+                                    sender.sendMessage("Binding property: $name - $value")
+                                    script.bind(name, value)
+                                }
+                            }
+                        }
+
+                        script.startLogging()
+                        script.parse()
+                        script.injectModules(game.module)
+                        script.run()
+                        sender.sendMessage("Successfully executed ${args[1]}")
+                    } else if (args[2] == "invoke") {
+                        if (args.size < 4) {
+                            return false
+                        }
+
+                        val func = args[3]
+
+                        script.startLogging()
+                        script.parse()
+                        script.injectModules(game.module)
+
+                        if (args.size > 4) {
+                            val funcArgs = try {
+                                joinStringFromArguments(args.drop(4).toTypedArray())
+                            } catch (e: IllegalArgumentException) {
+                                sender.sendMessage("\u00A7cSyntax error. ${e.localizedMessage}")
+                                return true
+                            }
+
+                            script.invokeFunction(
+                                    name = func,
+                                    args = *funcArgs.map {
+                                        val primitive = translateStringToPrimitive(it)
+                                        sender.sendMessage("Passing argument: $primitive")
+                                        primitive
+                                    }.toTypedArray()
+                            )
+                        } else {
+                            script.invokeFunction(func)
+                        }
+
+                        sender.sendMessage("Successfully invoked $func in ${args[1]}")
+                    }
+                } catch (e: Exception) {
+                    script.writeStackTrace(e)
+                    sender.sendMessage("\u00A7cError occurred. See console for details.")
+                }
+            }
             else -> return false
         }
         return true
@@ -243,7 +374,7 @@ class GameCommand : CommandBase {
             return command.aliases
 
         if (args.size == 1)
-            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "kit")
+            return getCompletions(args[0], "help", "start", "stop", "edit", "save", "kit", "script")
 
         when (args[0].toLowerCase()) {
             "start" -> {
@@ -276,9 +407,7 @@ class GameCommand : CommandBase {
             }
             "kit" -> {
                 return when (args.size) {
-                    2 -> {
-                        getCompletions(args[1], "list", "test", "save", "delete")
-                    }
+                    2 -> getCompletions(args[1], "list", "test", "save", "delete")
                     3 -> {
                         if (args[2].equals("list", true)) {
                             mutableListOf()
@@ -296,6 +425,39 @@ class GameCommand : CommandBase {
                         }
                     }
                     else -> mutableListOf()
+                }
+            }
+            "script" -> {
+                val game = (PlayerData.get(sender as Player) as? GameEditor)?.getGame()
+                        ?: return mutableListOf()
+
+                when (args.size) {
+                    2 -> {
+                        val root = game.resource.scriptRoot
+                        val supportedExt: Set<String> = ScriptFactory.Engine.values().flatMap {
+                            it.extension.toList()
+                        }.toSet()
+
+                        Files.newDirectoryStream(root) {
+                            supportedExt.contains(it.toFile().extension)
+                        }.use {
+                            return getCompletions(args[1], *it.map { path -> path.toFile().name }.toTypedArray())
+                        }
+                    }
+                    3 -> return getCompletions(args[2], "run", "invoke")
+                    else -> {
+                        return if (args[2] == "invoke") {
+                            if (args.size < 5) {
+                                mutableListOf("(function)")
+                            } else {
+                                mutableListOf("[argument]")
+                            }
+                        } else if (args[2] == "run") {
+                            mutableListOf("[property_name:value]")
+                        } else {
+                            mutableListOf()
+                        }
+                    }
                 }
             }
         }

@@ -24,17 +24,9 @@ class ModuleService internal constructor(val game: Game) : Module {
 
     init {
         try {
-            script.bind("Module", this as Module)
-            script.bind("GameModule", getGameModule())
-            script.bind("TeamModule", getTeamModule())
-            script.bind("LobbyModule", getLobbyModule())
-            script.bind("PlayerModule", getPlayerModule())
-            script.bind("MobModule", getMobModule())
-            script.bind("ScriptModule", getScriptModule())
-            script.bind("WorldModule", getWorldModule())
-            script.bind("ItemModule", getItemModule())
             script.startLogging()
             script.parse()
+            script.injectModules(this)
             CoordTag.reload(game.resource)
         } catch (e: Exception) {
             script.writeStackTrace(e)

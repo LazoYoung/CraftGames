@@ -5,22 +5,45 @@ import com.github.lazoyoung.craftgames.game.script.groovy.GameScriptGroovy
 import com.github.lazoyoung.craftgames.game.script.jsr223.GameScriptGroovyLegacy
 import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ScriptFactory {
-    enum class Engine {
-        GROOVY, JSR223
+    enum class Engine(vararg val extension: String) {
+        GROOVY("groovy") {
+            override fun load(file: File): GameScriptGroovy {
+                return GameScriptGroovy(file)
+            }
+        },
+
+        JSR223("groovy") {
+            override fun load(file: File): GameScriptGroovyLegacy {
+                return GameScriptGroovyLegacy(file)
+            }
+        };
+
+        abstract fun load(file: File): GameScript
     }
 
     companion object {
         /**
+         * Get [GameScript] instance by existing file's [path].
+         *
+         * @param path Path to script file.
+         * @throws IllegalArgumentException is thrown if file indicated by [path] doesn't exist.
          * @throws ScriptEngineNotFound is thrown if either file extension or script engine is not valid.
          * @throws RuntimeException is thrown if plugin fails to load script
          */
-        fun get(file: File) : GameScript {
+        fun get(path: Path) : GameScript {
+            val file = path.toFile()
             val engine: Engine
             val engineName = Main.getConfig()
                     ?.getString("script.engine", "Groovy")?.toUpperCase()
                     ?: "GROOVY"
+
+            require(Files.isRegularFile(path)) {
+                "File not found: $path"
+            }
 
             try {
                 engine = Engine.valueOf(engineName)
@@ -28,20 +51,14 @@ class ScriptFactory {
                 throw ScriptEngineNotFound("Unknown engine: $engineName")
             }
 
-            return when (file.extension) {
-                "groovy" -> try {
-                    when (engine) {
-                        Engine.GROOVY -> {
-                            GameScriptGroovy(file)
-                        }
-                        Engine.JSR223 -> {
-                            GameScriptGroovyLegacy(file)
-                        }
-                    }
-                } catch (e: Exception) {
-                    throw RuntimeException("Failed to load script: ${file.name}", e)
-                }
-                else -> throw ScriptEngineNotFound("Unsupported script: ${file.name}")
+            if (!engine.extension.contains(file.extension)) {
+                throw ScriptEngineNotFound("Unsupported type of script: ${file.name}")
+            }
+
+            try {
+                return engine.load(file)
+            } catch (e: Exception) {
+                throw RuntimeException("Failed to load script: ${file.name}", e)
             }
         }
     }

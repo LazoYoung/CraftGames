@@ -154,7 +154,7 @@ class Game(
             }
 
             try {
-                resource.gameScript.execute()
+                resource.gameScript.run()
             } catch (e: Exception) {
                 resource.gameScript.writeStackTrace(e)
                 game.forceStop(error = true)

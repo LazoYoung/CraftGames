@@ -23,9 +23,11 @@ data class PageElement(
     }
 
     private fun compile(): Array<BaseComponent> {
-        val builder = ComponentBuilder().color(ChatColor.RESET).append(element)
+        val trElement = ChatColor.translateAlternateColorCodes('&', element)
+        val builder = ComponentBuilder().color(ChatColor.RESET).append(trElement)
+        val trHoverText = ChatColor.translateAlternateColorCodes('&', hoverText)
 
-        hoverText?.let { builder.event(HoverEvent(HOVER_TEXT, ComponentBuilder(hoverText).create())) }
+        hoverText?.let { builder.event(HoverEvent(HOVER_TEXT, ComponentBuilder(trHoverText).create())) }
         command?.let { builder.event(ClickEvent(SUGGEST_CMD, command)) }
         return builder.append("\n").create()
     }
