@@ -93,21 +93,21 @@ abstract class GameScript(
 
     internal abstract fun clear()
 
-    internal fun writeStackTrace(e: Exception): Path {
+    internal fun writeStackTrace(t: Throwable): Path {
         val format = getFilenameFormat()
         val errorFile = logRoot.resolve("Error_$format.txt")
         val writer = OutputStreamWriter(FileOutputStream(errorFile, true), Main.charset)
         val error = PrintWriter(BufferedWriter(writer))
 
         error.println("Stacktrace of script code:")
-        if (e is NoSuchMethodException) {
+        if (t is NoSuchMethodException) {
             val modulePackage = "com.github.lazoyoung.craftgames.game.module."
-            e.localizedMessage.split(' ').firstOrNull { it.startsWith(modulePackage) }?.let {
+            t.localizedMessage.split(' ').firstOrNull { it.startsWith(modulePackage) }?.let {
                 val label = it.split('.').last()
                 error.println("    $label <- Plugin can't resolve this function.")
             }
         } else {
-            e.stackTrace.plus(e.cause?.stackTrace ?: emptyArray())
+            t.stackTrace.plus(t.cause?.stackTrace ?: emptyArray())
                     .find { regex.matches(it.fileName ?: "") }
                     ?.let { error.println("   at ${file.name}:${it.lineNumber}") }
                     ?: error.println("    N/A")
@@ -115,8 +115,8 @@ abstract class GameScript(
         error.println()
         error.println()
         error.println("Stacktrace of plugin source:")
-        e.printStackTrace(error)
-        e.cause?.printStackTrace(error)
+        t.printStackTrace(error)
+        t.cause?.printStackTrace(error)
         error.close()
         Main.logger.severe("Failed to evaluate \'${file.name}\' script!")
         Main.logger.severe("Stacktrace location: ${errorFile.path}")

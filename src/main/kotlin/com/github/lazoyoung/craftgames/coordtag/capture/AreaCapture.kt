@@ -38,19 +38,19 @@ class AreaCapture(
         return builder.removeSuffix(",").toString()
     }
 
-    fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 2.0): CompletableFuture<Location?> {
+    fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 2.0): CompletableFuture<Location> {
         this.maxAttempt = maxAttempt
         return toLocation(world, offsetY)
     }
 
-    private fun toLocation(world: World, offsetY: Double): CompletableFuture<Location?> {
+    private fun toLocation(world: World, offsetY: Double): CompletableFuture<Location> {
         var x = Random.nextInt(x1..x2)
         var y = y2
         var z = Random.nextInt(z1..z2)
         var block: Block
         var pocket = 0
         var attempt = 1
-        val future = CompletableFuture<Location?>()
+        val future = CompletableFuture<Location>()
 
         object : BukkitRunnable() {
             override fun run() {
@@ -72,6 +72,9 @@ class AreaCapture(
                         when (block.type) {
                             Material.CACTUS, Material.MAGMA_BLOCK, Material.CAMPFIRE -> {
                                 if (++attempt > maxAttempt) {
+                                    future.completeExceptionally(
+                                            RuntimeException("Excessive safe-zone calculation is detected.")
+                                    )
                                     this.cancel()
                                 } else {
                                     x = Random.nextInt(x1..x2)
@@ -92,7 +95,9 @@ class AreaCapture(
 
             override fun cancel() {
                 super.cancel()
-                future.complete(null)
+                future.completeExceptionally(
+                        RuntimeException("Task is cancelled unexpectedly.")
+                )
             }
         }.runTaskTimer(Main.instance, 0L, 1L)
 

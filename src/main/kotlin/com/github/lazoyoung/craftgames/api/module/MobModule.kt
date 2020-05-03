@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import net.citizensnpcs.api.npc.NPC
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
@@ -38,26 +39,26 @@ interface MobModule {
      * Spawn vanilla mobs.
      *
      * @param type Type of [mobs][Mob]s to be spawned.
-     * @param spawnTag Name of the coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
+     * @param tagName Name of the coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, spawnTag: String): CompletableFuture<List<Mob>>
+    fun spawnMob(type: String, tagName: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn vanilla mobs.
      *
      * @param type Type of [mobs][Mob]s to be spawned.
      * @param name Custom name.
-     * @param spawnTag Name of the coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
+     * @param tagName Name of the coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, name: String, spawnTag: String): CompletableFuture<List<Mob>>
+    fun spawnMob(type: String, name: String, tagName: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn vanilla mobs.
@@ -65,13 +66,13 @@ interface MobModule {
      * @param type Type of [mobs][Mob]s to be spawned.
      * @param loot The [LootTable] which defines the items to drop upon death.
      * Use [ItemModule.getLootTable] to get a loot table.
-     * @param spawnTag The name of coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
+     * @param tagName The name of coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>>
+    fun spawnMob(type: String, loot: LootTable, tagName: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn vanilla mobs.
@@ -80,31 +81,44 @@ interface MobModule {
      * @param name Custom name.
      * @param loot The [LootTable] which defines the items to drop upon death.
      * Use [ItemModule.getLootTable] to get a loot table.
-     * @param spawnTag The name of coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Tag.
+     * @param tagName The name of coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>>
+    fun spawnMob(type: String, name: String, loot: LootTable, tagName: String): CompletableFuture<List<Mob>>
 
     /**
      * Spawn MythicMobs.
      *
      * @param name Name of the MythicMob(s) to be spawned.
      * @param level Initial level of the MythicMob(s).
-     * @param spawnTag The name of coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [spawnTag] is not a valid Spawnpoint Tag.
+     * @param tagName The name of coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Spawnpoint Tag.
      * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
      * @throws RuntimeException is thrown if plugin fails to access MythicMobs API.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMythicMob(name: String, level: Int, spawnTag: String): CompletableFuture<List<Mob>>
+    fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<List<Mob>>
 
     /**
-     * Spawn a Citizen NPC.
+     * Spawn NPC with specific [type] at the position where [tag][tagName] indicates.
+     *
+     * @param type Entity type of this NPC.
+     * @param tagName Name of the coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Spawnpoint Tag.
      */
-    fun spawnNPC()
+    fun spawnNPC(type: EntityType, name: String, tagName: String): CompletableFuture<List<NPC>>
+
+    /**
+     * Spawn Player NPC at the position where [tag][tagName] indicates.
+     *
+     * @param skinURL (Optional) URL of skin file. Link must be available for download.
+     * @param tagName Name of the coordinate tag which designates their spawnpoint.
+     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Spawnpoint Tag.
+     */
+    fun spawnPlayerNPC(skinURL: String?, name: String, tagName: String): CompletableFuture<List<NPC>>
 
     /**
      * Despawn specific [type][EntityType] of entities.

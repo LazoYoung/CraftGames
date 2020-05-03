@@ -8,6 +8,11 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
+import net.citizensnpcs.api.CitizensAPI
+import net.citizensnpcs.api.npc.NPC
+import net.citizensnpcs.api.npc.NPCRegistry
+import net.citizensnpcs.trait.SkinTrait
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Entity
@@ -15,16 +20,26 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
 import org.bukkit.loot.LootTable
+import org.bukkit.scheduler.BukkitRunnable
+import org.json.simple.JSONObject
+import org.json.simple.parser.JSONParser
+import java.io.BufferedReader
+import java.io.DataOutputStream
+import java.io.InputStreamReader
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.collections.ArrayList
 import kotlin.random.Random
 
-@Suppress("DuplicatedCode")
 class MobModuleService internal constructor(private val game: Game) : MobModule {
+
+    private data class SkinData(val uuid: String, val value: String, val signature: String)
 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.mob-throttle", 3) ?: 3
@@ -69,9 +84,9 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             callback.accept(it)
 
             script.printDebug(it.joinToString(
-                            prefix = "Found ${it.size} mobs inside $areaTag: ",
-                            limit = 10,
-                            transform = { mob -> mob.type.name })
+                    prefix = "Found ${it.size} mobs inside $areaTag: ",
+                    limit = 10,
+                    transform = { mob -> mob.type.name })
             )
         })
     }
@@ -80,7 +95,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         mobCap = max
     }
 
-    override fun spawnMob(type: String, spawnTag: String): CompletableFuture<List<Mob>> {
+    override fun spawnMob(type: String, tagName: String): CompletableFuture<List<Mob>> {
         val mapID = game.map.id
         val worldModule = game.getWorldService()
         val world = worldModule.getWorld()
@@ -89,7 +104,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             return CompletableFuture.completedFuture(emptyList())
         }
 
-        val captures = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
+        val captures = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
         val typeKey = entityType.key
@@ -98,14 +113,14 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         if (!entityType.isSpawnable) {
             throw RuntimeException("Entity is not spawn-able: $typeKey")
         } else if (captures.isEmpty()) {
-            throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
+            throw FaultyConfiguration("Tag $tagName has no capture in map: $mapID")
         }
 
         captures.forEach { capture ->
 
             fun teleport(loc: Location?) {
                 if (loc == null) {
-                    script.print("Excessive attempt to spawn mob at: $spawnTag")
+                    script.print("Excessive attempt to spawn mob at: $tagName")
                     return
                 }
 
@@ -121,14 +136,16 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
 
             when (capture) {
                 is AreaCapture -> {
-                    tasks.add(capture.toLocation(world, maxAttempt).handle {
-                        location, t ->
+                    tasks.add(capture.toLocation(world, maxAttempt).handleAsync { location, t ->
 
                         if (t != null) {
                             t.printStackTrace()
                         } else {
-                            teleport(location)
+                            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                                teleport(location)
+                            })
                         }
+                        return@handleAsync
                     })
                 }
                 is SpawnCapture -> {
@@ -149,22 +166,22 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
     }
 
-    override fun spawnMob(type: String, name: String, spawnTag: String): CompletableFuture<List<Mob>> {
-        return spawnMob(type, spawnTag).thenApply {
+    override fun spawnMob(type: String, name: String, tagName: String): CompletableFuture<List<Mob>> {
+        return spawnMob(type, tagName).thenApply {
             it.forEach { mob -> mob.customName = name }
             it
         }
     }
 
-    override fun spawnMob(type: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>> {
-        return spawnMob(type, spawnTag).thenApply {
+    override fun spawnMob(type: String, loot: LootTable, tagName: String): CompletableFuture<List<Mob>> {
+        return spawnMob(type, tagName).thenApply {
             it.forEach { mob -> mob.setLootTable(loot, Random.nextLong()) }
             it
         }
     }
 
-    override fun spawnMob(type: String, name: String, loot: LootTable, spawnTag: String): CompletableFuture<List<Mob>> {
-        return spawnMob(type, spawnTag).thenApply {
+    override fun spawnMob(type: String, name: String, loot: LootTable, tagName: String): CompletableFuture<List<Mob>> {
+        return spawnMob(type, tagName).thenApply {
             it.forEach { mob ->
                 mob.customName = name
                 mob.setLootTable(loot, Random.nextLong())
@@ -173,7 +190,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
     }
 
-    override fun spawnMythicMob(name: String, level: Int, spawnTag: String): CompletableFuture<List<Mob>> {
+    override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<List<Mob>> {
 
         if (!mythicMobsActive) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
@@ -186,54 +203,53 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             return CompletableFuture.completedFuture(emptyList())
         }
 
-        val captures = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
+        val captures = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
         val mobList = ArrayList<Mob>()
         var typeKey: NamespacedKey? = null
         val tasks = LinkedList<CompletableFuture<Unit>>()
+        val future = CompletableFuture<List<Mob>>()
 
         if (captures.isEmpty()) {
-            throw FaultyConfiguration("Tag $spawnTag has no capture in map: $mapID")
+            throw FaultyConfiguration("Tag $tagName has no capture in map: $mapID")
         }
 
-        captures.forEach { capture ->
+        fun teleport(loc: Location?) {
+            val entity: Entity
 
-            fun teleport(loc: Location?) {
-                val entity: Entity
+            if (loc == null) {
+                script.print("Excessive attempt to spawn mob at: $tagName")
+                return
+            }
 
-                if (loc == null) {
-                    script.print("Excessive attempt to spawn mob at: $spawnTag")
-                    return
+            try {
+                entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity
+                typeKey = entity.type.key
+
+                if (entity !is Mob) {
+                    entity.remove()
+                    throw IllegalArgumentException("This is not a Mob: $typeKey")
                 }
 
-                try {
-                    entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity
-                    typeKey = entity.type.key
-
-                    if (entity !is Mob) {
-                        entity.remove()
-                        throw IllegalArgumentException("This is not a Mob: $typeKey")
-                    }
-
-                    mobList.add(entity)
-                } catch (e: InvocationTargetException) {
-                    (e.cause as? Exception)?.let {
-                        if (it::class.java.simpleName == "InvalidMobTypeException") {
-                            throw IllegalArgumentException("Unable to identify MythicMob: $name")
-                        }
+                mobList.add(entity)
+            } catch (e: InvocationTargetException) {
+                (e.cause as? Exception)?.let {
+                    if (it::class.java.simpleName == "InvalidMobTypeException") {
+                        throw IllegalArgumentException("Unable to identify MythicMob: $name")
                     }
                 }
             }
+        }
 
+        captures.forEach { capture ->
             when (capture) {
                 is AreaCapture -> {
-                    tasks.add(capture.toLocation(world, maxAttempt).handle {
-                        location, t ->
-
-                        if (t != null) {
-                            t.printStackTrace()
-                        } else {
+                    tasks.add(capture.toLocation(world, maxAttempt).exceptionally {
+                        return@exceptionally null
+                    }.thenCompose { location ->
+                        Bukkit.getScheduler().runTask(Main.instance, Runnable {
                             teleport(location)
-                        }
+                        })
+                        return@thenCompose null
                     })
                 }
                 is SpawnCapture -> {
@@ -243,19 +259,33 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
             }
         }
 
-        return if (tasks.isNotEmpty()) {
-            CompletableFuture.allOf(*tasks.toTypedArray()).thenCompose {
-                script.printDebug("Spawned ${mobList.size} $typeKey")
-                CompletableFuture.completedFuture(mobList.toList())
+        if (tasks.isNotEmpty()) {
+            CompletableFuture.allOf(*tasks.toTypedArray()).whenCompleteAsync {
+                _, t ->
+
+                if (t != null) {
+                    script.print("Failed to spawn mob. ($typeKey)")
+                    future.completeExceptionally(t)
+                } else {
+                    script.printDebug("Spawned ${mobList.size} $typeKey")
+                    future.complete(mobList.toList())
+                }
             }
+
         } else {
             script.printDebug("Spawned ${mobList.size} $typeKey")
-            CompletableFuture.completedFuture(mobList.toList())
+            future.complete(mobList.toList())
         }
+
+        return future
     }
 
-    override fun spawnNPC() {
-        TODO("Not yet implemented")
+    override fun spawnNPC(type: EntityType, name: String, tagName: String): CompletableFuture<List<NPC>> {
+        return spawnNPC(type, null, name, tagName)
+    }
+
+    override fun spawnPlayerNPC(skinURL: String?, name: String, tagName: String): CompletableFuture<List<NPC>> {
+        return spawnNPC(EntityType.PLAYER, skinURL, name, tagName)
     }
 
     override fun despawnEntities(type: EntityType): Int {
@@ -293,6 +323,171 @@ class MobModuleService internal constructor(private val game: Game) : MobModule 
         }
 
         return counter
+    }
+
+    private fun spawnNPC(
+            type: EntityType,
+            skinURL: String?,
+            name: String,
+            tagName: String
+    ): CompletableFuture<List<NPC>> {
+        if (!Main.citizens) {
+            throw DependencyNotFound("Citizens is required to spawn NPC.")
+        }
+
+        val worldService = game.module.getWorldModule() as WorldModuleService
+        val world = worldService.getWorld()
+        val mapID = worldService.getMapID()
+        val registry = CitizensAPI.getNPCRegistry()
+        val tag = ModuleService.getRelevantTag(game, tagName, TagMode.AREA, TagMode.SPAWN)
+        val npcList = ArrayList<NPC>()
+        val taskList = LinkedList<CompletableFuture<Unit>>()
+        val future = CompletableFuture<List<NPC>>()
+
+        if (tag.getCaptures(mapID).isEmpty()) {
+            throw FaultyConfiguration("Tag $tagName has no capture in map: $mapID")
+        }
+
+        fun computeTask(future: CompletableFuture<NPC>): CompletableFuture<Unit> {
+            return future.handleAsync { npc, t ->
+
+                if (t != null) {
+                    script.print("Failed to spawn NPC. (${type.key})")
+                    script.writeStackTrace(t)
+                } else {
+                    Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                        npcList.add(npc)
+                    })
+                }
+                return@handleAsync
+            }
+        }
+
+        when (tag.mode) {
+            TagMode.SPAWN -> {
+                tag.getCaptures(mapID).forEach {
+                    it as SpawnCapture
+
+                    val locFuture = CompletableFuture.completedFuture(it.toLocation(world))
+                    taskList.add(computeTask(handleNPC(registry, type, name, locFuture, skinURL)))
+                }
+            }
+            TagMode.AREA -> {
+                tag.getCaptures(mapID).forEach {
+                    it as AreaCapture
+
+                    val locFuture = it.toLocation(world, maxAttempt)
+                    taskList.add(computeTask(handleNPC(registry, type, name, locFuture, skinURL)))
+                }
+            }
+            else -> {
+                error("Illegal tag mode.")
+            }
+        }
+
+        CompletableFuture.allOf(*taskList.toTypedArray()).whenCompleteAsync {
+            _, t ->
+
+            if (t != null) {
+                script.print("Failed to spawn NPC. (${type.key})")
+                script.writeStackTrace(t)
+                future.completeExceptionally(t)
+            } else {
+                script.printDebug("Spawned ${npcList.size} NPCs. (${type.key})")
+                future.complete(npcList.toList())
+            }
+        }
+
+        return future
+    }
+
+    private fun handleNPC(
+            registry: NPCRegistry,
+            type: EntityType,
+            name: String,
+            locationFuture: CompletableFuture<Location>,
+            skinURL: String?
+    ): CompletableFuture<NPC> {
+        val future = CompletableFuture<NPC>()
+        val scheduler = Bukkit.getScheduler()
+
+        if (skinURL != null) {
+            val skinFuture = fetchSkin(skinURL)
+
+            CompletableFuture.allOf(skinFuture, locationFuture).handleAsync {
+                _, t ->
+
+                if (t != null) {
+                    future.completeExceptionally(t)
+                } else {
+                    scheduler.runTask(Main.instance, Runnable {
+                        val npc = registry.createNPC(type, name)
+                        val skinTrait = npc.getTrait(SkinTrait::class.java)
+                        val skin = skinFuture.join()
+                        val location = locationFuture.join()
+
+                        skinTrait.clearTexture()
+                        skinTrait.setSkinPersistent(skin.uuid, skin.signature, skin.value)
+                        npc.spawn(location)
+                        future.complete(npc)
+                    })
+                }
+                return@handleAsync
+            }
+        } else {
+            locationFuture.handleAsync {
+                location, t ->
+
+                if (t != null) {
+                    future.completeExceptionally(t)
+                } else {
+                    scheduler.runTask(Main.instance, Runnable {
+                        val npc = registry.createNPC(type, name)
+
+                        npc.spawn(location)
+                        future.complete(npc)
+                    })
+                }
+                return@handleAsync
+            }
+        }
+
+        return future
+    }
+
+    private fun fetchSkin(skinURL: String): CompletableFuture<SkinData> {
+        val future = CompletableFuture<SkinData>()
+
+        object : BukkitRunnable() {
+            override fun run() {
+                try {
+                    val genURL = URL("https://api.mineskin.org/generate/url")
+                    val con = genURL.openConnection() as HttpURLConnection
+                    con.requestMethod = "POST"
+                    con.doOutput = true
+                    con.connectTimeout = 1000
+                    con.readTimeout = 10000
+                    DataOutputStream(con.outputStream).use {
+                        it.writeBytes("url=".plus(URLEncoder.encode(skinURL, "UTF-8")))
+                    }
+                    BufferedReader(InputStreamReader(con.inputStream)).use {
+                        val response = JSONParser().parse(it) as JSONObject
+                        val data = response["data"] as JSONObject
+                        val texture = data["texture"] as JSONObject
+                        val uuid = data["uuid"] as String
+                        val value = texture["value"] as String
+                        val signature = texture["signature"] as String
+
+                        future.complete(SkinData(uuid, value, signature))
+                    }
+                    con.disconnect()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    future.completeExceptionally(e)
+                }
+            }
+        }.runTaskAsynchronously(Main.instance)
+        return future
     }
 
 }

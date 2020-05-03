@@ -123,7 +123,20 @@ class Main : JavaPlugin(), CommandExecutor {
         config.options().copyDefaults(true)
         pluginFolder = dataFolder
         Main.dataFolder = pluginFolder.resolve("_data")
-        charset = Charset.forName(config.getString("file-encoding") ?: "UTF-8")
+
+        val charset = config.getString("file-encoding") ?: "default"
+
+        Main.charset = try {
+            if (charset.equals("default", true)) {
+                Charset.defaultCharset()
+            } else {
+                Charset.forName(charset)
+            }
+        } catch (e: Exception) {
+            val default = Charset.defaultCharset()
+            logger.warning("Charset \'$charset\' is not available. Using system default: ${default.name()}")
+            default
+        }
     }
 
     private fun loadAsset() {

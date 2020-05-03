@@ -23,7 +23,8 @@ datapack:
 world-label: game
 
 
-# Check your 'JVM property' if Mojibake still occurs: -Dfile.encoding=<charset>
+# Select charset in which to encode resource files (i.e. scripts, kit data, etc.).
+# 'default' indicates system-default charset. 'UTF-8' charset is recommended.
 # Reference: https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
 file-encoding: UTF-8
 
