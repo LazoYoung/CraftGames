@@ -1,17 +1,12 @@
 package com.github.lazoyoung.craftgames
 
-import com.denizenscript.denizen.Denizen
-import com.denizenscript.denizen.utilities.DenizenAPI
 import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.listener.ScriptListener
 import com.github.lazoyoung.craftgames.internal.listener.ServerListener
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
-import com.github.lazoyoung.loottablefix.LootTablePatch
-import net.citizensnpcs.api.CitizensAPI
-import net.milkbowl.vault.economy.Economy
-import net.milkbowl.vault.permission.Permission
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -38,22 +33,6 @@ class Main : JavaPlugin(), CommandExecutor {
         lateinit var charset: Charset
             private set
         lateinit var logger: Logger
-            private set
-        var lootTableFix: LootTablePatch? = null
-            private set
-        var worldEdit: Boolean = false
-            private set
-        var citizens: Boolean = false
-            private set
-        var denizen: Denizen? = null
-            private set
-        var mythicMobs: Boolean = false
-            private set
-        var libsDisguises: Boolean = false
-            private set
-        var vaultPerm: Permission? = null
-            private set
-        var vaultEco: Economy? = null
             private set
 
         internal fun getConfig(): FileConfiguration? {
@@ -94,7 +73,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
         loadConfig()
         loadAsset()
-        loadDependencies()
+        Dependency.loadAll(server.pluginManager)
         infoCmd.setExecutor(infoExecutor)
         gameCmd.setExecutor(gameExecutor)
         ctCmd.setExecutor(ctExecutor)
@@ -187,69 +166,5 @@ class Main : JavaPlugin(), CommandExecutor {
 
             saveConfig()
         }
-    }
-
-    private fun loadDependencies() {
-        val manager = Bukkit.getPluginManager()
-        val services = Bukkit.getServicesManager()
-
-        /* LootTablePatch */
-        if (manager.isPluginEnabled("LootTableFix")) {
-            val clazz = Class.forName("com.github.lazoyoung.loottablefix.LootTablePatch")
-            lootTableFix = services.getRegistration(clazz)?.provider as LootTablePatch?
-            logger.info("LootTableFix is hooked.")
-        }
-        /* -------------- */
-
-        /* WorldEdit */
-        if (manager.isPluginEnabled("WorldEdit")) {
-            worldEdit = true
-            logger.info("WorldEdit is hooked.")
-        }
-        /* --------- */
-
-        /* Citizens */
-        if (manager.isPluginEnabled("Citizens")) {
-            try {
-                CitizensAPI.getPlugin()
-                citizens = true
-                logger.info("Citizens is hooked.")
-            } catch (e: IllegalStateException) {}
-        }
-        /* ----------- */
-
-        /* Denizen */
-        if (manager.isPluginEnabled("Denizen")) {
-            denizen = DenizenAPI.getCurrentInstance()
-
-            if (denizen != null) {
-                logger.info("Denizen is hooked.")
-            }
-        }
-        /* ------- */
-
-        /* MythicMobs */
-        if (manager.isPluginEnabled("MythicMobs")) {
-            mythicMobs = true
-            logger.info("MythicMobs is hooked.")
-        }
-        /* ---------- */
-
-        /* LibsDisguises */
-        if (manager.isPluginEnabled("LibsDisguises")) {
-            libsDisguises = true
-            logger.info("LibsDisguises is hooked.")
-        }
-        /* ------------- */
-
-        /* Vault */
-        if (manager.isPluginEnabled("Vault")) {
-            val permissionClass = Class.forName("net.milkbowl.vault.permission.Permission")
-            val economyClass = Class.forName("net.milkbowl.vault.economy.Economy")
-            vaultPerm = services.getRegistration(permissionClass)?.provider as Permission?
-            vaultEco = services.getRegistration(economyClass)?.provider as Economy?
-            logger.info("Vault is hooked.")
-        }
-        /* ------ */
     }
 }
