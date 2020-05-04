@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.api.module
 
+import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import net.citizensnpcs.api.npc.NPC
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
@@ -45,7 +45,8 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, tagName: String): CompletableFuture<List<Mob>>
+    @Deprecated("Increases redundancy.", ReplaceWith("spawnMob(String, String?, LootTable?, String)"))
+    fun spawnMob(type: String, tagName: String): CompletableFuture<Int>
 
     /**
      * Spawn vanilla mobs.
@@ -58,7 +59,8 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, name: String, tagName: String): CompletableFuture<List<Mob>>
+    @Deprecated("Increases redundancy.", ReplaceWith("spawnMob(String, String?, LootTable?, String)"))
+    fun spawnMob(type: String, name: String, tagName: String): CompletableFuture<Int>
 
     /**
      * Spawn vanilla mobs.
@@ -72,7 +74,8 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, loot: LootTable, tagName: String): CompletableFuture<List<Mob>>
+    @Deprecated("Increases redundancy.", ReplaceWith("spawnMob(String, String?, LootTable?, String)"))
+    fun spawnMob(type: String, loot: LootTable, tagName: String): CompletableFuture<Int>
 
     /**
      * Spawn vanilla mobs.
@@ -87,7 +90,7 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    fun spawnMob(type: String, name: String, loot: LootTable, tagName: String): CompletableFuture<List<Mob>>
+    fun spawnMob(type: String, name: String?, loot: LootTable?, tagName: String): CompletableFuture<Int>
 
     /**
      * Spawn MythicMobs.
@@ -97,33 +100,42 @@ interface MobModule {
      * @param tagName The name of coordinate tag which designates their spawnpoint.
      * @throws FaultyConfiguration is thrown if [tagName] is not a valid Spawnpoint Tag.
      * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
-     * @throws RuntimeException is thrown if plugin fails to access MythicMobs API.
      * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if MythicMobs is not installed.
      */
-    fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<List<Mob>>
+    fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int>
 
     /**
      * Spawn NPC with specific [type] at the position where [tag][tagName] indicates.
      *
+     * @param name Name of this NPC.
      * @param type Entity type of this NPC.
+     * @param assignment (Optional) Name of Denizen script assignment.
      * @param tagName Name of the coordinate tag which designates their spawnpoint.
      * @throws FaultyConfiguration is thrown if [tagName] is not a valid Spawnpoint Tag.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
-    fun spawnNPC(type: EntityType, name: String, tagName: String): CompletableFuture<List<NPC>>
+    fun spawnNPC(name: String, type: EntityType, assignment: String?, tagName: String): CompletableFuture<Int>
 
     /**
      * Spawn Player NPC at the position where [tag][tagName] indicates.
      *
+     * @param name Name of this NPC.
      * @param skinURL (Optional) URL of skin file. Link must be available for download.
+     * @param assignment (Optional) Name of Denizen script assignment.
      * @param tagName Name of the coordinate tag which designates their spawnpoint.
      * @throws FaultyConfiguration is thrown if [tagName] is not a valid Spawnpoint Tag.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
-    fun spawnPlayerNPC(skinURL: String?, name: String, tagName: String): CompletableFuture<List<NPC>>
+    fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tagName: String): CompletableFuture<Int>
 
     /**
      * Despawn specific [type][EntityType] of entities.
      *
      * @return Number of entities despawned.
+     * @throws MapNotFound is thrown if world is not yet loaded.
      */
     fun despawnEntities(type: EntityType): Int
 
@@ -131,6 +143,8 @@ interface MobModule {
      * Despawn MythicMobs matching with [name].
      *
      * @return Number of entities despawned.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if MythicMobs is not installed.
      */
     fun despawnMythicMobs(name: String): Int
 

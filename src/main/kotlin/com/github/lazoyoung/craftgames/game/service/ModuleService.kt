@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.api.module.*
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
@@ -10,7 +10,7 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
 
-class ModuleService internal constructor(val game: Game) : Module {
+class ModuleService internal constructor(val game: Game) : Module, Service {
 
     private val script = game.resource.gameScript
     private val gameModule = GameModuleService(game)
@@ -77,16 +77,23 @@ class ModuleService internal constructor(val game: Game) : Module {
     internal fun registerTasks() {
         GameTask(game, GamePhase.LOBBY).schedule {
             lobbyModule.start()
+            mobModule.start()
+        }
+
+        GameTask(game, GamePhase.EDIT).schedule {
+            mobModule.start()
         }
 
         GameTask(game, GamePhase.PLAYING).schedule {
             lobbyModule.terminate()
             gameModule.start()
+            mobModule.start()
         }
 
         GameTask(game, GamePhase.TERMINATE).schedule {
             lobbyModule.terminate()
             playerModule.terminate()
+            mobModule.terminate()
             teamModule.terminate()
             gameModule.terminate()
             scriptModule.terminate()
@@ -131,5 +138,11 @@ class ModuleService internal constructor(val game: Game) : Module {
     override fun getWorldModule(): WorldModule {
         return worldModule
     }
+
+    override fun start() {}
+
+    override fun restart() {}
+
+    override fun terminate() {}
 
 }

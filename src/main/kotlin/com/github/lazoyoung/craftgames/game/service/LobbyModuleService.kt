@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
@@ -19,7 +19,7 @@ import java.util.*
 import kotlin.collections.HashMap
 
 
-class LobbyModuleService internal constructor(private val game: Game) : LobbyModule {
+class LobbyModuleService internal constructor(private val game: Game) : LobbyModule, Service {
 
     internal var exitLoc: Location? = null
     internal var exitServer: String? = null
@@ -91,11 +91,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
         }
     }
 
-    internal fun terminate() {
-        serviceTask?.cancel()
-    }
-
-    internal fun start() {
+    override fun start() {
         if (game.editMode) {
             return
         }
@@ -109,6 +105,12 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
 
         startTimer()
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
+    }
+
+    override fun restart() {}
+
+    override fun terminate() {
+        serviceTask?.cancel()
     }
 
     private fun startTimer() {

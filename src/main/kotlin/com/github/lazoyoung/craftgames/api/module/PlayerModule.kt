@@ -2,10 +2,6 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
-import me.libraryaddict.disguise.disguisetypes.CustomDisguise
-import me.libraryaddict.disguise.disguisetypes.MiscDisguise
-import me.libraryaddict.disguise.disguisetypes.MobDisguise
-import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.EntityType
@@ -47,7 +43,7 @@ interface PlayerModule {
      * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
-    fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean): PlayerDisguise
+    fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean)
 
     /**
      * Disguise a [player] to a Mob.
@@ -58,7 +54,7 @@ interface PlayerModule {
      * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
-    fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean): MobDisguise
+    fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean)
 
     /**
      * Disguise a [player] to a FallingBlock.
@@ -68,7 +64,7 @@ interface PlayerModule {
      * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
-    fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean): MiscDisguise
+    fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean)
 
     /**
      * Disguise a [player] to a custom saved preset.
@@ -80,7 +76,7 @@ interface PlayerModule {
      * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
-    fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean): CustomDisguise
+    fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean)
 
     /**
      * Stop disguise of this [player].
@@ -95,7 +91,7 @@ interface PlayerModule {
      *
      * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
      *
-     * @param type [PlayerType] (represented by [String]) classifies the players.
+     * @param type [PlayerType] indicating whose spawnpoint it is.
      * @param spawnTag Name of the coordinate tag which captures spawnpoints.
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
@@ -106,29 +102,32 @@ interface PlayerModule {
      *
      * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
      *
-     * @param type [PlayerType] (represented by [String]) classifies the players.
+     * @param type [PlayerType] (represented by [String]) indicating whose spawnpoint it is.
      * @param spawnTag Name of the coordinate tag which captures spawnpoints.
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
+    @Deprecated("Increases redundancy.", ReplaceWith("setSpawnpoint(PlayerType, String)"))
     fun setSpawnpoint(type: String, spawnTag: String)
 
     /**
      * Set new spawnpoint for individual player.
      *
-     * Default spawnpoint will become ineffective for the player.
+     * Default spawnpoint becomes ineffective for that [player].
      *
      * @param player The target player.
-     * @param tagName Name of the coordinate tag which designates spawnpoint.
-     * @param index The capture index, which is randomly chosen if you to pass null.
+     * @param tagName Name of the coordinate tag indicating spawnpoint.
+     * @param index (Optional) The capture index of that coordinate tag.
+     * This is randomly chosen if you to pass null.
      */
     fun overrideSpawnpoint(player: Player, tagName: String, index: Int = 0)
 
     /**
      * Set new spawnpoint for individual player.
      *
-     * Default spawnpoint will become ineffective for the player.
+     * Default spawnpoint becomes ineffective for that [player].
      *
      * @param player The target player.
+     * @param location New spawnpoint to override.
      */
     fun overrideSpawnpoint(player: Player, location: Location)
 

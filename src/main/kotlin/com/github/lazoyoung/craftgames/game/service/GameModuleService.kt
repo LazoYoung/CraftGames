@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.GameResult
@@ -15,7 +15,9 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.RestoreMode
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import net.md_5.bungee.api.chat.TextComponent
+import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.NamespacedKey
@@ -28,7 +30,7 @@ import org.bukkit.scoreboard.Team
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-class GameModuleService internal constructor(private val game: Game) : GameModule {
+class GameModuleService internal constructor(private val game: Game) : GameModule, Service {
 
     internal var lastManStanding = false
     internal var keepInventory = false
@@ -99,13 +101,12 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun setMoneyReward(player: Player, amount: Double) {
-        if (Bukkit.getPluginManager().getPlugin("Vault") == null)
-            throw DependencyNotFound("Vault is required to reward money.")
+        if (!Dependency.VAULT_ECONOMY.isLoaded())
+            throw DependencyNotFound("Vault & Economy plugin is required to reward money.")
 
-        val economy = Main.vaultEco
-                ?: throw DependencyNotFound("Economy plugin is required to reward money.")
         val playerData = PlayerData.get(player)
                 ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")
+        val economy = Dependency.VAULT_ECONOMY.getService() as Economy
         val format = economy.format(amount)
 
         playerData.moneyReward = amount
@@ -113,7 +114,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun setItemReward(player: Player, lootTable: LootTable) {
-        if (Main.lootTableFix == null)
+        if (!Dependency.LOOT_TABLE_FIX.isLoaded())
             throw DependencyNotFound("LootTableFix plugin is required.")
 
         val playerData = PlayerData.get(player)
@@ -169,7 +170,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     @Suppress("DEPRECATION")
-    internal fun start() {
+    override fun start() {
         val playerModule = game.getPlayerService()
         val worldModule = game.getWorldService()
         val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
@@ -233,7 +234,9 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
-    internal fun terminate() {
+    override fun restart() {}
+
+    override fun terminate() {
         bossBar.removeAll()
         Bukkit.removeBossBar(bossBarKey)
         serviceTask?.cancel()

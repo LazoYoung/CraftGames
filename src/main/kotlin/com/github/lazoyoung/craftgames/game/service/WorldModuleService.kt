@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
@@ -13,6 +13,7 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.WorldEditException
 import com.sk89q.worldedit.bukkit.BukkitAdapter
@@ -31,7 +32,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
-class WorldModuleService(private val game: Game) : WorldModule {
+class WorldModuleService(private val game: Game) : WorldModule, Service {
 
     companion object {
         internal fun getChunkX(coordX: Int): Int {
@@ -186,7 +187,7 @@ class WorldModuleService(private val game: Game) : WorldModule {
     }
 
     override fun placeSchematics(tag: String, path: String, biomes: Boolean, entities: Boolean, ignoreAir: Boolean) {
-        if (!Main.worldEdit)
+        if (!Dependency.WORLD_EDIT.isLoaded())
             throw DependencyNotFound("WorldEdit is required to place schematics.")
 
         val filePath = game.resource.root.resolve(path)
@@ -341,4 +342,10 @@ class WorldModuleService(private val game: Game) : WorldModule {
             })
         }
     }
+
+    override fun start() {}
+
+    override fun restart() {}
+
+    override fun terminate() {}
 }

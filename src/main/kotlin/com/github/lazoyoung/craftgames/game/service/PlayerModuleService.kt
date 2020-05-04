@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.destroystokyo.paper.Title
 import com.github.lazoyoung.craftgames.Main
@@ -17,6 +17,7 @@ import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.*
 import net.md_5.bungee.api.ChatColor
@@ -33,7 +34,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.collections.HashMap
 
-class PlayerModuleService internal constructor(private val game: Game) : PlayerModule {
+class PlayerModuleService internal constructor(private val game: Game) : PlayerModule, Service {
 
     internal var respawnTimer = HashMap<UUID, Timer>()
     private val personalSpawn = HashMap<UUID, Location>()
@@ -110,8 +111,8 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }
     }
 
-    override fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean): PlayerDisguise {
-        if (!Main.libsDisguises) {
+    override fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean) {
+        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -120,11 +121,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         disguise.entity = player
         disguise.isSelfDisguiseVisible = selfVisible
         startDisguise(disguise, player, skinName)
-        return disguise
     }
 
-    override fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean): MobDisguise {
-        if (!Main.libsDisguises) {
+    override fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean) {
+        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -134,11 +134,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         disguise.entity = player
         disguise.isSelfDisguiseVisible = selfVisible
         startDisguise(disguise, player, type.key.toString())
-        return disguise
     }
 
-    override fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean): MiscDisguise {
-        if (!Main.libsDisguises) {
+    override fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean) {
+        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -147,11 +146,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         disguise.entity = player
         disguise.isSelfDisguiseVisible = selfVisible
         startDisguise(disguise, player, material.key.toString())
-        return disguise
     }
 
-    override fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean): CustomDisguise {
-        if (!Main.libsDisguises) {
+    override fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean) {
+        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -159,11 +157,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         disguise.entity = player
         disguise.isSelfDisguiseVisible = selfVisible
         startDisguise(disguise, player, name)
-        return disguise
     }
 
     override fun undisguise(player: Player) {
-        if (!Main.libsDisguises) {
+        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -305,7 +302,11 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }.runTaskTimer(plugin, 0L, 20L)
     }
 
-    internal fun terminate() {
+    override fun start() {}
+
+    override fun restart() {}
+
+    override fun terminate() {
         disguises.values.forEach {
             it.stopDisguise()
         }

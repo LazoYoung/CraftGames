@@ -4,6 +4,9 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.util.LocationUtil
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.loottablefix.LootTablePatch
+import net.milkbowl.vault.economy.Economy
 import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.attribute.Attribute
@@ -157,13 +160,14 @@ open class PlayerData {
             restore(RestoreMode.LEAVE)
             unregister()
 
-            if (moneyReward > 0.0) {
-                Main.vaultEco!!.depositPlayer(player, moneyReward)
+            if (moneyReward > 0.0 && Dependency.VAULT_ECONOMY.isLoaded()) {
+                val economy = Dependency.VAULT_ECONOMY.getService() as Economy
+                economy.depositPlayer(player, moneyReward)
             }
 
-            if (itemReward != null) {
+            if (itemReward != null && Dependency.LOOT_TABLE_FIX.isLoaded()) {
                 val context = LootContext.Builder(player.location).build()
-                val patch = Main.lootTableFix!!
+                val patch = Dependency.LOOT_TABLE_FIX.getService() as LootTablePatch
 
                 player.inventory.addItem(*patch.populateLoot(itemReward!!, context).toTypedArray())
                 player.updateInventory()

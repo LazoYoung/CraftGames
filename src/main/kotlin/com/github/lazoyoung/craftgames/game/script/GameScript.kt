@@ -2,7 +2,7 @@ package com.github.lazoyoung.craftgames.game.script
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.module.Module
-import com.github.lazoyoung.craftgames.game.module.ModuleService
+import com.github.lazoyoung.craftgames.game.service.ModuleService
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path

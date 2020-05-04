@@ -1,6 +1,5 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
-import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.module.ItemModule
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
@@ -9,6 +8,7 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
 import me.libraryaddict.disguise.utilities.parser.DisguiseParser
@@ -28,7 +28,7 @@ import java.nio.file.Files
 import java.util.*
 
 
-class ItemModuleService(private val game: Game) : ItemModule {
+class ItemModuleService(private val game: Game) : ItemModule, Service {
 
     internal var lockInventory = false
     internal var allowItemDrop = true
@@ -83,7 +83,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     }
 
     override fun getLootTable(key: NamespacedKey): LootTable? {
-        if (Main.lootTableFix == null)
+        if (!Dependency.LOOT_TABLE_FIX.isLoaded())
             throw DependencyNotFound("LootTableFix plugin is required.")
 
         return Bukkit.getLootTable(key)
@@ -197,7 +197,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
             /* Read disguise state */
             try {
                 val state = wrapper.readUTF()
-                if (state.isNotEmpty() && Main.libsDisguises) {
+                if (state.isNotEmpty() && Dependency.LIBS_DISGUISES.isLoaded()) {
                     val disguise = DisguiseParser.parseDisguise(state)
                     val type = if (disguise.isPlayerDisguise) {
                         (disguise as PlayerDisguise).name
@@ -251,7 +251,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
 
             /* Write disguise state */
             var data = ""
-            if (Main.libsDisguises) {
+            if (Dependency.LIBS_DISGUISES.isLoaded()) {
                 val disguise = DisguiseAPI.getDisguise(player)
 
                 if (disguise?.isDisguiseInUse == true) {
@@ -324,4 +324,10 @@ class ItemModuleService(private val game: Game) : ItemModule {
             else -> {}
         }
     }
+
+    override fun start() {}
+
+    override fun restart() {}
+
+    override fun terminate() {}
 }

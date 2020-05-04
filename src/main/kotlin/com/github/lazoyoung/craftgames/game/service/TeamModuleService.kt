@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.api.module.TeamModule
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
@@ -16,7 +16,7 @@ import kotlin.Comparator
 import kotlin.collections.HashMap
 import kotlin.math.roundToInt
 
-class TeamModuleService(private val game: Game) : TeamModule {
+class TeamModuleService(private val game: Game) : TeamModule, Service {
 
     private var spawnTag = HashMap<String, CoordTag>()
     private var scoreboard = Bukkit.getScoreboardManager().newScoreboard
@@ -168,7 +168,11 @@ class TeamModuleService(private val game: Game) : TeamModule {
         return getPlayerTeam(player)?.let { spawnTag[it.name] }
     }
 
-    internal fun terminate() {
+    override fun start() {}
+
+    override fun restart() {}
+
+    override fun terminate() {
         scoreboard.objectives.forEach(Objective::unregister)
         scoreboard.teams.forEach(Team::unregister)
     }

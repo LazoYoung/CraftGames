@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.game.script.groovy
 
 import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.game.module.ModuleService
+import com.github.lazoyoung.craftgames.game.service.ModuleService
 import groovy.transform.CompileDynamic
 import org.codehaus.groovy.ast.AnnotationNode
 import org.codehaus.groovy.ast.ClassNode

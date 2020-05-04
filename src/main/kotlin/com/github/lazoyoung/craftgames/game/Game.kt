@@ -7,8 +7,8 @@ import com.github.lazoyoung.craftgames.event.GameInitEvent
 import com.github.lazoyoung.craftgames.event.GameJoinEvent
 import com.github.lazoyoung.craftgames.event.GameJoinPostEvent
 import com.github.lazoyoung.craftgames.event.GameLeaveEvent
-import com.github.lazoyoung.craftgames.game.module.*
 import com.github.lazoyoung.craftgames.game.player.*
+import com.github.lazoyoung.craftgames.game.service.*
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound

@@ -1,14 +1,15 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
+import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
+import net.milkbowl.vault.permission.Permission
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -160,23 +161,26 @@ class GameAccessCommand : CommandBase {
 
             when (tag) {
                 "group" -> {
-                    if (Main.vaultPerm?.isEnabled != true) {
+                    if (!Dependency.VAULT_PERMISSION.isLoaded()) {
                         operator.sendMessage("\u00A7eVault is required to use group tag.")
-                    } else if (!Main.vaultPerm!!.hasGroupSupport()) {
-                        operator.sendMessage("\u00A7ePermission plugin is required to use group tag.")
                     } else {
-                        val perm = Main.vaultPerm!!
-                        val groups = if (tagValue == "this") {
-                            perm.getPlayerGroups(null, operator)
-                        } else {
-                            arrayOf(tagValue)
-                        }
+                        val permission = Dependency.VAULT_PERMISSION.getService() as Permission
 
-                        for (p in Bukkit.getOnlinePlayers()) {
-                            for (group in groups) {
-                                if (perm.playerInGroup(null, p, group)) {
-                                    players.add(p)
-                                    break
+                        if (!permission.hasGroupSupport()) {
+                            operator.sendMessage("\u00A7ePermission plugin is required to use group tag.")
+                        } else {
+                            val groups = if (tagValue == "this") {
+                                permission.getPlayerGroups(null, operator)
+                            } else {
+                                arrayOf(tagValue)
+                            }
+
+                            for (p in Bukkit.getOnlinePlayers()) {
+                                for (group in groups) {
+                                    if (permission.playerInGroup(null, p, group)) {
+                                        players.add(p)
+                                        break
+                                    }
                                 }
                             }
                         }
@@ -235,7 +239,6 @@ class GameAccessCommand : CommandBase {
                 when (args.size) {
                     1 -> {
                         val options = ArrayList<String>()
-                        val perm = Main.vaultPerm
                         val lastArg = args.last()
                         var counter = 0
 
@@ -255,22 +258,26 @@ class GameAccessCommand : CommandBase {
 
                         counter = 0
 
-                        if (perm?.isEnabled == true && perm.hasGroupSupport()) {
-                            options.add("group@this")
+                        if (Dependency.VAULT_PERMISSION.isLoaded()) {
+                            val permission = Dependency.VAULT_PERMISSION.getService() as Permission
 
-                            for (group in perm.groups) {
-                                val option = "group@$group"
+                            if (permission.hasGroupSupport()) {
+                                options.add("group@this")
 
-                                if (lastArg.isBlank() || option.startsWith(lastArg, true)) {
-                                    options.add(option)
+                                for (group in permission.groups) {
+                                    val option = "group@$group"
 
-                                    if (++counter > 10) {
-                                        break
+                                    if (lastArg.isBlank() || option.startsWith(lastArg, true)) {
+                                        options.add(option)
+
+                                        if (++counter > 10) {
+                                            break
+                                        }
                                     }
                                 }
-                            }
 
-                            counter = 0
+                                counter = 0
+                            }
                         }
 
                         for (p in Bukkit.getOnlinePlayers()) {

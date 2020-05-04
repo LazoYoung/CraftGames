@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.game.module
+package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.EventType
@@ -22,7 +22,7 @@ import java.util.function.Consumer
 
 class ScriptModuleService internal constructor(
         private val game: Game
-) : ScriptModule {
+) : ScriptModule, Service {
 
     internal val events = HashMap<EventType, Consumer<in GameEvent>>()
     private val resource = game.resource
@@ -220,7 +220,11 @@ class ScriptModuleService internal constructor(
         }
     }
 
-    internal fun terminate() {
+    override fun start() {}
+
+    override fun restart() {}
+
+    override fun terminate() {
         script.clear()
         tasks.forEach {
             try {
