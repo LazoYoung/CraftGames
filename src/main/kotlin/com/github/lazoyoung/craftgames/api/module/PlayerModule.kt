@@ -43,7 +43,7 @@ interface PlayerModule {
      *
      * @param player Player who are going to disguise.
      * @param skinName Account name of the new skin's owner.
-     * @param selfVisible If true, disguise is not visible in self perspective.
+     * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
     fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean): PlayerDisguise
@@ -54,7 +54,7 @@ interface PlayerModule {
      * @param player Player who are going to disguise.
      * @param type Type of this Mob.
      * @param isAdult Whether this Mob is an adult or a baby.
-     * @param selfVisible If true, disguise is not visible in self perspective.
+     * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
     fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean): MobDisguise
@@ -64,7 +64,7 @@ interface PlayerModule {
      *
      * @param player Player who are going to disguise.
      * @param material Type of this block.
-     * @param selfVisible If true, disguise is not visible in self perspective.
+     * @param selfVisible If true, disguise is visible in self perspective.
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
     fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean): MiscDisguise
