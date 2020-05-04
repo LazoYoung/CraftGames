@@ -204,7 +204,7 @@ open class PlayerData {
      *
      * [RestoreMode.JOIN] - Every attributes are reset: max-health, health, hunger, potion effect, etc.
      *
-     * [RestoreMode.RESPAWN] - Attributes are kept except health, hunger being reset.
+     * [RestoreMode.RESPAWN] - Attributes are kept except gamemode, health, hunger being reset.
      * Kit is equipped to this player if applicable.
      *
      * [RestoreMode.LEAVE] - Attributes are restored to the point where this player issued /join.
@@ -235,6 +235,8 @@ open class PlayerData {
                 if (!keepInventory) {
                     getGame().getItemService().applyKit(player)
                 }
+
+                player.gameMode = defaultGameMode
             }
             RestoreMode.LEAVE -> {
                 player.inventory.clear()
