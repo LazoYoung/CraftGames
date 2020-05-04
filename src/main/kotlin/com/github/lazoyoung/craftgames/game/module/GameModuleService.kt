@@ -113,7 +113,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun setItemReward(player: Player, lootTable: LootTable) {
-        if (Main.lootTablePatch == null)
+        if (Main.lootTableFix == null)
             throw DependencyNotFound("LootTableFix plugin is required.")
 
         val playerData = PlayerData.get(player)

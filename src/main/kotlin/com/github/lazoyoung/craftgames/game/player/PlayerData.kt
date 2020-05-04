@@ -163,7 +163,7 @@ open class PlayerData {
 
             if (itemReward != null) {
                 val context = LootContext.Builder(player.location).build()
-                val patch = Main.lootTablePatch!!
+                val patch = Main.lootTableFix!!
 
                 player.inventory.addItem(*patch.populateLoot(itemReward!!, context).toTypedArray())
                 player.updateInventory()

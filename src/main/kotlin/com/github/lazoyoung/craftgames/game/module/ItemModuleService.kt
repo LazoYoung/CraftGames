@@ -83,7 +83,7 @@ class ItemModuleService(private val game: Game) : ItemModule {
     }
 
     override fun getLootTable(key: NamespacedKey): LootTable? {
-        if (Main.lootTablePatch == null)
+        if (Main.lootTableFix == null)
             throw DependencyNotFound("LootTableFix plugin is required.")
 
         return Bukkit.getLootTable(key)
