@@ -66,7 +66,11 @@ class ModuleService internal constructor(val game: Game) : Module {
                     return tag
             }
 
-            throw IllegalArgumentException("$name is not relevant! Acceptable tag modes: $modes")
+            val message = modes.joinToString(
+                    prefix = "Tag $name is ${tag.mode.label} mode which is irrelevant! Acceptable modes: ",
+                    transform = { it.label }
+            )
+            throw IllegalArgumentException(message)
         }
     }
 

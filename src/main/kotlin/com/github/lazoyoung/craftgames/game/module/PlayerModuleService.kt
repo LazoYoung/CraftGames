@@ -162,7 +162,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun setSpawnpoint(type: PlayerType, spawnTag: String) {
-        val tag = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN)
+        val tag = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA)
 
         when (type) {
             PlayerType.PLAYER -> playerSpawn = tag
