@@ -17,6 +17,7 @@ import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.*
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -146,6 +147,18 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         disguise.entity = player
         disguise.isSelfDisguiseVisible = selfVisible
         startDisguise(disguise, player, material.key.toString())
+        return disguise
+    }
+
+    override fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean): CustomDisguise {
+        if (!Main.libsDisguises) {
+            throw DependencyNotFound("LibsDisguises is required.")
+        }
+
+        val disguise = DisguiseAPI.getCustomDisguise(name) as CustomDisguise
+        disguise.entity = player
+        disguise.isSelfDisguiseVisible = selfVisible
+        startDisguise(disguise, player, name)
         return disguise
     }
 

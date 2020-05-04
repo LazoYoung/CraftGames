@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
+import me.libraryaddict.disguise.disguisetypes.CustomDisguise
 import me.libraryaddict.disguise.disguisetypes.MiscDisguise
 import me.libraryaddict.disguise.disguisetypes.MobDisguise
 import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
@@ -68,6 +69,18 @@ interface PlayerModule {
      * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
      */
     fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean): MiscDisguise
+
+    /**
+     * Disguise a [player] to a custom saved preset.
+     *
+     * Custom disguise can be saved via /savedisguise [name] (disguise_data)
+     *
+     * @param player Player who are going to disguise.
+     * @param name Name of the custom preset.
+     * @param selfVisible If true, disguise is visible in self perspective.
+     * @throws DependencyNotFound is thrown if LibsDisguises is not installed.
+     */
+    fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean): CustomDisguise
 
     /**
      * Stop disguise of this [player].
