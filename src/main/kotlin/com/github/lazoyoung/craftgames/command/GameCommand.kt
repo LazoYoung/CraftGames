@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameMap
 import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
@@ -383,7 +384,7 @@ class GameCommand : CommandBase {
                     if (playerData?.isOnline() == true) {
                         getCompletions(
                                 query = args[1],
-                                options = *Game.getMapNames(playerData.getGame().name).toTypedArray()
+                                options = *playerData.getGame().resource.mapRegistry.getMapNames(true).toTypedArray()
                         )
                     } else {
                         mutableListOf()
@@ -395,7 +396,14 @@ class GameCommand : CommandBase {
             "edit" -> {
                 return when (args.size) {
                     2 -> getCompletions(args[1], *Game.getGameNames())
-                    3 -> getCompletions(args[2], *Game.getMapNames(args[1]).toTypedArray())
+                    3 -> {
+                        try {
+                            val names = GameMap.Registry(args[1]).getMapNames()
+                            return getCompletions(args[2], *names.toTypedArray())
+                        } catch (e: Exception) {}
+
+                        mutableListOf()
+                    }
                     else -> mutableListOf()
                 }
             }

@@ -35,6 +35,10 @@ class Main : JavaPlugin(), CommandExecutor {
         lateinit var logger: Logger
             private set
 
+        // TODO Cache it whenever the plugin reloads.
+        lateinit var config: FileConfiguration
+            private set
+
         internal fun getConfig(): FileConfiguration? {
             var config: FileConfiguration? = null
 

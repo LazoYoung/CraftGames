@@ -135,7 +135,7 @@ class ScriptModuleService internal constructor(
         if (Paths.get(path).isAbsolute)
             throw IllegalArgumentException("Absolute path is not allowed.")
 
-        val file = resource.root.resolve(path).toFile()
+        val file = resource.layout.root.resolve(path).toFile()
 
         if (!file.isFile) {
             file.parentFile!!.mkdirs()

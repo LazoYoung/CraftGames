@@ -3,7 +3,6 @@ package com.github.lazoyoung.craftgames.command
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -53,11 +52,14 @@ class VoteCommand : CommandBase {
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
         val pData = PlayerData.get(sender as Player)
 
-        if (pData?.isOnline() == true && args.size == 1)
+        if (pData?.isOnline() == true && args.size == 1) {
+            val registry = pData.getGame().resource.mapRegistry
+
             return getCompletions(
                     query = args[0],
-                    options = *Game.getMapNames(pData.getGame().name, false).toTypedArray()
+                    options = *registry.getMapNames(true).toTypedArray()
             )
+        }
 
         return mutableListOf()
     }

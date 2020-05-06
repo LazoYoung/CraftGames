@@ -35,14 +35,16 @@ class Game(
         internal var editMode: Boolean,
         internal val resource: GameResource
 ) {
+    /** Current map **/
+    var map = resource.mapRegistry.getLobby()
+        internal set
+
     /** The state of game progress **/
     var phase = GamePhase.INIT
+        private set
 
     /** All kind of modules **/
     val module = ModuleService(this)
-
-    /** Current map **/
-    var map = resource.lobbyMap
 
     /** List of players (regardless of PlayerState) **/
     internal val players = LinkedList<UUID>()
@@ -57,8 +59,8 @@ class Game(
 
     companion object {
 
-        /** Games Registry. (Key: ID of the game) **/
-        private val gameRegistry = LinkedHashMap<Int, Game>()
+        /** Key: ID, Value: Game instance **/
+        private val runningGames = LinkedHashMap<Int, Game>()
 
         /** Next ID for new game **/
         private var nextID = 0
@@ -71,7 +73,7 @@ class Game(
          * @return A list of games found by given arguments.
          */
         fun find(name: String? = null, isEditMode: Boolean? = null): List<Game> {
-            return gameRegistry.values.filter {
+            return runningGames.values.filter {
                 (name == null || it.name == name)
                         && (isEditMode == null || it.editMode == isEditMode)
             }
@@ -83,7 +85,7 @@ class Game(
          * @param id Instance ID
          */
         fun getByID(id: Int): Game? {
-            return gameRegistry[id]
+            return runningGames[id]
         }
 
         /**
@@ -109,15 +111,6 @@ class Game(
                     ?.getConfigurationSection("games")
                     ?.getKeys(false)?.toTypedArray()
                     ?: emptyArray()
-        }
-
-        fun getMapNames(gameName: String, lobby: Boolean = true): List<String> {
-            val mapInstances = GameResource(gameName)
-                    .mapRegistry.values
-                    .filter { lobby || !it.isLobby }
-                    .toList()
-
-            return mapInstances.map { it.id }
         }
 
         /**
@@ -165,9 +158,9 @@ class Game(
             assignID(game)
 
             if (mapID == null) {
-                game.resource.lobbyMap.generate(game, postGenerate)
+                resource.mapRegistry.getLobby().generate(game, postGenerate)
             } else {
-                game.map = game.resource.mapRegistry[mapID]
+                game.map = resource.mapRegistry.getMap(mapID)
                         ?: throw MapNotFound("Map $mapID does not exist for game: $name.")
                 game.map.generate(game, postGenerate)
             }
@@ -175,12 +168,12 @@ class Game(
             return game
         }
 
-        internal fun purge(game: Game) {
-            gameRegistry.remove(game.id)
+        internal fun unregister(game: Game) {
+            runningGames.remove(game.id)
         }
 
         internal fun reassignID(game: Game) {
-            gameRegistry.remove(game.id)
+            runningGames.remove(game.id)
             assignID(game)
         }
 
@@ -204,7 +197,7 @@ class Game(
             }
 
             game.id = nextID
-            gameRegistry[nextID++] = game
+            runningGames[nextID++] = game
         }
     }
 
@@ -239,13 +232,14 @@ class Game(
         val thisMap = if (mapID == null) {
             resource.getRandomMap()
         } else {
-            val map = resource.mapRegistry[mapID]
+            val map = resource.mapRegistry.getMap(mapID)
 
             if (map == null) {
                 forceStop(error = true)
                 throw MapNotFound("Map $mapID is not found for game: $name")
+            } else {
+                map
             }
-            map
         }
 
         thisMap.generate(this, Consumer {
@@ -358,7 +352,6 @@ class Game(
             }
 
             enterGame(gamePlayer, future) {
-                resource.saveToDisk(false)
                 players.add(player.uniqueId)
 
                 if (phase == GamePhase.LOBBY) {
@@ -504,8 +497,7 @@ class Game(
 
         fun terminate() {
             getPlayers().mapNotNull { PlayerData.get(it) }.forEach(PlayerData::leaveGame)
-            resource.saveToDisk(editMode)
-            purge(this)
+            unregister(this)
 
             if (map.isGenerated) {
                 map.destruct(async)
@@ -612,7 +604,7 @@ class Game(
         }
 
         when (phase) {
-            GamePhase.LOBBY, GamePhase.PLAYING -> {
+            GamePhase.LOBBY, GamePhase.PLAYING, GamePhase.EDIT -> {
                 refinedPostLogic()
             }
             GamePhase.INIT, GamePhase.GENERATE -> {

@@ -27,7 +27,7 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
             script.startLogging()
             script.parse()
             script.injectModules(this)
-            CoordTag.reload(game.resource)
+            // CoordTag.reload(game.resource) TODO Remove this line
         } catch (e: Exception) {
             script.writeStackTrace(e)
             game.forceStop(error = true)
@@ -58,7 +58,7 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
          * @throws IllegalArgumentException is thrown if tag is irrelevant.
          */
         internal fun getRelevantTag(game: Game, name: String, vararg modes: TagMode): CoordTag {
-            val tag = CoordTag.get(game, name)
+            val tag = game.resource.tagRegistry.get(name)
                     ?: throw IllegalArgumentException("Unable to identify $name tag!")
 
             for (mode in modes) {

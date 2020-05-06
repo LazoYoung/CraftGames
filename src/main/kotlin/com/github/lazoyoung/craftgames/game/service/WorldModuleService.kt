@@ -6,7 +6,6 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.player.PlayerData
@@ -190,13 +189,13 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         if (!Dependency.WORLD_EDIT.isLoaded())
             throw DependencyNotFound("WorldEdit is required to place schematics.")
 
-        val filePath = game.resource.root.resolve(path)
+        val filePath = game.resource.layout.root.resolve(path)
         val file = filePath.toFile()
         val world = getWorld()
         val maxBlocks = Main.getConfig()?.getInt("optimization.schematic-throttle", 10000) ?: 10000
         val format = ClipboardFormats.findByFile(file)
                 ?: throw IllegalArgumentException("Unable to resolve schematic file: $filePath")
-        val ctag = CoordTag.get(game, tag)
+        val ctag = game.resource.tagRegistry.get(tag)
                 ?: throw IllegalArgumentException("Tag $tag doesn't exist in this map.")
 
         if (ctag.mode != TagMode.BLOCK)

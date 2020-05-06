@@ -71,7 +71,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
         if (game.editMode || game.phase != GamePhase.LOBBY || voted.contains(player.uniqueId))
             return false
 
-        if (!Game.getMapNames(game.name, false).contains(mapName))
+        if (!game.resource.mapRegistry.getMapNames(true).contains(mapName))
             throw MapNotFound("Map $mapName does not exist.")
 
         votes[mapName] = votes[mapName]?.plus(vote) ?: 1
@@ -80,7 +80,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     }
 
     internal fun teleportSpawn(player: Player) {
-        val world = game.resource.lobbyMap.world
+        val world = game.resource.mapRegistry.getLobby().world
                 ?: throw MapNotFound("Lobby world is not loaded!")
 
         if (loc != null) {
@@ -96,7 +96,7 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
             return
         }
 
-        val world = game.resource.lobbyMap.world
+        val world = game.resource.mapRegistry.getLobby().world
                 ?: throw MapNotFound("Lobby world is not loaded!")
 
         world.pvp = false

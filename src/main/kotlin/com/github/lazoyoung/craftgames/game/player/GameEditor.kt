@@ -2,10 +2,9 @@ package com.github.lazoyoung.craftgames.game.player
 
 import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.GameMap
 import com.github.lazoyoung.craftgames.game.GamePhase
-import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
@@ -61,7 +60,8 @@ class GameEditor private constructor(
             }
 
             val present = Game.find(gameName, true).firstOrNull { mapID == it.map.id }
-            val mapSel = if (mapID == GameResource(gameName).lobbyMap.id) {
+            val lobbyID = GameMap.Registry(gameName).getLobby().id
+            val mapSel = if (mapID == lobbyID) {
                 null
             } else {
                 mapID
@@ -157,8 +157,12 @@ class GameEditor private constructor(
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val source = game.map.worldPath
-        val targetOrigin = game.resource.mapRegistry[mapID]!!.repository
+        val targetOrigin = game.resource.mapRegistry.getMap(mapID)!!.repository
         val gameService = game.getGameService()
+
+        /*
+         * Announce
+         */
         val actionbar = ActionbarTask(
                 player = player,
                 repeat = true,
@@ -168,7 +172,12 @@ class GameEditor private constructor(
         mainActionbar?.clear()
         gameService.broadcast("&e${player.displayName} is closing the session.")
 
-        // Save world
+        // Save resources
+        game.resource.saveToDisk()
+
+        /*
+         * Save world
+         */
         try {
             game.map.world!!.save()
         } catch (e: NullPointerException) {
@@ -248,8 +257,9 @@ class GameEditor private constructor(
     }
 
     private fun informIncompleteTags(player: Player) {
-        CoordTag.getAll(game).forEach { tag ->
-            val incomplMap = tag.scanIncompleteMaps().minus(game.resource.lobbyMap.id)
+        game.resource.tagRegistry.getAll().forEach { tag ->
+            val lobby = game.resource.mapRegistry.getLobby()
+            val incomplMap = tag.scanIncompleteMaps().minus(lobby)
 
             if (incomplMap.isEmpty()) {
                 return@forEach
@@ -269,11 +279,11 @@ class GameEditor private constructor(
                     .append(" from ", reset)
                     .color(ChatColor.YELLOW)
 
-            incomplMap.mapIndexed { index, mapID ->
+            incomplMap.mapIndexed { index, map ->
                 builder = if (index == incomplMap.lastIndex) {
-                    builder.append(mapID, reset)
+                    builder.append(map.id, reset)
                 } else {
-                    builder.append(mapID.plus(", "), reset)
+                    builder.append(map.id.plus(", "), reset)
                 }
 
                 builder = builder.event(HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder("Click to edit this map.").create()))

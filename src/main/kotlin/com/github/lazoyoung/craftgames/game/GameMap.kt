@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.service.WorldModuleService
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
@@ -34,7 +35,9 @@ class GameMap internal constructor(
         internal val areaRegistry: HashMap<String, List<AreaCapture>> = HashMap(),
 
         /** Path to original map folder. **/
-        internal val repository: Path
+        internal val repository: Path,
+
+        private val tagRegistry: CoordTag.Registry
 ) {
 
     /** World instance **/
@@ -47,6 +50,94 @@ class GameMap internal constructor(
     internal var worldName: String? = null
 
     internal var isGenerated = false
+
+    class Registry internal constructor(layout: GameLayout, tagRegistry: CoordTag.Registry) {
+
+        private val storage: HashMap<String, GameMap>
+        private var lobby: String? = null
+
+        constructor(gameName: String) : this(GameLayout(gameName))
+        private constructor(layout: GameLayout) : this(layout, CoordTag.Registry(layout))
+
+        init {
+            val mapList = layout.config.getMapList("maps")
+            val mapItr = mapList.listIterator()
+            storage = HashMap(mapList.size)
+
+            @Suppress("UNCHECKED_CAST")
+            while (mapItr.hasNext()) {
+                val mutmap = mapItr.next().toMutableMap()
+                val mapID = mutmap["id"] as String?
+                var alias = mutmap["alias"] as String?  // Subname
+                val rawPath = mutmap["path"] as String?
+                val repository: Path?  // Path to original map folder
+                val isLobby = mutmap["lobby"] as Boolean? ?: false
+                val description: List<String> = when (val descRaw = mutmap["description"]) {
+                    is String -> {
+                        listOf(descRaw)
+                    }
+                    is List<*> -> {
+                        descRaw as List<String>
+                    }
+                    else -> {
+                        listOf()
+                    }
+                }
+
+                if (mapID == null) {
+                    Main.logger.warning("Entry \'id\' of map is missing in ${layout.path}")
+                    continue
+                }
+
+                if (alias == null)
+                    alias = mapID
+
+                if (rawPath == null) {
+                    Main.logger.warning("Entry 'path' of $mapID is missing in ${layout.path}")
+                    continue
+                }
+
+                try {
+                    repository = layout.root.resolve(rawPath)
+                } catch (e: InvalidPathException) {
+                    throw FaultyConfiguration("Unable to locate path to map '$mapID' for ${layout.gameName}", e)
+                }
+
+                val areaRegistry = HashMap<String, List<AreaCapture>>()
+
+                tagRegistry.getAll().filter { it.mode == TagMode.AREA }.forEach {
+                    areaRegistry[it.name] = it.getCaptures(mapID) as List<AreaCapture>
+                }
+
+                val map = GameMap(mapID, alias, description, isLobby, areaRegistry, repository, tagRegistry)
+                storage[mapID] = map
+
+                if (isLobby) {
+                    lobby = map.id
+                }
+            }
+
+            if (lobby == null) {
+                throw FaultyConfiguration("Game \'${layout.gameName}\' doesn't have lobby map.")
+            }
+        }
+
+        fun getMaps(): List<GameMap> {
+            return storage.values.toList()
+        }
+
+        fun getMap(id: String): GameMap? {
+            return storage[id]
+        }
+
+        fun getMapNames(excludeLobby: Boolean = false): List<String> {
+            return getMaps().filterNot { excludeLobby && it.isLobby }.map { it.id }
+        }
+
+        fun getLobby(): GameMap {
+            return storage.values.first { it.isLobby }
+        }
+    }
 
     /**
      * Install a map from repository and generate it in asynchronous thread.
@@ -235,7 +326,7 @@ class GameMap internal constructor(
                 this.worldPath = container.resolve(worldName)
 
                 // Asynchronously load chunks referred by coordinate tags.
-                CoordTag.getAll(game).forEach {
+                tagRegistry.getAll().forEach {
                     loop@ for (capture in it.getCaptures(id)) {
 
                         val cursorList: List<Pair<Int, Int>> = when (capture) {
@@ -327,5 +418,20 @@ class GameMap internal constructor(
                 throw RuntimeException(e)
             }
         })
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as GameMap
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
     }
 }

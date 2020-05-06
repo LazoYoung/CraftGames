@@ -4,13 +4,16 @@ import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.CoordCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.game.Game
-import com.github.lazoyoung.craftgames.game.GameResource
+import com.github.lazoyoung.craftgames.game.GameLayout
+import com.github.lazoyoung.craftgames.game.GameMap
+import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
+import org.bukkit.configuration.file.YamlConfiguration
+import java.io.File
 
-class CoordTag private constructor(
+open class CoordTag private constructor(
         val name: String,
         val mode: TagMode,
-        val resource: GameResource,
+        val registry: Registry,
 
         /** List of captures in this tag */
         private val captures: List<CoordCapture>,
@@ -18,58 +21,44 @@ class CoordTag private constructor(
         /** Suppress warning that it's incomplete. */
         private var suppress: Boolean = false
 ) {
-    companion object Registry {
-        /** Key: Game name, Value: List of tags */
-        private val tags = HashMap<String, List<CoordTag>>()
+    class Registry internal constructor(val layout: GameLayout) {
 
-        /**
-         * This method allows you to access every coordinate tags in the game.
-         * CoordTag generally preserve a set of CoordCaptures per each map.
-         *
-         * @param game Which game to get the tags from?
-         * @return List of CoordTag matching the conditions above.
-         */
-        fun getAll(game: Game): List<CoordTag> {
-            return getAll(game.name)
+        /** CoordTags configuration for every maps in this game. **/
+        internal val config: YamlConfiguration
+
+        private val file: File
+        private val storage = HashMap<String, CoordTag>()
+
+        constructor(gameName: String) : this(GameLayout(gameName))
+
+        init {
+            val tagPath = layout.config.getString("coordinate-tags.file")
+                    ?: throw FaultyConfiguration("coordinate-tags.file is not defined in ${layout.path}.")
+            file = layout.root.resolve(tagPath).toFile()
+
+            file.parentFile?.mkdirs()
+
+            if (!file.isFile && !file.createNewFile())
+                throw RuntimeException("Unable to create file: ${file.toPath()}")
+            if (file.extension != "yml")
+                throw FaultyConfiguration("File extension is illegal: ${file.name} (Replace with .yml)")
+
+            config = YamlConfiguration.loadConfiguration(file)
+            reload()
         }
 
-        /**
-         * Functionailty is equivalent to [getAll].
-         */
-        fun getAll(gameName: String): List<CoordTag> {
-            var tagList = tags[gameName]
-
-            if (tagList == null) {
-                try {
-                    reload(GameResource((gameName)))
-                    tagList = tags[gameName]
-                } catch (e: Exception) {}
-            }
-
-            return tagList ?: emptyList()
+        fun get(tagName: String): CoordTag? {
+            return storage[tagName]
         }
 
-        /**
-         * @return The [tag][CoordTag] matching with [name] inside the [game]. Null if not found.
-         */
-        fun get(game: Game, tagName: String): CoordTag? {
-            return getAll(game).firstOrNull { it.name == tagName }
+        internal fun create(mapID: String, mode: TagMode, name: String) {
+            config.set(name.plus(".mode"), mode.label)
+            config.createSection(name.plus(".captures.").plus(mapID))
+            reload()
         }
 
-        /**
-         * @see [get]
-         */
-        fun get(gameName: String, tagName: String): CoordTag? {
-            return getAll(gameName).firstOrNull { it.name == tagName }
-        }
-
-        /**
-         * Reload all tags associated with specific game.
-         */
-        @Suppress("UNCHECKED_CAST")
-        internal fun reload(resource: GameResource) {
-            val config = resource.tagConfig
-            val list = ArrayList<CoordTag>()
+        internal fun reload() {
+            storage.clear()
 
             for (name in config.getKeys(false)) {
                 val modeStr = config.getString(name.plus(".mode"))?.toUpperCase()
@@ -82,29 +71,19 @@ class CoordTag private constructor(
                 )?.getKeys(false) ?: emptyList<String>()
 
                 for (map in mapIterate) {
-                    captList.addAll(deserialize(resource, map, mode, name))
+                    captList.addAll(deserialize(map, mode, name))
                 }
-                list.add(CoordTag(name, mode, resource, captList, suppress))
+                storage[name] = CoordTag(name, mode, this, captList, suppress)
             }
-
-            tags[resource.gameName] = list
         }
 
-        internal fun create(resource: GameResource, mapID: String, mode: TagMode, name: String) {
-            val config = resource.tagConfig
-
-            config.set(name.plus(".mode"), mode.label)
-            config.createSection(name.plus(".captures.").plus(mapID))
-            reload(resource)
+        internal fun saveToDisk() {
+            config.save(file)
         }
 
-        internal fun getKeyToCaptureStream(name: String, mapID: String): String {
-            return name.plus('.').plus("captures").plus('.').plus(mapID)
-        }
-
-        private fun deserialize(resource: GameResource, mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
+        private fun deserialize(mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
             val list = ArrayList<CoordCapture>()
-            val stream = resource.tagConfig.getStringList(getKeyToCaptureStream(tagName, mapID))
+            val stream = config.getStringList(getKeyToCaptureStream(tagName, mapID))
             var index = 0
 
             for (line in stream) {
@@ -138,7 +117,56 @@ class CoordTag private constructor(
             }
             return list
         }
+
+        fun getAll(): List<CoordTag> {
+            return storage.values.toList()
+        }
     }
+
+    companion object {
+        internal fun getKeyToCaptureStream(name: String, mapID: String): String {
+            return name.plus('.').plus("captures").plus('.').plus(mapID)
+        }
+    }
+
+    /*
+    companion object {
+        /**
+         * This method allows you to access every coordinate tags in the game.
+         * CoordTag generally preserve a set of CoordCaptures per each map.
+         *
+         * @param game Which game to get the tags from?
+         * @return List of CoordTag matching the conditions above.
+         */
+        fun getAll(game: Game): List<CoordTag> {
+            return getAll(game.name)
+        }
+
+        /**
+         * Functionailty is equivalent to [getAll].
+         */
+        fun getAll(gameName: String): List<CoordTag> {
+            var tagList = storage[gameName]
+
+            if (tagList == null) {
+                try {
+                    reload(GameResource(gameName))
+                    tagList = storage[gameName]
+                } catch (e: Exception) {}
+            }
+
+            return tagList ?: emptyList()
+        }
+
+        internal fun create(resource: GameResource, mapID: String, mode: TagMode, name: String) {
+            val config = resource.tagConfig
+
+            config.set(name.plus(".mode"), mode.label)
+            config.createSection(name.plus(".captures.").plus(mapID))
+            reload(resource)
+        }
+    }
+    */
 
     /**
      * Returns all the captures.
@@ -156,29 +184,24 @@ class CoordTag private constructor(
      * @param suppress whether or not to suppress warning.
      */
     fun suppress(suppress: Boolean) {
-        val config = resource.tagConfig
-
-        config.set(name.plus(".suppress"), suppress)
-        resource.saveToDisk(true)
-        reload(resource)
+        registry.config.set(name.plus(".suppress"), suppress)
+        registry.reload()
     }
 
     /**
      * This method scans the captures to examine if this tag is incomplete.
      * Incomplete tags are those who omit to capture coordinate at least 1 map.
      *
-     * @return List of map IDs where this tag haven't captured yet.
+     * @return List of [GameMap] at which this tag haven't captured.
      */
-    fun scanIncompleteMaps(): List<String> {
-        val list = ArrayList<String>()
+    fun scanIncompleteMaps(): List<GameMap> {
+        val list = ArrayList<GameMap>()
 
-        if (suppress) {
-            return list
-        }
-
-        for (mapID in Game.getMapNames(resource.gameName)) {
-            if (captures.none { mapID == it.mapID }) {
-                list.add(mapID)
+        if (!suppress) {
+            for (map in GameMap.Registry(registry.layout, registry).getMaps()) {
+                if (captures.none { map.id == it.mapID }) {
+                    list.add(map)
+                }
             }
         }
 
@@ -190,8 +213,8 @@ class CoordTag private constructor(
      * You will have to manually save the config to disk.
      */
     fun remove() {
-        resource.tagConfig.set(name, null)
-        reload(resource)
+        registry.config.set(name, null)
+        registry.reload()
     }
 
     /**
@@ -203,11 +226,10 @@ class CoordTag private constructor(
     fun removeCapture(capture: CoordCapture) {
         try {
             val key = getKeyToCaptureStream(name, capture.mapID!!)
-            val config = resource.tagConfig
-            val stream = config.getStringList(key)
+            val stream = registry.config.getStringList(key)
             stream.removeAt(capture.index!!)
-            config.set(key, stream)
-            reload(resource)
+            registry.config.set(key, stream)
+            registry.reload()
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }
