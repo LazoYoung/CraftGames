@@ -50,53 +50,54 @@ class AreaCapture(
         var block: Block
         var pocket = 0
         var attempt = 1
+        val ex = RuntimeException("Unable to find safe-zone. Aborting!")
         val future = CompletableFuture<Location>()
+        val task = object : BukkitRunnable() {
 
-        object : BukkitRunnable() {
+            fun nextAttempt() {
+                return if (++attempt > maxAttempt) {
+                    future.completeExceptionally(ex)
+                    this.cancel()
+                } else {
+                    x = Random.nextInt(x1..x2)
+                    y = y2
+                    z = Random.nextInt(z1..z2)
+                }
+            }
+
             override fun run() {
-                block = world.getBlockAt(x, y, z)
+                loop@ while (true) {
+                    block = world.getBlockAt(x, y, z)
 
-                when (block.type) {
-                    Material.LAVA, Material.FIRE, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE -> {
-                        if (++attempt > maxAttempt) {
-                            this.cancel()
-                        } else {
-                            x = Random.nextInt(x1..x2)
-                            y = y2
-                            z = Random.nextInt(z1..z2)
+                    when (block.type) {
+                        Material.LAVA, Material.FIRE, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE -> {
+                            nextAttempt()
+                            break@loop
                         }
-                    }
-                    else -> if (block.isPassable) {
-                        pocket++
-                    } else if (pocket > 1) {
-                        when (block.type) {
-                            Material.CACTUS, Material.MAGMA_BLOCK, Material.CAMPFIRE -> {
-                                if (++attempt > maxAttempt) {
-                                    future.completeExceptionally(
-                                            RuntimeException("Excessive safe-zone calculation is detected.")
-                                    )
-                                    this.cancel()
-                                } else {
-                                    x = Random.nextInt(x1..x2)
-                                    y = y2
-                                    z = Random.nextInt(z1..z2)
+                        else -> {
+                            if (block.isPassable) {
+                                pocket++
+                            } else if (pocket > 1) {
+                                when (block.type) {
+                                    Material.CACTUS, Material.MAGMA_BLOCK, Material.CAMPFIRE -> {
+                                        nextAttempt()
+                                        break@loop
+                                    }
+                                    else -> {
+                                        future.complete(
+                                                Location(world, x + 0.5, y + offsetY, z + 0.5)
+                                        )
+                                        this.cancel()
+                                    }
                                 }
                             }
-                            else -> {
-                                future.complete(
-                                        Location(world, x.toDouble(), y + offsetY, z.toDouble())
-                                )
-                                this.cancel()
-                            }
                         }
                     }
-                }
 
-                if (--y < y1) {
-                    future.completeExceptionally(
-                            RuntimeException("Unable to find safe-zone. Aborting!")
-                    )
-                    this.cancel()
+                    if (--y < y1) {
+                        nextAttempt()
+                        break@loop
+                    }
                 }
             }
 
@@ -106,8 +107,9 @@ class AreaCapture(
                         RuntimeException("Task is cancelled unexpectedly.")
                 )
             }
-        }.runTaskTimer(Main.instance, 0L, 1L)
+        }
 
+        task.runTaskTimer(Main.instance, 0L, 1L)
         return future
     }
 

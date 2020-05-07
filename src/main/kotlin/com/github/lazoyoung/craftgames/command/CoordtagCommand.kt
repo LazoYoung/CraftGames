@@ -228,7 +228,6 @@ class CoordtagCommand : CommandBase {
 
                             future.handle { _, t ->
                                 if (t != null) {
-                                    t.printStackTrace()
                                     sender.sendMessage("\u00A7c[CoordTag] ${t.localizedMessage}")
                                 } else {
                                     ActionbarTask(sender, "Teleported to $tagName/${capture.index}").start()
@@ -251,7 +250,6 @@ class CoordtagCommand : CommandBase {
 
                                 future.handle { _, t ->
                                     if (t != null) {
-                                        t.printStackTrace()
                                         sender.sendMessage("\u00A7c[CoordTag] ${t.localizedMessage}")
                                     } else {
                                         ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
