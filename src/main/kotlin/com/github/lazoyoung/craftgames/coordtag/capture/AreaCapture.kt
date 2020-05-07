@@ -54,7 +54,7 @@ class AreaCapture(
 
         object : BukkitRunnable() {
             override fun run() {
-                block = world.getBlockAt(x, y--, z)
+                block = world.getBlockAt(x, y, z)
 
                 when (block.type) {
                     Material.LAVA, Material.FIRE, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE -> {
@@ -90,6 +90,13 @@ class AreaCapture(
                             }
                         }
                     }
+                }
+
+                if (--y < y1) {
+                    future.completeExceptionally(
+                            RuntimeException("Unable to find safe-zone. Aborting!")
+                    )
+                    this.cancel()
                 }
             }
 
