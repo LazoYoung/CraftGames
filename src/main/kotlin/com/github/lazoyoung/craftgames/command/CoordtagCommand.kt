@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.command
 
-import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
@@ -222,23 +221,22 @@ class CoordtagCommand : CommandBase {
                 }
 
                 if (args[0].equals("tp", true)) {
-                    val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
-
                     when (args.size) {
                         2 -> {
                             val capture = captures.random()
-                            val location = when (capture) {
-                                is AreaCapture -> capture.toLocation(sender.world, maxAttempt).join()
-                                is BlockCapture -> capture.toLocation(sender.world)
-                                is SpawnCapture -> capture.toLocation(sender.world)
-                                else -> error("Unknown tag mode.")
-                            }
+                            val future = capture.teleport(sender)
 
-                            if (location != null) {
-                                sender.teleport(location)
-                                ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-                            } else {
-                                sender.sendMessage("\u00A7eFailed to calculate safe zone.")
+                            future.handle { _, t ->
+                                if (t != null) {
+                                    t.printStackTrace()
+                                    sender.sendMessage("\u00A7c[CoordTag] ${t.localizedMessage}")
+                                } else {
+                                    ActionbarTask(sender, "Teleported to $tagName/${capture.index}").start()
+
+                                    if (capture is AreaCapture) {
+                                        capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
+                                    }
+                                }
                             }
                         }
                         else -> {
@@ -249,24 +247,19 @@ class CoordtagCommand : CommandBase {
                             if (capture == null) {
                                 sender.sendMessage("[CoordTag] Unable to find capture with index ${args[2]}.")
                             } else {
-                                val location = when (capture) {
-                                    is AreaCapture -> capture.toLocation(sender.world, maxAttempt).join()
-                                    is BlockCapture -> capture.toLocation(sender.world)
-                                    is SpawnCapture -> capture.toLocation(sender.world)
-                                    else -> error("Unknown tag mode.")
-                                }
+                                val future = capture.teleport(sender)
 
-                                if (capture is AreaCapture) {
-                                    val timer = Timer(TimeUnit.SECOND, 20)
+                                future.handle { _, t ->
+                                    if (t != null) {
+                                        t.printStackTrace()
+                                        sender.sendMessage("\u00A7c[CoordTag] ${t.localizedMessage}")
+                                    } else {
+                                        ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
 
-                                    capture.displayBorder(sender.world, timer)
-                                }
-
-                                if (location != null) {
-                                    sender.teleport(location)
-                                    ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-                                } else {
-                                    sender.sendMessage("\u00A7eFailed to calculate safe zone.")
+                                        if (capture is AreaCapture) {
+                                            capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
+                                        }
+                                    }
                                 }
                             }
                         }
