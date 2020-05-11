@@ -27,7 +27,6 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
             script.startLogging()
             script.parse()
             script.injectModules(this)
-            // CoordTag.reload(game.resource) TODO Remove this line
         } catch (e: Exception) {
             script.writeStackTrace(e)
             game.forceStop(error = true)

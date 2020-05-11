@@ -143,7 +143,7 @@ class CoordtagCommand : CommandBase {
                 val tag = requireNotNull(CoordTag.Registry(args[1]).get(args[2]))
 
                 tag.suppress(suppress)
-                // TODO Save it into disk
+                tag.registry.saveToDisk()
 
                 if (suppress) {
                     sender.sendMessage("[CoordTag] Warning for ${args[2]} is now suppressed.")
