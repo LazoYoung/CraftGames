@@ -11,6 +11,7 @@ import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.event.HandlerList
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.io.IOException
@@ -103,6 +104,7 @@ class Main : JavaPlugin(), CommandExecutor {
     override fun onDisable() {
         // Close games
         Game.find().forEach { it.forceStop(async = false, error = false) }
+        HandlerList.unregisterAll(this)
     }
 
     private fun loadConfig() {

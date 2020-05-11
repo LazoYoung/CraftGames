@@ -6,6 +6,7 @@ import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.*
+import com.github.lazoyoung.craftgames.game.service.ScriptModuleService
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
@@ -218,11 +219,25 @@ class ServerListener : Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGH)
+    fun onPlayerChat(event: PlayerCommandPreprocessEvent) {
+        if (event.message.isEmpty()) {
+            return
+        }
+
+        // First argument indicates label. Subsequent arguments are real ones.
+        val args = event.message.split(" ")
+
+        if (ScriptModuleService.isCommandRegistered(args[0])) {
+            ScriptModuleService.handleCommand(args[0], event)
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onSpectateEntity(event: PlayerStartSpectatingEntityEvent) {
+        val entity = event.newSpectatorTarget
         val playerData = PlayerData.get(event.player)
                 ?: return
-        val entity = event.newSpectatorTarget
 
         if (playerData is Spectator
                 && entity is Player

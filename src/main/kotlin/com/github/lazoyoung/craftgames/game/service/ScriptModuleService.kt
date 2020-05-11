@@ -6,11 +6,15 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.Game
+import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.script.GameScript
 import com.github.lazoyoung.craftgames.game.script.ScriptFactory
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.LivingEntity
+import org.bukkit.entity.Player
+import org.bukkit.event.player.AsyncPlayerChatEvent
+import org.bukkit.event.player.PlayerCommandPreprocessEvent
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -18,36 +22,66 @@ import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BiConsumer
 import java.util.function.Consumer
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class ScriptModuleService internal constructor(
         private val game: Game
 ) : ScriptModule, Service {
 
     internal val events = HashMap<EventType, Consumer<in GameEvent>>()
+    internal val commandLabels = HashMap<String, BiConsumer<Player, Array<String>>>()
     private val resource = game.resource
     private val script = resource.gameScript
     private val tasks = ArrayList<BukkitTask>()
 
-    override fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>) {
-        val legacy = this.events.put(eventType, callback)
+    companion object {
+        private val registeredLabels: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
 
-        if (legacy == null) {
-            script.printDebug("Attached an event monitor: $eventType")
-        } else {
-            script.printDebug("Replaced an event monitor: $eventType")
+        /**
+         * This function guarantees thread safety.
+         *
+         * @return true if the command referred by [label] is registered in one of running games.
+         */
+        internal fun isCommandRegistered(label: String): Boolean {
+            return registeredLabels.contains(label)
+        }
+
+        /**
+         * Handle the command referred by [label].
+         *
+         * This function is designed to be called from [AsyncPlayerChatEvent].
+         * It takes asynchronous chat in account.
+         */
+        internal fun handleCommand(label: String, event: PlayerCommandPreprocessEvent) {
+            val args = event.message.split(" ").drop(1).toTypedArray()
+            val player = event.player
+            val playerData = PlayerData.get(player)
+                    ?: return
+            val scriptService = playerData.getGame().module.getScriptModule() as ScriptModuleService
+            val handler =  scriptService.commandLabels[label]
+
+            if (handler != null) {
+                handler.accept(player, args)
+                event.isCancelled = true
+            }
         }
     }
 
-    override fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>) {
-        attachEventMonitor(EventType.forName(eventType), callback)
+    override fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>): Boolean {
+        return events.put(eventType, callback) == null
     }
 
-    override fun detachEventMonitor(eventType: EventType) {
-        if (events.containsKey(eventType)) {
-            events.remove(eventType)
-            script.printDebug("Detached an event monitor: $eventType")
-        }
+    override fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>): Boolean {
+        return attachEventMonitor(EventType.forName(eventType), callback)
+    }
+
+    override fun detachEventMonitor(eventType: EventType): Boolean {
+        return events.remove(eventType) != null
     }
 
     override fun detachEventMonitor(eventType: String) {
@@ -99,6 +133,30 @@ class ScriptModuleService internal constructor(
 
         tasks.add(bukkitTask)
         return bukkitTask
+    }
+
+    override fun registerCommand(label: String, handler: BiConsumer<Player, Array<String>>): Boolean {
+        val commandLabel = "/$label"
+
+        if (commandLabels.containsKey(commandLabel)) {
+            return false
+        }
+
+        commandLabels[commandLabel] = handler
+        registeredLabels.add(commandLabel)
+        return true
+    }
+
+    override fun unregisterCommand(label: String): Boolean {
+        val commandLabel = "/$label"
+
+        if (!commandLabels.containsKey(commandLabel)) {
+            return false
+        }
+
+        commandLabels.remove(commandLabel)
+        registeredLabels.remove(commandLabel)
+        return true
     }
 
     override fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean {

@@ -22,9 +22,14 @@ repositories {
     jcenter()
     mavenLocal()
     mavenCentral()
-    maven { url = "https://jitpack.io" }
-    maven { url = "https://repo.jenkins-ci.org/releases/" }
-    maven { url = "https://papermc.io/repo/repository/maven-public/" }
+    maven {
+        // VaultAPI
+        url = "https://jitpack.io"
+    }
+    maven {
+        // PaperSpigot
+        url = "https://papermc.io/repo/repository/maven-public/"
+    }
     maven {
         // LibsDisguises
         url = "http://repo.md-5.net/content/groups/public/"
@@ -40,8 +45,14 @@ repositories {
         name = "everything"
         url = "https://repo.citizensnpcs.co/"
     }
-    maven { url = "https://maven.enginehub.org/repo/" }
-    maven { url = "https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-jsr223" }
+    maven {
+        // WorldEdit
+        url = "https://maven.enginehub.org/repo/"
+    }
+    maven {
+        // Groovy
+        url = "https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-jsr223"
+    }
     maven {
         // LootTablePatch
         name = "github"

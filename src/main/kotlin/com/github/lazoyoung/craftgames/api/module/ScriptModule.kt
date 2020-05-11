@@ -8,11 +8,13 @@ import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
 import org.bukkit.entity.LivingEntity
+import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.File
 import java.io.FileNotFoundException
+import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 interface ScriptModule {
@@ -24,8 +26,9 @@ interface ScriptModule {
      * Callback accepts 1 parameter which is the instance of event.
      *
      * @param eventType [EventType] designating the event that [callback] is executed upon.
+     * @return Whether it is successfully attached or not.
      */
-    fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>)
+    fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>): Boolean
 
     /**
      * Attach an event monitor.
@@ -35,8 +38,9 @@ interface ScriptModule {
      *
      * @param eventType [EventType] (represented by [String]) which designates the event
      * that [callback] is executed upon.
+     * @return Whether it is successfully attached or not.
      */
-    fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>)
+    fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>): Boolean
 
     /**
      * Detach an event monitor.
@@ -44,8 +48,9 @@ interface ScriptModule {
      * This incapacitates the previous [callback][Consumer] attached to the monitor.
      *
      * @param eventType [EventType] which identifies event monitor.
+     * @return Whether it is successfully detached or not.
      */
-    fun detachEventMonitor(eventType: EventType)
+    fun detachEventMonitor(eventType: EventType): Boolean
 
     /**
      * Detach an event monitor.
@@ -88,6 +93,28 @@ interface ScriptModule {
      * @throws IllegalArgumentException is thrown if [delay] is less than 1 tick.
      */
     fun wait(delay: Timer, task: Runnable): BukkitTask
+
+    /**
+     * Register custom command.
+     *
+     * If [label] were test, '/test abc 123' could be recognized as input for this command.
+     * [Handler][BiConsumer] is consequently executed, supplied with executor(player) and string array(abc 123) to handle its operation.
+     *
+     * Note: Tab completion is not supported.
+     *
+     * @param label Name of command to register.
+     * @param handler Operation of this command which accepts [Player] and [String] array as input.
+     * @return Whether it is successfully registered or not.
+     */
+    fun registerCommand(label: String, handler: BiConsumer<Player, Array<String>>): Boolean
+
+    /**
+     * Un-register a command that is previously registered by [registerCommand].
+     *
+     * @param label Name of command to unregister.
+     * @return Whether it is successfully un-registered or not.
+     */
+    fun unregisterCommand(label: String): Boolean
 
     /**
      * Dispatch the [command][commandLine] to [target][LivingEntity] and execute it.
