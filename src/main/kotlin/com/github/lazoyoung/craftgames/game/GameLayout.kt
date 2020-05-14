@@ -9,14 +9,22 @@ import java.io.IOException
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
-class GameLayout(val gameName: String) {
+class GameLayout(private val gameName: String) {
 
     /** Layout defines path to every resource files. **/
     val config: YamlConfiguration
+
+    /** Path to layout.yml **/
     val path: Path
 
     /** The root folder for every resources in this game **/
     val root: Path
+
+    internal val scriptDir: Path
+
+    internal val kitDir: Path
+
+    internal val lootTableDir: Path?
 
     init {
         var fileReader: BufferedReader? = null
@@ -51,6 +59,16 @@ class GameLayout(val gameName: String) {
                 e.printStackTrace()
             }
         }
+
+        val scriptRootStr = config.getString("script.directory")
+                ?: throw FaultyConfiguration("Script directory is not defined in $path")
+        val lootTablePath = config.getString("datapack.loot-tables.directory")
+        val kitPath = config.getString("kit.directory")
+                ?: throw FaultyConfiguration("Kit directory is not defined in $path")
+
+        scriptDir = root.resolve(scriptRootStr)
+        lootTableDir = lootTablePath?.let { root.resolve(it) }
+        kitDir = root.resolve(kitPath)
     }
 
 }

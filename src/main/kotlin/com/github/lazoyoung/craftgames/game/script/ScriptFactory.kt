@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.game.script
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.ScriptCompiler
 import com.github.lazoyoung.craftgames.game.script.groovy.GameScriptGroovy
 import com.github.lazoyoung.craftgames.game.script.jsr223.GameScriptGroovyLegacy
 import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
@@ -11,18 +12,18 @@ import java.nio.file.Path
 class ScriptFactory {
     enum class Engine(vararg val extension: String) {
         GROOVY("groovy") {
-            override fun load(file: File): GameScriptGroovy {
-                return GameScriptGroovy(file)
+            override fun load(file: File, mode: ScriptCompiler): GameScriptGroovy {
+                return GameScriptGroovy(file, mode)
             }
         },
 
         JSR223("groovy") {
-            override fun load(file: File): GameScriptGroovyLegacy {
+            override fun load(file: File, mode: ScriptCompiler): GameScriptGroovyLegacy {
                 return GameScriptGroovyLegacy(file)
             }
         };
 
-        abstract fun load(file: File): GameScript
+        abstract fun load(file: File, mode: ScriptCompiler): GameScript
     }
 
     companion object {
@@ -30,11 +31,12 @@ class ScriptFactory {
          * Get [GameScript] instance by existing file's [path].
          *
          * @param path Path to script file.
+         * @param mode Compiler to interpret the script. (No effect on legacy script engine)
          * @throws IllegalArgumentException is thrown if file indicated by [path] doesn't exist.
          * @throws ScriptEngineNotFound is thrown if either file extension or script engine is not valid.
          * @throws RuntimeException is thrown if plugin fails to load script
          */
-        fun get(path: Path) : GameScript {
+        fun get(path: Path, mode: ScriptCompiler): GameScript {
             val file = path.toFile()
             val engine: Engine
             val engineName = Main.getConfig()
@@ -56,7 +58,7 @@ class ScriptFactory {
             }
 
             try {
-                return engine.load(file)
+                return engine.load(file, mode)
             } catch (e: Exception) {
                 throw RuntimeException("Failed to load script: ${file.name}", e)
             }

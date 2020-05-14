@@ -20,7 +20,7 @@ class TeamModuleService(private val game: Game) : TeamModule, Service {
 
     private var spawnTag = HashMap<String, CoordTag>()
     private var scoreboard = Bukkit.getScoreboardManager().newScoreboard
-    private val script = game.resource.gameScript
+    private val script = game.resource.mainScript
 
     override fun createTeam(teamName: String, color: ChatColor): Team {
         val team = scoreboard.registerNewTeam(teamName)

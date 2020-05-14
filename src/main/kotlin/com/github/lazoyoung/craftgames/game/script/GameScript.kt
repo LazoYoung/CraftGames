@@ -11,7 +11,7 @@ import java.time.Instant
 import java.util.*
 
 abstract class GameScript(
-        protected val file: File,
+        internal val file: File,
         private val regex: Regex
 ) {
     var debug = Main.getConfig()?.getBoolean("script.debug", false) ?: false
@@ -118,8 +118,8 @@ abstract class GameScript(
         t.printStackTrace(error)
         t.cause?.printStackTrace(error)
         error.close()
-        Main.logger.severe("Failed to evaluate \'${file.name}\' script!")
-        Main.logger.severe("Stacktrace location: ${errorFile.path}")
+        Main.logger.severe("Failed to evaluate script: ${file.path}")
+        Main.logger.severe("Error stacktrace is generated: ${errorFile.path}")
         return errorFile.toPath()
     }
 

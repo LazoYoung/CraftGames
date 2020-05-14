@@ -62,6 +62,10 @@ script:
   # Toggle verbose output to log file (for debugging purpose)
   debug: false
 
+  # Select compiler to compile scripts by default.
+  # Available compilers: STATIC, DYNAMIC
+  compiler: STATIC
+
 
 # Performance Optimization
 optimization:

@@ -17,7 +17,7 @@ import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.*
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.*
 import net.md_5.bungee.api.ChatColor
@@ -43,7 +43,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     private var spectatorSpawn: CoordTag? = null
     private val disguises = HashMap<UUID, Disguise>()
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
-    private val script = game.resource.gameScript
+    private val script = game.resource.mainScript
 
     override fun getLivingPlayers(): List<Player> {
         return game.getPlayers().filter { PlayerData.get(it) is GamePlayer }
@@ -112,7 +112,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun disguiseAsPlayer(player: Player, skinName: String, selfVisible: Boolean) {
-        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
+        if (!DependencyUtil.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -124,7 +124,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun disguiseAsMob(player: Player, type: EntityType, isAdult: Boolean, selfVisible: Boolean) {
-        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
+        if (!DependencyUtil.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -137,7 +137,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun disguiseAsBlock(player: Player, material: Material, selfVisible: Boolean) {
-        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
+        if (!DependencyUtil.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -149,7 +149,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun disguiseAsCustomPreset(player: Player, name: String, selfVisible: Boolean) {
-        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
+        if (!DependencyUtil.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -160,7 +160,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun undisguise(player: Player) {
-        if (!Dependency.LIBS_DISGUISES.isLoaded()) {
+        if (!DependencyUtil.LIBS_DISGUISES.isLoaded()) {
             throw DependencyNotFound("LibsDisguises is required.")
         }
 
@@ -217,7 +217,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
     fun getSpawnpoint(playerData: PlayerData, index: Int?): CompletableFuture<Location> {
         val uid = playerData.getPlayer().uniqueId
-        val script = game.resource.gameScript
+        val script = game.resource.mainScript
         val world = game.getWorldService().getWorld()
         val personalSpawn = personalSpawn[uid]
 

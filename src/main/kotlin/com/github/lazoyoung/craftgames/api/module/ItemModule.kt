@@ -23,9 +23,9 @@ interface ItemModule {
     fun getLootTable(key: NamespacedKey): LootTable?
 
     /**
-     * Let the players select kit inside lobby or during respawn cooldown.
+     * Let the players select kit inside lobby.
      *
-     * @param respawn Determines if players are allowed to choose kit or not.
+     * @param respawn True if players waiting for respawn should be able to select kit as well.
      */
     fun allowKit(respawn: Boolean)
 

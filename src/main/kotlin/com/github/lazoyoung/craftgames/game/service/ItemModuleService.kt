@@ -8,7 +8,7 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
 import me.libraryaddict.disguise.utilities.parser.DisguiseParser
@@ -32,10 +32,10 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
 
     internal var lockInventory = false
     internal var allowItemDrop = true
-    private var allowKit = true
+    private var allowKitLobby = true
     private var allowKitRespawn = false
     private val resource = game.resource
-    private val script = resource.gameScript
+    private val script = resource.mainScript
     internal val teamKit = HashMap<String, Map<String, ByteArray>>()
     private val kitSel = HashMap<UUID, Pair<String, ByteArray>>()
     private var defaultKit: Pair<String, ByteArray>?
@@ -83,7 +83,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
     }
 
     override fun getLootTable(key: NamespacedKey): LootTable? {
-        if (!Dependency.LOOT_TABLE_FIX.isLoaded())
+        if (!DependencyUtil.LOOT_TABLE_FIX.isLoaded())
             throw DependencyNotFound("LootTableFix plugin is required.")
 
         return Bukkit.getLootTable(key)
@@ -91,7 +91,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
     }
 
     override fun allowKit(respawn: Boolean) {
-        allowKit = true
+        allowKitLobby = true
         allowKitRespawn = respawn
     }
 
@@ -197,7 +197,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
             /* Read disguise state */
             try {
                 val state = wrapper.readUTF()
-                if (state.isNotEmpty() && Dependency.LIBS_DISGUISES.isLoaded()) {
+                if (state.isNotEmpty() && DependencyUtil.LIBS_DISGUISES.isLoaded()) {
                     val disguise = DisguiseParser.parseDisguise(state)
                     val type = if (disguise.isPlayerDisguise) {
                         (disguise as PlayerDisguise).name
@@ -251,7 +251,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
 
             /* Write disguise state */
             var data = ""
-            if (Dependency.LIBS_DISGUISES.isLoaded()) {
+            if (DependencyUtil.LIBS_DISGUISES.isLoaded()) {
                 val disguise = DisguiseAPI.getDisguise(player)
 
                 if (disguise?.isDisguiseInUse == true) {
@@ -295,7 +295,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
         resource.kitData.remove(name)
 
         try {
-            Files.deleteIfExists(resource.kitRoot.resolve(name.plus(".kit")))
+            Files.deleteIfExists(resource.layout.kitDir.resolve(name.plus(".kit")))
         } catch (e: Exception) {
             throw RuntimeException("Failed to delete kit file!", e)
         }
@@ -303,7 +303,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
 
     internal fun canSelectKit(player: Player): Boolean {
         return when (game.phase) {
-            GamePhase.LOBBY -> allowKit
+            GamePhase.LOBBY -> allowKitLobby
             GamePhase.PLAYING -> allowKitRespawn && player.gameMode == GameMode.SPECTATOR
             else -> false
         }

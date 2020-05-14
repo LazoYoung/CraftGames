@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.game.script.groovy
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.ScriptCompiler
 import com.github.lazoyoung.craftgames.game.script.GameScript
 import groovy.lang.Binding
 import groovy.lang.Script
@@ -11,7 +12,10 @@ import org.codehaus.groovy.control.customizers.ImportCustomizer
 import java.io.*
 import java.net.URI
 
-class GameScriptGroovy(file: File) : GameScript(file, "^${file.name}$".toRegex()) {
+class GameScriptGroovy(
+        file: File,
+        private val mode: ScriptCompiler
+) : GameScript(file, "^${file.name}$".toRegex()) {
 
     companion object {
         internal val registry = HashMap<URI, GameScriptGroovy>()
@@ -55,18 +59,24 @@ class GameScriptGroovy(file: File) : GameScript(file, "^${file.name}$".toRegex()
     override fun parse() {
         super.parse()
 
-        val extensionClass = GroovyASTExtension::class.qualifiedName!!
-        val transform = ASTTransformationCustomizer(CompileStatic::class.java)
-        val imports = ImportCustomizer()
+        if (mode == ScriptCompiler.STATIC) {
+            val extensionClass = GroovyASTExtension::class.qualifiedName!!
+            val transform = ASTTransformationCustomizer(CompileStatic::class.java)
+            transform.setAnnotationParameters(mapOf(Pair("extensions", extensionClass)))
+            engine.config.addCompilationCustomizers(transform)
+        }
 
-        transform.setAnnotationParameters(mapOf(Pair("extensions", extensionClass)))
+        val imports = ImportCustomizer()
         imports.addStarImports("com.github.lazoyoung.craftgames.api")
         imports.addStarImports("com.github.lazoyoung.craftgames.event")
+        imports.addStarImports("io.github.jorelali.commandapi.api")
+        imports.addStarImports("io.github.jorelali.commandapi.api.arguments")
+        imports.addImport("Module", "com.github.lazoyoung.craftgames.api.module.Module")
         imports.addImport("BukkitTask", "org.bukkit.scheduler.BukkitTask")
         imports.addImport("ChatColor", "org.bukkit.ChatColor")
         imports.addImport("Material", "org.bukkit.Material")
+        imports.addImport("CommandSender", "org.bukkit.command.CommandSender")
         engine.config.addCompilationCustomizers(imports)
-        engine.config.addCompilationCustomizers(transform)
         script = engine.createScript(file.name, bindings)
     }
 

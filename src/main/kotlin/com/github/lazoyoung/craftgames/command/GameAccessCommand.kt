@@ -6,7 +6,7 @@ import com.github.lazoyoung.craftgames.game.player.GameEditor
 import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.milkbowl.vault.permission.Permission
@@ -161,10 +161,10 @@ class GameAccessCommand : CommandBase {
 
             when (tag) {
                 "group" -> {
-                    if (!Dependency.VAULT_PERMISSION.isLoaded()) {
+                    if (!DependencyUtil.VAULT_PERMISSION.isLoaded()) {
                         operator.sendMessage("\u00A7eVault is required to use group tag.")
                     } else {
-                        val permission = Dependency.VAULT_PERMISSION.getService() as Permission
+                        val permission = DependencyUtil.VAULT_PERMISSION.getService() as Permission
 
                         if (!permission.hasGroupSupport()) {
                             operator.sendMessage("\u00A7ePermission plugin is required to use group tag.")
@@ -225,7 +225,7 @@ class GameAccessCommand : CommandBase {
         ActionbarTask(operator, "&aForced &f$counter &aplayers to join &f${game.name}&a.").start()
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
         if (args.isEmpty())
             return command.aliases
 
@@ -258,8 +258,8 @@ class GameAccessCommand : CommandBase {
 
                         counter = 0
 
-                        if (Dependency.VAULT_PERMISSION.isLoaded()) {
-                            val permission = Dependency.VAULT_PERMISSION.getService() as Permission
+                        if (DependencyUtil.VAULT_PERMISSION.isLoaded()) {
+                            val permission = DependencyUtil.VAULT_PERMISSION.getService() as Permission
 
                             if (permission.hasGroupSupport()) {
                                 options.add("group@this")
@@ -307,7 +307,7 @@ class GameAccessCommand : CommandBase {
             }
         }
 
-        return mutableListOf()
+        return listOf()
     }
 
 }

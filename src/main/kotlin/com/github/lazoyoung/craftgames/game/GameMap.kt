@@ -35,7 +35,7 @@ class GameMap internal constructor(
         internal val areaRegistry: HashMap<String, List<AreaCapture>> = HashMap(),
 
         /** Path to original map folder. **/
-        internal val repository: Path,
+        internal val directory: Path,
 
         private val tagRegistry: CoordTag.Registry
 ) {
@@ -60,19 +60,19 @@ class GameMap internal constructor(
         private constructor(layout: GameLayout) : this(layout, CoordTag.Registry(layout))
 
         init {
-            val mapList = layout.config.getMapList("maps")
-            val mapItr = mapList.listIterator()
-            storage = HashMap(mapList.size)
+            val entryList = layout.config.getMapList("maps")
+            val entryIterator = entryList.listIterator()
+            storage = HashMap(entryList.size)
 
             @Suppress("UNCHECKED_CAST")
-            while (mapItr.hasNext()) {
-                val mutmap = mapItr.next().toMutableMap()
-                val mapID = mutmap["id"] as String?
-                var alias = mutmap["alias"] as String?  // Subname
-                val rawPath = mutmap["path"] as String?
-                val repository: Path?  // Path to original map folder
-                val isLobby = mutmap["lobby"] as Boolean? ?: false
-                val description: List<String> = when (val descRaw = mutmap["description"]) {
+            while (entryIterator.hasNext()) {
+                val directory: Path?
+                val entry = entryIterator.next().toMutableMap()
+                val mapID = entry["id"] as String?
+                var alias = entry["alias"] as String?
+                val directoryStr = entry["directory"] as String?
+                val isLobby = entry["lobby"] as Boolean? ?: false
+                val description: List<String> = when (val descRaw = entry["description"]) {
                     is String -> {
                         listOf(descRaw)
                     }
@@ -85,22 +85,22 @@ class GameMap internal constructor(
                 }
 
                 if (mapID == null) {
-                    Main.logger.warning("Entry \'id\' of map is missing in ${layout.path}")
+                    Main.logger.warning("Map ID is not defined in ${layout.path}")
                     continue
                 }
 
                 if (alias == null)
                     alias = mapID
 
-                if (rawPath == null) {
-                    Main.logger.warning("Entry 'path' of $mapID is missing in ${layout.path}")
+                if (directoryStr == null) {
+                    Main.logger.warning("Map directory is not defined: $mapID in ${layout.path}")
                     continue
                 }
 
                 try {
-                    repository = layout.root.resolve(rawPath)
+                    directory = layout.root.resolve(directoryStr)
                 } catch (e: InvalidPathException) {
-                    throw FaultyConfiguration("Unable to locate path to map '$mapID' for ${layout.gameName}", e)
+                    throw FaultyConfiguration("Unable to locate map directory: $mapID in ${layout.path}", e)
                 }
 
                 val areaRegistry = HashMap<String, List<AreaCapture>>()
@@ -109,7 +109,7 @@ class GameMap internal constructor(
                     areaRegistry[it.name] = it.getCaptures(mapID) as List<AreaCapture>
                 }
 
-                val map = GameMap(mapID, alias, description, isLobby, areaRegistry, repository, tagRegistry)
+                val map = GameMap(mapID, alias, description, isLobby, areaRegistry, directory, tagRegistry)
                 storage[mapID] = map
 
                 if (isLobby) {
@@ -118,7 +118,7 @@ class GameMap internal constructor(
             }
 
             if (lobby == null) {
-                throw FaultyConfiguration("Game \'${layout.gameName}\' doesn't have lobby map.")
+                throw FaultyConfiguration("Lobby map is not defined in ${layout.path}.")
             }
         }
 
@@ -178,11 +178,11 @@ class GameMap internal constructor(
         // Copy world files to container
         scheduler.runTaskAsynchronously(plugin, Runnable {
             when {
-                Files.isDirectory(repository) -> {
+                Files.isDirectory(directory) -> {
                     try {
-                        val renamed = repository.resolveSibling(worldName)
+                        val renamed = directory.resolveSibling(worldName)
                         val source = Files.move(
-                                repository, renamed,
+                                directory, renamed,
                                 StandardCopyOption.REPLACE_EXISTING
                         )
                         val outcome = container.resolve(worldName)
@@ -208,7 +208,7 @@ class GameMap internal constructor(
 
                             scheduler.runTask(plugin, Runnable {
                                 Files.move(
-                                        renamed, repository,
+                                        renamed, directory,
                                         StandardCopyOption.ATOMIC_MOVE
                                 )
                                 loadWorld(worldName, game, container, regen, callback)
@@ -216,7 +216,7 @@ class GameMap internal constructor(
                         }
                     } catch (e: IllegalArgumentException) {
                         if (e.message?.startsWith("source", true) == true) {
-                            Main.logger.warning("World folder \'$repository\' inside ${game.name} is missing. Generating blank world...")
+                            Main.logger.warning("World folder \'$directory\' inside ${game.name} is missing. Generating blank world...")
                         } else {
                             scheduler.runTask(plugin, Runnable {
                                 game.forceStop(error = true)

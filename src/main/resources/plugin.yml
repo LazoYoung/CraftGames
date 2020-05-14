@@ -5,6 +5,7 @@ version: $version
 website: https://github.com/LazoYoung/CraftGames
 api-version: '1.15'
 softdepend:
+  - CommandAPI
   - LootTableFix
   - WorldEdit
   - Citizens

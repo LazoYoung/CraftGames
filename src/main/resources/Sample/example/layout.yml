@@ -1,25 +1,30 @@
 maps:
   - id: arena1     # Map ID
     alias: The Old Monastery  # Display name
-    path: arena1 # Path to map folder
+    directory: arena1 # Path to map folder
     description:
       - The old majestic world you've dreamed of.
       - It is beautiful like a bufferfly.
   - id: arena2
     alias: Santa's Christmas Village
-    path: arena2
+    directory: arena2
     description: Merry christmas!
   - id: lobby
     alias: Lobby for this game
-    path: lobby
+    directory: lobby
     lobby: true
-kit:
-  path: data/kit
 script:
-  path: script
-  main: core.groovy
+  directory: script
+  main:
+    file: core.groovy
+    compiler: static
+  command:
+    file: commands.groovy
+    compiler: dynamic
+kit:
+  directory: data/kit
 datapack:
   loot-tables:
-    path: datapack/loot_tables
+    directory: datapack/loot_tables
 coordinate-tags:
   file: data/coordinate-tags.yml

@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.api.ScriptCompiler
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameMap
 import com.github.lazoyoung.craftgames.game.player.GameEditor
@@ -290,7 +291,8 @@ class GameCommand : CommandBase {
 
                 val game = gameEditor.getGame()
                 val script = try {
-                    ScriptFactory.get(game.resource.scriptRoot.resolve(args[1]))
+                    // TODO Let CommandSender select the compiler mode
+                    ScriptFactory.get(game.resource.layout.scriptDir.resolve(args[1]), ScriptCompiler.STATIC)
                 } catch (e: Exception) {
                     sender.sendMessage("\u00A7c${e.localizedMessage}")
                     return true
@@ -369,8 +371,7 @@ class GameCommand : CommandBase {
         return true
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>)
-            : MutableList<String>? {
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String>? {
         if (args.isEmpty())
             return command.aliases
 
@@ -387,10 +388,10 @@ class GameCommand : CommandBase {
                                 options = *playerData.getGame().resource.mapRegistry.getMapNames(true).toTypedArray()
                         )
                     } else {
-                        mutableListOf()
+                        listOf()
                     }
                 } else {
-                    mutableListOf()
+                    listOf()
                 }
             }
             "edit" -> {
@@ -402,15 +403,15 @@ class GameCommand : CommandBase {
                             return getCompletions(args[2], *names.toTypedArray())
                         } catch (e: Exception) {}
 
-                        mutableListOf()
+                        listOf()
                     }
-                    else -> mutableListOf()
+                    else -> listOf()
                 }
             }
             "stop" -> {
                 return when (args.size) {
                     2 -> getCompletions(args[1], *Game.find().map { it.id.toString() }.toTypedArray())
-                    else -> mutableListOf()
+                    else -> listOf()
                 }
             }
             "kit" -> {
@@ -418,7 +419,7 @@ class GameCommand : CommandBase {
                     2 -> getCompletions(args[1], "list", "test", "save", "delete")
                     3 -> {
                         if (args[2].equals("list", true)) {
-                            mutableListOf()
+                            listOf()
                         } else {
                             val playerData = PlayerData.get(sender as Player)
 
@@ -428,20 +429,20 @@ class GameCommand : CommandBase {
                                         options = *playerData.getGame().resource.kitData.keys.toTypedArray()
                                 )
                             } else {
-                                mutableListOf()
+                                listOf()
                             }
                         }
                     }
-                    else -> mutableListOf()
+                    else -> listOf()
                 }
             }
             "script" -> {
                 val game = (PlayerData.get(sender as Player) as? GameEditor)?.getGame()
-                        ?: return mutableListOf()
+                        ?: return listOf()
 
                 when (args.size) {
                     2 -> {
-                        val root = game.resource.scriptRoot
+                        val root = game.resource.layout.scriptDir
                         val supportedExt: Set<String> = ScriptFactory.Engine.values().flatMap {
                             it.extension.toList()
                         }.toSet()
@@ -456,20 +457,20 @@ class GameCommand : CommandBase {
                     else -> {
                         return if (args[2] == "invoke") {
                             if (args.size < 5) {
-                                mutableListOf("(function)")
+                                listOf("(function)")
                             } else {
-                                mutableListOf("[argument]")
+                                listOf("[argument]")
                             }
                         } else if (args[2] == "run") {
-                            mutableListOf("[property_name:value]")
+                            listOf("[property_name:value]")
                         } else {
-                            mutableListOf()
+                            listOf()
                         }
                     }
                 }
             }
         }
-        return mutableListOf()
+        return listOf()
     }
 
 }

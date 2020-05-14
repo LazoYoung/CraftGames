@@ -9,7 +9,7 @@ import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import net.citizensnpcs.api.CitizensAPI
 import net.citizensnpcs.api.npc.NPC
 import net.citizensnpcs.api.npc.NPCRegistry
@@ -45,7 +45,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
     internal var mobCap = Main.getConfig()?.getInt("optimization.mob-capacity", 100) ?: 100
     private val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.mob-throttle", 3) ?: 3
-    private val script = game.resource.gameScript
+    private val script = game.resource.mainScript
     private lateinit var apiHelper: Any
     private lateinit var spawnMethod: Method
     private lateinit var isMythicMobMethod: Method
@@ -162,7 +162,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
     override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int> {
 
-        if (!Dependency.MYTHIC_MOBS.isLoaded()) {
+        if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
@@ -274,7 +274,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
     override fun despawnMythicMobs(name: String): Int {
 
-        if (!Dependency.MYTHIC_MOBS.isLoaded()) {
+        if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
@@ -296,7 +296,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     override fun start() {
-        if (Dependency.MYTHIC_MOBS.isLoaded()) {
+        if (DependencyUtil.MYTHIC_MOBS.isLoaded()) {
             try {
                 val mythicMobsClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs")
                 val apiHelperClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.BukkitAPIHelper")
@@ -319,7 +319,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     override fun restart() {}
 
     override fun terminate() {
-        if (Dependency.CITIZENS.isLoaded()) {
+        if (DependencyUtil.CITIZENS.isLoaded()) {
             val registry = CitizensAPI.getNPCRegistry()
             val npcIter = npcList.iterator()
 
@@ -338,7 +338,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             assignment: String?,
             tagName: String
     ): CompletableFuture<Int> {
-        if (!Dependency.CITIZENS.isLoaded()) {
+        if (!DependencyUtil.CITIZENS.isLoaded()) {
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
@@ -435,7 +435,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
                         val location = locationFuture.join()
 
                         if (assignment != null) {
-                            if (!Dependency.DENIZEN.isLoaded()) {
+                            if (!DependencyUtil.DENIZEN.isLoaded()) {
                                 this.script.print("Failed to inject script to NPC. Denizen is not installed.")
                             } else {
                                 npc.getTrait(AssignmentTrait::class.java).setAssignment(assignment, null)

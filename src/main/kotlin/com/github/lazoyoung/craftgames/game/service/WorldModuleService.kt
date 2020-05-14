@@ -12,7 +12,7 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.exception.UndefinedCoordTag
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.WorldEditException
 import com.sk89q.worldedit.bukkit.BukkitAdapter
@@ -53,7 +53,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
 
     internal var difficulty = Difficulty.NORMAL
     internal val gamerules = HashMap<String, String>()
-    private val script = game.resource.gameScript
+    private val script = game.resource.mainScript
 
     override fun getMapID(): String {
         return game.map.id
@@ -186,7 +186,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
     }
 
     override fun placeSchematics(tag: String, path: String, biomes: Boolean, entities: Boolean, ignoreAir: Boolean) {
-        if (!Dependency.WORLD_EDIT.isLoaded())
+        if (!DependencyUtil.WORLD_EDIT.isLoaded())
             throw DependencyNotFound("WorldEdit is required to place schematics.")
 
         val filePath = game.resource.layout.root.resolve(path)

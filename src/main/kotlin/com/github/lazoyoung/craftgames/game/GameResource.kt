@@ -1,20 +1,19 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.ScriptCompiler
 import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.game.script.GameScript
 import com.github.lazoyoung.craftgames.game.script.ScriptFactory
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.internal.util.DatapackUtil
 import org.bukkit.Bukkit
 import java.io.File
 import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
 /**
@@ -25,29 +24,17 @@ class GameResource internal constructor(private val gameName: String) {
     internal val layout = GameLayout(gameName)
     val tagRegistry = CoordTag.Registry(layout)
     val mapRegistry = GameMap.Registry(layout, tagRegistry)
-    lateinit var gameScript: GameScript
-    internal val kitRoot: Path
+    val mainScript: GameScript
+    val commandScript: GameScript?
     internal val kitData = HashMap<String, ByteArray>()
     private val kitFiles = HashMap<String, File>()
     private val namespace = gameName.toLowerCase()
-    private val lootTableContainer: Path?
-    internal val scriptRoot: Path
 
     init {
         /*
-         * Load coordinate tags, kits, datapack into memory.
+         * Load kit
          */
-        val lootTablePath = layout.config.getString("datapack.loot-tables.path")
-        val kitPath = layout.config.getString("kit.path")
-                ?: throw FaultyConfiguration("Kit must have a path in ${layout.path}")
-
-        lootTableContainer = if (lootTablePath != null) {
-            layout.root.resolve(lootTablePath)
-        } else {
-            null
-        }
-        kitRoot = layout.root.resolve(kitPath)
-        kitRoot.toFile().let {
+        layout.kitDir.toFile().let {
             it.mkdirs()
             it.listFiles()?.forEach { file ->
                 if (file.extension != "kit")
@@ -65,33 +52,31 @@ class GameResource internal constructor(private val gameName: String) {
         }
 
         /*
-         * Load scripts from config
+         * Load scripts
          */
-        val scriptPathStr = layout.config.getString("script.path")
-                ?: throw FaultyConfiguration("Script path is not defined in ${layout.path}")
-        val mainScriptStr = layout.config.getString("script.main")
+        val mainScriptStr = layout.config.getString("script.main.file")
                 ?: throw FaultyConfiguration("Main script path is not defined in ${layout.path}")
-        scriptRoot = layout.root.resolve(scriptPathStr)
-        val mainScript = scriptRoot.resolve(mainScriptStr)
+        val commandScriptStr = layout.config.getString("script.command.file")
+        val mainCompiler = ScriptCompiler.get(layout.config.getString("script.main.compiler"))
+        val commandCompiler = ScriptCompiler.get(layout.config.getString("script.command.compiler"))
+        val mainScript = layout.scriptDir.resolve(mainScriptStr)
+        val commandScript = commandScriptStr?.let { layout.scriptDir.resolve(it) }
 
         try {
             try {
-                Files.createDirectories(scriptRoot)
+                Files.createDirectories(layout.scriptDir)
             } catch (e: FileAlreadyExistsException) {
-                Files.delete(scriptRoot)
-                Files.createDirectories(scriptRoot)
+                Files.delete(layout.scriptDir)
+                Files.createDirectories(layout.scriptDir)
             }
 
             Files.createFile(mainScript)
         } catch (e: SecurityException) {
-            throw RuntimeException("Failed to create script: $scriptPathStr", e)
+            throw RuntimeException("Failed to load script: $mainScript", e)
         } catch (e: FileAlreadyExistsException) {}
 
-        try {
-            gameScript = ScriptFactory.get(mainScript)
-        } catch (e: ScriptEngineNotFound) {
-            Main.logger.warning(e.localizedMessage)
-        }
+        this.mainScript = ScriptFactory.get(mainScript, mainCompiler)
+        this.commandScript = commandScript?.let { ScriptFactory.get(it, commandCompiler) }
     }
 
     internal fun saveToDisk() {
@@ -101,7 +86,7 @@ class GameResource internal constructor(private val gameName: String) {
                 var file = kitFiles[name]
 
                 if (file == null) {
-                    file = kitRoot.resolve(name.plus(".kit")).toFile()
+                    file = layout.kitDir.resolve(name.plus(".kit")).toFile()
                     file.createNewFile()
                 }
 
@@ -138,15 +123,15 @@ class GameResource internal constructor(private val gameName: String) {
             val resourceDir = packDir.resolve("data").resolve(namespace)
 
             // Clone loot tables into datapack.
-            if (lootTableContainer != null) {
+            if (layout.lootTableDir != null) {
                 val lootTableDir = resourceDir.resolve("loot_tables")
 
                 check(lootTableDir.isDirectory || lootTableDir.mkdirs()) {
                     "Failed to create directory."
                 }
-                Files.newDirectoryStream(lootTableContainer).use {
+                Files.newDirectoryStream(layout.lootTableDir).use {
                     it.forEach { entry ->
-                        val entryTarget = lootTableDir.toPath().resolve(lootTableContainer.relativize(entry))
+                        val entryTarget = lootTableDir.toPath().resolve(layout.lootTableDir.relativize(entry))
                         Files.copy(entry, entryTarget, StandardCopyOption.REPLACE_EXISTING)
                     }
                 }

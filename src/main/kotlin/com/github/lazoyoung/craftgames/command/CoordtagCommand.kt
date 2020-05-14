@@ -429,87 +429,87 @@ class CoordtagCommand : CommandBase {
         return true
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String>? {
-        if (args.isEmpty())
-            return command.aliases
-
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String>? {
         if (args.size == 1)
             return getCompletions(args[0], "help", "create", "capture", "remove", "list", "tp", "display")
 
         val pdata = PlayerData.get(sender as? Player)
 
-        if (pdata?.isOnline() == true) {
-            val game = pdata.getGame()
+        if (pdata?.isOnline() != true) {
+            return emptyList()
+        }
 
-            when (args[0].toLowerCase()) {
-                "help" -> return getCompletions(args[1], "1", "2", "3")
-                "list" -> {
-                    when (args.size % 2) { // Interpret -flag values
-                        0 -> return getCompletions(args.last(), "-tag", "-mode", "-map", "-reset")
-                        1 -> return when (args[args.size - 2].toLowerCase()) {
-                            "-mode" -> getCompletions(args.last(), "block", "area", "spawn")
-                            "-tag" -> {
-                                val mode = modeSel[pdata.getPlayer().uniqueId]
-                                val map = mapSel[pdata.getPlayer().uniqueId]
-                                getCompletions(
-                                        query = args.last(),
-                                        options = *game.resource.tagRegistry.getAll()
-                                                .filter {
-                                                    mode == null || mode == it.mode
-                                                            && it.getCaptures(map).isNotEmpty()
-                                                }
-                                                .map { it.name }.toTypedArray())
-                            }
-                            "-map" -> {
-                                game.resource.mapRegistry.getMapNames().toMutableList()
-                            }
-                            else -> mutableListOf()
+        val game = pdata.getGame()
+
+        when (args[0].toLowerCase()) {
+            "help" -> return getCompletions(args[1], "1", "2", "3")
+            "list" -> {
+                when (args.size % 2) { // Interpret -flag values
+                    0 -> return getCompletions(args.last(), "-tag", "-mode", "-map", "-reset")
+                    1 -> return when (args[args.size - 2].toLowerCase()) {
+                        "-mode" -> getCompletions(args.last(), "block", "area", "spawn")
+                        "-tag" -> {
+                            val mode = modeSel[pdata.getPlayer().uniqueId]
+                            val map = mapSel[pdata.getPlayer().uniqueId]
+                            getCompletions(
+                                    query = args.last(),
+                                    options = *game.resource.tagRegistry.getAll()
+                                            .filter {
+                                                mode == null || mode == it.mode
+                                                        && it.getCaptures(map).isNotEmpty()
+                                            }
+                                            .map { it.name }.toTypedArray())
                         }
+                        "-map" -> {
+                            game.resource.mapRegistry.getMapNames().toMutableList()
+                        }
+                        else -> emptyList()
                     }
-                    return mutableListOf()
                 }
-                "display", "tp" -> return when (args.size) {
-                    2 -> getCompletions(
-                            query = args[1],
-                            options = *game.resource.tagRegistry.getAll().filter { it.getCaptures(game.map.id).isNotEmpty() }
-                                    .map { it.name }.toTypedArray())
-                    3 -> getCompletions(
-                            query = args[2],
-                            options = *game.resource.tagRegistry.get(args[1])
-                                    ?.getCaptures(game.map.id)
-                                    ?.map { it.index.toString() }
-                                    ?.toTypedArray() ?: emptyArray()
-                    )
-                    else -> mutableListOf()
-                }
-                else -> if (pdata !is GameEditor) {
-                    return mutableListOf()
-                }
+                return emptyList()
             }
-
-            when (args[0].toLowerCase()) {
-                "create" -> if (args.size == 3) {
-                    return getCompletions(args.last(), "block", "area", "spawn")
-                }
-                "capture" -> return when (args.size) {
-                    2 -> getCompletions(args.last(), *game.resource.tagRegistry.getAll().map { it.name }.toTypedArray())
-                    else -> mutableListOf()
-                }
-                "remove" -> return when (args.size) {
-                    2 -> getCompletions(args.last(), *game.resource.tagRegistry.getAll().map { it.name }.toTypedArray())
-                    3 -> {
-                        val arr = game.resource.tagRegistry.get(args[1])
-                                ?.getCaptures(pdata.mapID)
-                                ?.mapNotNull { it.index?.toString() }
-                                ?.toTypedArray()
-
-                        getCompletions(args.last(), *arr ?: emptyArray())
-                    }
-                    else -> mutableListOf()
-                }
+            "display", "tp" -> return when (args.size) {
+                2 -> getCompletions(
+                        query = args[1],
+                        options = *game.resource.tagRegistry.getAll().filter { it.getCaptures(game.map.id).isNotEmpty() }
+                                .map { it.name }.toTypedArray())
+                3 -> getCompletions(
+                        query = args[2],
+                        options = *game.resource.tagRegistry.get(args[1])
+                                ?.getCaptures(game.map.id)
+                                ?.map { it.index.toString() }
+                                ?.toTypedArray() ?: emptyArray()
+                )
+                else -> emptyList()
+            }
+            else -> if (pdata !is GameEditor) {
+                return emptyList()
             }
         }
-        return mutableListOf()
+
+        when (args[0].toLowerCase()) {
+            "create" -> if (args.size == 3) {
+                return getCompletions(args.last(), "block", "area", "spawn")
+            }
+            "capture" -> return when (args.size) {
+                2 -> getCompletions(args.last(), *game.resource.tagRegistry.getAll().map { it.name }.toTypedArray())
+                else -> emptyList()
+            }
+            "remove" -> return when (args.size) {
+                2 -> getCompletions(args.last(), *game.resource.tagRegistry.getAll().map { it.name }.toTypedArray())
+                3 -> {
+                    val arr = game.resource.tagRegistry.get(args[1])
+                            ?.getCaptures(pdata.mapID)
+                            ?.mapNotNull { it.index?.toString() }
+                            ?.toTypedArray()
+
+                    getCompletions(args.last(), *arr ?: emptyArray())
+                }
+                else -> emptyList()
+            }
+        }
+
+        return emptyList()
     }
 
     private fun showCaptureList(playerData: PlayerData) {

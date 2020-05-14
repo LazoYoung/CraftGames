@@ -12,7 +12,7 @@ import org.codehaus.groovy.ast.ClassNode
 
 class ModuleService internal constructor(val game: Game) : Module, Service {
 
-    private val script = game.resource.gameScript
+    private val script = game.resource.mainScript
     private val gameModule = GameModuleService(game)
     private val teamModule = TeamModuleService(game)
     private val lobbyModule = LobbyModuleService(game)
@@ -37,6 +37,7 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
         internal fun getASTClassNode(arg: String): ClassNode? {
             return when (arg) {
                 "Module" -> ClassHelper.make(Module::class.java)
+                "CommandModule" -> ClassHelper.make(CommandModule::class.java)
                 "GameModule" -> ClassHelper.make(GameModule::class.java)
                 "TeamModule" -> ClassHelper.make(TeamModule::class.java)
                 "LobbyModule" -> ClassHelper.make(LobbyModule::class.java)

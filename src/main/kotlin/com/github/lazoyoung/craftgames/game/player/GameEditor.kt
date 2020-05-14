@@ -157,7 +157,7 @@ class GameEditor private constructor(
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
         val source = game.map.worldPath
-        val targetOrigin = game.resource.mapRegistry.getMap(mapID)!!.repository
+        val targetOrigin = game.resource.mapRegistry.getMap(mapID)!!.directory
         val gameService = game.getGameService()
 
         /*

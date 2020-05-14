@@ -4,9 +4,9 @@ import com.github.lazoyoung.craftgames.command.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.listener.ScriptListener
 import com.github.lazoyoung.craftgames.internal.listener.ServerListener
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import com.github.lazoyoung.craftgames.internal.util.FileUtil
 import com.github.lazoyoung.craftgames.internal.util.MessengerUtil
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -78,7 +78,7 @@ class Main : JavaPlugin(), CommandExecutor {
 
         loadConfig()
         loadAsset()
-        Dependency.loadAll(server.pluginManager)
+        DependencyUtil.load(server.pluginManager)
         infoCmd.setExecutor(infoExecutor)
         gameCmd.setExecutor(gameExecutor)
         ctCmd.setExecutor(ctExecutor)

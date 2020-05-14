@@ -49,7 +49,7 @@ class VoteCommand : CommandBase {
         return true
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
         val pData = PlayerData.get(sender as Player)
 
         if (pData?.isOnline() == true && args.size == 1) {
@@ -61,6 +61,6 @@ class VoteCommand : CommandBase {
             )
         }
 
-        return mutableListOf()
+        return listOf()
     }
 }

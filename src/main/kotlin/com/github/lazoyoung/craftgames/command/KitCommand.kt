@@ -49,7 +49,7 @@ class KitCommand : CommandBase {
         return true
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
         if (args.isEmpty())
             return command.aliases
 
@@ -65,7 +65,7 @@ class KitCommand : CommandBase {
             }
         }
 
-        return mutableListOf()
+        return listOf()
     }
 
 }

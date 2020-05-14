@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.EventType
+import com.github.lazoyoung.craftgames.api.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.script.GameScript
@@ -67,13 +68,16 @@ interface ScriptModule {
     fun setLogVerbosity(verbose: Boolean)
 
     /**
-     * Get [GameScript] of the file with given [fileName].
+     * Get [GameScript] to execute (external) passive script.
      *
-     * @throws IllegalArgumentException is thrown if the file indicated by [fileName] does not exist.
+     * @param fileName Script filename including extension.
+     * @param mode Compiler to interpret the script. (No effect on legacy script engine)
+     * @throws IllegalArgumentException is thrown if file does not exist.
+     * @throws IllegalArgumentException is raised if file is not a passive script.
      * @throws ScriptEngineNotFound is thrown if either file extension or script engine is invalid.
      * @throws RuntimeException is thrown if plugin fails to load script
      */
-    fun getScript(fileName: String): GameScript
+    fun getScript(fileName: String, mode: ScriptCompiler?): GameScript
 
     /**
      * Repeat to execute [task][Runnable].
@@ -100,27 +104,27 @@ interface ScriptModule {
      * If [label] were test, '/test abc 123' could be recognized as input for this command.
      * [Handler][BiConsumer] is consequently executed, supplied with executor(player) and string array(abc 123) to handle its operation.
      *
-     * Note: Tab completion is not supported.
-     *
-     * @param label Name of command to register.
+     * @param label Command name without prefix-slash(/)
      * @param handler Operation of this command which accepts [Player] and [String] array as input.
-     * @return Whether it is successfully registered or not.
+     * @throws IllegalStateException is thrown if command is already registered.
      */
-    fun registerCommand(label: String, handler: BiConsumer<Player, Array<String>>): Boolean
+    @Deprecated("Dynamic command registration is no longer supported.")
+    fun registerCommand(label: String, handler: BiConsumer<Player, Array<String>>)
 
     /**
      * Un-register a command that is previously registered by [registerCommand].
      *
-     * @param label Name of command to unregister.
-     * @return Whether it is successfully un-registered or not.
+     * @param label Command name without prefix-slash(/)
+     * @throws IllegalStateException is thrown if command is not registered.
      */
-    fun unregisterCommand(label: String): Boolean
+    @Deprecated("Dynamic command registration is no longer supported.")
+    fun unregisterCommand(label: String)
 
     /**
      * Dispatch the [command][commandLine] to [target][LivingEntity] and execute it.
      *
      * @param target [LivingEntity] who executes the command. e.g. Player
-     * @param commandLine Command + Arguments, without slash: /
+     * @param commandLine Command + Arguments, without prefix-slash(/)
      * @return false if dispatch is failed.
      */
     fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean

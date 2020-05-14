@@ -15,7 +15,7 @@ import com.github.lazoyoung.craftgames.game.player.PlayerData
 import com.github.lazoyoung.craftgames.game.player.RestoreMode
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
-import com.github.lazoyoung.craftgames.internal.util.enum.Dependency
+import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import net.md_5.bungee.api.chat.TextComponent
 import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
@@ -43,6 +43,7 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     internal var maxPlayer = 10
     private var timer = Timer(TimeUnit.MINUTE, 3)
     private var fullTime = Timer(TimeUnit.MINUTE, 3)
+    private val script = game.resource.mainScript
 
     /* Service handling bossbar and timer */
     private var serviceTask: BukkitRunnable? = null
@@ -101,27 +102,27 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
     }
 
     override fun setMoneyReward(player: Player, amount: Double) {
-        if (!Dependency.VAULT_ECONOMY.isLoaded())
+        if (!DependencyUtil.VAULT_ECONOMY.isLoaded())
             throw DependencyNotFound("Vault & Economy plugin is required to reward money.")
 
         val playerData = PlayerData.get(player)
                 ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")
-        val economy = Dependency.VAULT_ECONOMY.getService() as Economy
+        val economy = DependencyUtil.VAULT_ECONOMY.getService() as Economy
         val format = economy.format(amount)
 
         playerData.moneyReward = amount
-        game.resource.gameScript.printDebug("Reward $format is assigned to ${player.name}.")
+        script.printDebug("Reward $format is assigned to ${player.name}.")
     }
 
     override fun setItemReward(player: Player, lootTable: LootTable) {
-        if (!Dependency.LOOT_TABLE_FIX.isLoaded())
+        if (!DependencyUtil.LOOT_TABLE_FIX.isLoaded())
             throw DependencyNotFound("LootTableFix plugin is required.")
 
         val playerData = PlayerData.get(player)
                 ?: throw IllegalArgumentException("Player ${player.name} isn't playing this game.")
 
         playerData.itemReward = lootTable
-        game.resource.gameScript.printDebug("Reward ${lootTable.key} is assigned to ${player.name}.")
+        script.printDebug("Reward ${lootTable.key} is assigned to ${player.name}.")
     }
 
     override fun broadcast(message: String) {
