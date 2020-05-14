@@ -327,7 +327,5 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
 
     override fun start() {}
 
-    override fun restart() {}
-
     override fun terminate() {}
 }

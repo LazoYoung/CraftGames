@@ -107,8 +107,6 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
-    override fun restart() {}
-
     override fun terminate() {
         serviceTask?.cancel()
     }

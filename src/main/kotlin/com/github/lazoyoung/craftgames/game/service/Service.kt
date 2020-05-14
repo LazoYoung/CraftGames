@@ -4,9 +4,6 @@ internal interface Service {
 
     fun start()
 
-    @Deprecated("Redundancy")
-    fun restart()
-
     fun terminate()
 
 }

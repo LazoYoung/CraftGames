@@ -235,8 +235,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
-    override fun restart() {}
-
     override fun terminate() {
         bossBar.removeAll()
         Bukkit.removeBossBar(bossBarKey)

@@ -181,10 +181,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
         }
     }
 
-    override fun setSpawnpoint(type: String, spawnTag: String) {
-        setSpawnpoint(PlayerType.valueOf(type), spawnTag)
-    }
-
     override fun overrideSpawnpoint(player: Player, tagName: String, index: Int) {
         val tag = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA)
 
@@ -303,8 +299,6 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun start() {}
-
-    override fun restart() {}
 
     override fun terminate() {
         disguises.values.forEach {

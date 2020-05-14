@@ -170,8 +170,6 @@ class TeamModuleService(private val game: Game) : TeamModule, Service {
 
     override fun start() {}
 
-    override fun restart() {}
-
     override fun terminate() {
         scoreboard.objectives.forEach(Objective::unregister)
         scoreboard.teams.forEach(Team::unregister)

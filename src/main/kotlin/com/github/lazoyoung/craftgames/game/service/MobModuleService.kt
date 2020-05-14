@@ -75,18 +75,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         mobCap = max
     }
 
-    override fun spawnMob(type: String, tagName: String): CompletableFuture<Int> {
-        error("Deprecated.")
-    }
-
-    override fun spawnMob(type: String, name: String, tagName: String): CompletableFuture<Int> {
-        error("Deprecated.")
-    }
-
-    override fun spawnMob(type: String, loot: LootTable, tagName: String): CompletableFuture<Int> {
-        error("Deprecated.")
-    }
-
     override fun spawnMob(type: String, name: String?, loot: LootTable?, tagName: String): CompletableFuture<Int> {
         val mapID = game.map.id
         val worldModule = game.getWorldService()
@@ -315,8 +303,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             }
         }
     }
-
-    override fun restart() {}
 
     override fun terminate() {
         if (DependencyUtil.CITIZENS.isLoaded()) {

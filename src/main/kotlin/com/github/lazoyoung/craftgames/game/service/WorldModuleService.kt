@@ -344,7 +344,5 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
 
     override fun start() {}
 
-    override fun restart() {}
-
     override fun terminate() {}
 }

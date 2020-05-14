@@ -39,48 +39,6 @@ interface MobModule {
      * Spawn vanilla mobs.
      *
      * @param type Type of [mobs][Mob]s to be spawned.
-     * @param tagName Name of the coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
-     * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
-     * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
-     * @throws MapNotFound is thrown if world is not yet loaded.
-     */
-    @Deprecated("Increases redundancy.", ReplaceWith("spawnMob(String, String?, LootTable?, String)"))
-    fun spawnMob(type: String, tagName: String): CompletableFuture<Int>
-
-    /**
-     * Spawn vanilla mobs.
-     *
-     * @param type Type of [mobs][Mob]s to be spawned.
-     * @param name Custom name.
-     * @param tagName Name of the coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
-     * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
-     * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
-     * @throws MapNotFound is thrown if world is not yet loaded.
-     */
-    @Deprecated("Increases redundancy.", ReplaceWith("spawnMob(String, String?, LootTable?, String)"))
-    fun spawnMob(type: String, name: String, tagName: String): CompletableFuture<Int>
-
-    /**
-     * Spawn vanilla mobs.
-     *
-     * @param type Type of [mobs][Mob]s to be spawned.
-     * @param loot The [LootTable] which defines the items to drop upon death.
-     * Use [ItemModule.getLootTable] to get a loot table.
-     * @param tagName The name of coordinate tag which designates their spawnpoint.
-     * @throws FaultyConfiguration is thrown if [tagName] is not a valid Tag.
-     * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
-     * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
-     * @throws MapNotFound is thrown if world is not yet loaded.
-     */
-    @Deprecated("Increases redundancy.", ReplaceWith("spawnMob(String, String?, LootTable?, String)"))
-    fun spawnMob(type: String, loot: LootTable, tagName: String): CompletableFuture<Int>
-
-    /**
-     * Spawn vanilla mobs.
-     *
-     * @param type Type of [mobs][Mob]s to be spawned.
      * @param name Custom name.
      * @param loot The [LootTable] which defines the items to drop upon death.
      * Use [ItemModule.getLootTable] to get a loot table.

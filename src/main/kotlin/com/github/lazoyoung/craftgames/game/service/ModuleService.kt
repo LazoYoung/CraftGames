@@ -141,8 +141,6 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
 
     override fun start() {}
 
-    override fun restart() {}
-
     override fun terminate() {}
 
 }

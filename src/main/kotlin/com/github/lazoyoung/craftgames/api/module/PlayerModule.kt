@@ -98,18 +98,6 @@ interface PlayerModule {
     fun setSpawnpoint(type: PlayerType, spawnTag: String)
 
     /**
-     * Set spawnpoint for the players associated in certain [type][PlayerType].
-     *
-     * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
-     *
-     * @param type [PlayerType] (represented by [String]) indicating whose spawnpoint it is.
-     * @param spawnTag Name of the coordinate tag which captures spawnpoints.
-     * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
-     */
-    @Deprecated("Increases redundancy.", ReplaceWith("setSpawnpoint(PlayerType, String)"))
-    fun setSpawnpoint(type: String, spawnTag: String)
-
-    /**
      * Set new spawnpoint for individual player.
      *
      * Default spawnpoint becomes ineffective for that [player].

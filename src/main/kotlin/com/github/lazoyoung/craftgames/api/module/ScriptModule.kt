@@ -9,13 +9,11 @@ import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
 import org.bukkit.entity.LivingEntity
-import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.File
 import java.io.FileNotFoundException
-import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 interface ScriptModule {
@@ -97,28 +95,6 @@ interface ScriptModule {
      * @throws IllegalArgumentException is thrown if [delay] is less than 1 tick.
      */
     fun wait(delay: Timer, task: Runnable): BukkitTask
-
-    /**
-     * Register custom command.
-     *
-     * If [label] were test, '/test abc 123' could be recognized as input for this command.
-     * [Handler][BiConsumer] is consequently executed, supplied with executor(player) and string array(abc 123) to handle its operation.
-     *
-     * @param label Command name without prefix-slash(/)
-     * @param handler Operation of this command which accepts [Player] and [String] array as input.
-     * @throws IllegalStateException is thrown if command is already registered.
-     */
-    @Deprecated("Dynamic command registration is no longer supported.")
-    fun registerCommand(label: String, handler: BiConsumer<Player, Array<String>>)
-
-    /**
-     * Un-register a command that is previously registered by [registerCommand].
-     *
-     * @param label Command name without prefix-slash(/)
-     * @throws IllegalStateException is thrown if command is not registered.
-     */
-    @Deprecated("Dynamic command registration is no longer supported.")
-    fun unregisterCommand(label: String)
 
     /**
      * Dispatch the [command][commandLine] to [target][LivingEntity] and execute it.

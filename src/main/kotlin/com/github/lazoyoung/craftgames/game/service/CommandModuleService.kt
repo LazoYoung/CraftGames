@@ -197,8 +197,6 @@ class CommandModuleService(
 
     override fun start() {}
 
-    override fun restart() {}
-
     override fun terminate() {
         tasks.forEach {
             try {

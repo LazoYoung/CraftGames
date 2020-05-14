@@ -5,7 +5,6 @@ import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
-import com.github.lazoyoung.craftgames.command.CustomCommand
 import com.github.lazoyoung.craftgames.event.GameEvent
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.script.GameScript
@@ -13,7 +12,6 @@ import com.github.lazoyoung.craftgames.game.script.ScriptFactory
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.LivingEntity
-import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -22,8 +20,6 @@ import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 class ScriptModuleService internal constructor(
@@ -31,7 +27,6 @@ class ScriptModuleService internal constructor(
 ) : ScriptModule, Service {
 
     internal val events = HashMap<EventType, Consumer<in GameEvent>>()
-    private val commandLabels = CopyOnWriteArrayList<String>()
     private val resource = game.resource
     private val script = resource.mainScript
     private val tasks = ArrayList<BukkitTask>()
@@ -102,23 +97,6 @@ class ScriptModuleService internal constructor(
 
         tasks.add(bukkitTask)
         return bukkitTask
-    }
-
-    // TODO Drop support of dynamic command registration
-    override fun registerCommand(label: String, handler: BiConsumer<Player, Array<String>>) {
-        val command = CustomCommand.get(label) ?: CustomCommand(label)
-
-        command.addHandler(game, handler)
-        commandLabels.add(label)
-    }
-
-    override fun unregisterCommand(label: String) {
-        val command = checkNotNull(CustomCommand.get(label)) {
-            "Command $label is not registered."
-        }
-
-        command.removeHandler(game)
-        commandLabels.remove(label)
     }
 
     override fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean {
@@ -239,8 +217,6 @@ class ScriptModuleService internal constructor(
 
     override fun start() {}
 
-    override fun restart() {}
-
     override fun terminate() {
         script.clear()
 
@@ -248,10 +224,6 @@ class ScriptModuleService internal constructor(
             try {
                 it.cancel()
             } catch (e: Throwable) {}
-        }
-
-        commandLabels.forEach {
-            unregisterCommand(it)
         }
     }
 
