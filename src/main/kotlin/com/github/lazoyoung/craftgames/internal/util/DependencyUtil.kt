@@ -4,6 +4,8 @@ import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GameResource
 import com.github.lazoyoung.craftgames.game.service.CommandModuleService
+import com.github.lazoyoung.craftgames.internal.listener.ShopkeepersListener
+import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import org.bukkit.Bukkit
 import org.bukkit.plugin.PluginManager
 
@@ -49,6 +51,20 @@ enum class DependencyUtil(
 
     DENIZEN("Denizen", null),
 
+    SHOP_KEEPER("Shopkeepers", null) {
+        override fun init(pluginManager: PluginManager) {
+            super.init(pluginManager)
+
+            if (isLoaded()) {
+                Bukkit.getServer().pluginManager.registerEvents(ShopkeepersListener(), Main.instance)
+            }
+        }
+
+        override fun isLoaded(): Boolean {
+            return super.isLoaded() && ShopkeepersAPI.isEnabled()
+        }
+    },
+
     MYTHIC_MOBS("MythicMobs", null),
 
     LIBS_DISGUISES("LibsDisguises", null),
@@ -65,7 +81,7 @@ enum class DependencyUtil(
         }
     }
 
-    fun isLoaded(): Boolean {
+    open fun isLoaded(): Boolean {
         return loaded
     }
 

@@ -9,7 +9,7 @@ import java.io.IOException
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
-class GameLayout(private val gameName: String) {
+class GameLayout(gameName: String) {
 
     /** Layout defines path to every resource files. **/
     val config: YamlConfiguration
@@ -25,6 +25,10 @@ class GameLayout(private val gameName: String) {
     internal val kitDir: Path
 
     internal val lootTableDir: Path?
+
+    internal val shopkeepersDir: Path
+
+    internal val dataDir: Path
 
     init {
         var fileReader: BufferedReader? = null
@@ -60,15 +64,20 @@ class GameLayout(private val gameName: String) {
             }
         }
 
-        val scriptRootStr = config.getString("script.directory")
+        val dataDir = "_data"
+        val scriptDir = config.getString("script.directory")
                 ?: throw FaultyConfiguration("Script directory is not defined in $path")
-        val lootTablePath = config.getString("datapack.loot-tables.directory")
-        val kitPath = config.getString("kit.directory")
-                ?: throw FaultyConfiguration("Kit directory is not defined in $path")
+        val lootTableDir = config.getString("datapack.loot-tables.directory")
 
-        scriptDir = root.resolve(scriptRootStr)
-        lootTableDir = lootTablePath?.let { root.resolve(it) }
-        kitDir = root.resolve(kitPath)
+        if(scriptDir == dataDir || lootTableDir == dataDir) {
+            throw FaultyConfiguration("Illegal directory($dataDir) is defined in $path")
+        }
+
+        this.dataDir = root.resolve(dataDir)
+        this.scriptDir = root.resolve(scriptDir)
+        this.lootTableDir = lootTableDir?.let { root.resolve(it) }
+        this.kitDir = this.dataDir.resolve("kit")
+        this.shopkeepersDir = this.dataDir.resolve("shopkeepers")
     }
 
 }

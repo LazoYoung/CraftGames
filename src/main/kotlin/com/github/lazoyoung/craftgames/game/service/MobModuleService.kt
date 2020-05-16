@@ -10,6 +10,8 @@ import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
+import com.nisovin.shopkeepers.api.ShopkeepersAPI
+import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
 import net.citizensnpcs.api.CitizensAPI
 import net.citizensnpcs.api.npc.NPC
 import net.citizensnpcs.api.npc.NPCRegistry
@@ -53,6 +55,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     private lateinit var getEntityMethod: Method
     private lateinit var unregisterMethod: Method
     private lateinit var removeMethod: Method
+    internal val shopkeeperList = LinkedList<UUID>()
     private val npcList = LinkedList<UUID>()
 
     override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
@@ -304,15 +307,35 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         }
     }
 
+    /*
+     * Shopkeeper must be saved before destroying npc entity.
+     * Therefore, Shopkeeper termination precedes to Citizen
+     */
     override fun terminate() {
-        if (DependencyUtil.CITIZENS.isLoaded()) {
-            val registry = CitizensAPI.getNPCRegistry()
-            val npcIter = npcList.iterator()
+        if (DependencyUtil.SHOP_KEEPER.isLoaded()) {
+            while (shopkeeperList.isNotEmpty()) {
+                val registry = ShopkeepersAPI.getShopkeeperRegistry()
+                val uid = shopkeeperList.pop()
+                val shopkeeper = registry.getShopkeeperByUniqueId(uid)
 
-            while (npcIter.hasNext()) {
-                val npc = registry.getByUniqueId(npcIter.next())
-                npc?.destroy()
-                npcIter.remove()
+                if (shopkeeper != null) {
+                    if (shopkeeper is RegularAdminShopkeeper) {
+                        game.resource.saveShopkeeper(shopkeeper)
+                    }
+
+                    shopkeeper.delete()
+                }
+            }
+        }
+
+        if (DependencyUtil.CITIZENS.isLoaded()) {
+            npcList.iterator().let {
+                while (it.hasNext()) {
+                    val registry = CitizensAPI.getNPCRegistry()
+                    val npc = registry.getByUniqueId(it.next())
+                    npc?.destroy()
+                    it.remove()
+                }
             }
         }
     }

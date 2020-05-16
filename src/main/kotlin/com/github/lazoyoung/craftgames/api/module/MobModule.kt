@@ -38,7 +38,7 @@ interface MobModule {
     /**
      * Spawn vanilla mobs.
      *
-     * @param type Type of [mobs][Mob]s to be spawned.
+     * @param type Type of [Mob]s to be spawned.
      * @param name Custom name.
      * @param loot The [LootTable] which defines the items to drop upon death.
      * Use [ItemModule.getLootTable] to get a loot table.

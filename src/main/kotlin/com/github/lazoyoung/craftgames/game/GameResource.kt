@@ -9,7 +9,11 @@ import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.GameNotFound
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import com.github.lazoyoung.craftgames.internal.util.DatapackUtil
+import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
+import com.nisovin.shopkeepers.shopkeeper.offers.SKTradingOffer
 import org.bukkit.Bukkit
+import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
@@ -143,5 +147,92 @@ class GameResource internal constructor(private val gameName: String) {
             return false
         }
         return true
+    }
+
+    /**
+     * @param shopkeeper an instance of [RegularAdminShopkeeper]
+     */
+    internal fun <T> loadShopkeeper(shopkeeper: T) {
+        require(shopkeeper is RegularAdminShopkeeper) {
+            "This is not a RegularAdminShopkeeper."
+        }
+
+        val fileName = shopkeeper.uniqueId.toString().plus(".yml")
+        val path = layout.shopkeepersDir.resolve(fileName)
+
+        if (!Files.isRegularFile(path)) {
+            return
+        }
+
+        try {
+            path.toFile().bufferedReader().use {
+                val config = YamlConfiguration.loadConfiguration(it)
+                val entries = config.getMapList("offers")
+
+                for (entry in entries) {
+                    val result = entry["result"] as ItemStack
+                    val item1 = entry["item1"] as ItemStack
+                    val item2 = entry["item2"] as ItemStack?
+
+                    shopkeeper.addOffer(SKTradingOffer(result, item1, item2))
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * @param shopkeeper an instance of [RegularAdminShopkeeper]
+     */
+    internal fun <T> saveShopkeeper(shopkeeper: T) {
+        require(shopkeeper is RegularAdminShopkeeper) {
+            "This is not a RegularAdminShopkeeper."
+        }
+
+        val fileName = shopkeeper.uniqueId.toString().plus(".yml")
+        val path = layout.shopkeepersDir.resolve(fileName)
+        val entries = ArrayList<Map<String, ItemStack?>>()
+        val file = path.toFile()
+
+        try {
+            Files.createDirectories(path.parent!!)
+            Files.createFile(path)
+        } catch (e: FileAlreadyExistsException) {
+            // ignore
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+
+        file.bufferedReader().use { reader ->
+            val config = YamlConfiguration.loadConfiguration(reader)
+
+            shopkeeper.offers.forEach {
+                val map = HashMap<String, ItemStack?>()
+
+                map["result"] = it.resultItem
+                map["item1"] = it.item1
+                map["item2"] = it.item2
+                entries.add(map)
+            }
+
+            config.set("offers", entries)
+            config.save(file)
+        }
+    }
+
+    internal fun <T> discardShopkeeper(shopkeeper: T) {
+        require(shopkeeper is RegularAdminShopkeeper) {
+            "This is not a RegularAdminShopkeeper."
+        }
+
+        val fileName = shopkeeper.uniqueId.toString().plus(".yml")
+        val path = layout.shopkeepersDir.resolve(fileName)
+
+        try {
+            Files.deleteIfExists(path)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
     }
 }

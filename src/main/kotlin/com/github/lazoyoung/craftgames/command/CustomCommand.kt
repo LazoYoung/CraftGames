@@ -8,6 +8,7 @@ import org.bukkit.entity.Player
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiConsumer
 
+@Deprecated("Replaced by CommandModule integrated with CommandAPI.")
 class CustomCommand(name: String) : Command(name) {
 
     companion object Registry {

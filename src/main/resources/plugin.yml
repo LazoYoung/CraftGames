@@ -10,6 +10,7 @@ softdepend:
   - WorldEdit
   - Citizens
   - Denizen
+  - Shopkeepers
   - MythicMobs
   - LibsDisguises
   - Vault

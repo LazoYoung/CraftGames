@@ -8,7 +8,8 @@ import com.github.lazoyoung.craftgames.game.GameLayout
 import com.github.lazoyoung.craftgames.game.GameMap
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
-import java.io.File
+import java.io.IOException
+import java.nio.file.Files
 
 open class CoordTag private constructor(
         val name: String,
@@ -26,22 +27,26 @@ open class CoordTag private constructor(
         /** CoordTags configuration for every maps in this game. **/
         internal val config: YamlConfiguration
 
-        private val file: File
+        private val path = layout.dataDir.resolve("coordinate-tags.yml")
+        private val file = path.toFile()
         private val storage = HashMap<String, CoordTag>()
 
         constructor(gameName: String) : this(GameLayout(gameName))
 
         init {
-            val tagPath = layout.config.getString("coordinate-tags.file")
-                    ?: throw FaultyConfiguration("coordinate-tags.file is not defined in ${layout.path}.")
-            file = layout.root.resolve(tagPath).toFile()
-
             file.parentFile?.mkdirs()
 
-            if (!file.isFile && !file.createNewFile())
-                throw RuntimeException("Unable to create file: ${file.toPath()}")
-            if (file.extension != "yml")
+            if (!Files.isRegularFile(path)) {
+                try {
+                    Files.createFile(path)
+                } catch (e: IOException) {
+                    throw RuntimeException("Unable to create file: $path", e)
+                }
+            }
+
+            if (file.extension != "yml") {
                 throw FaultyConfiguration("File extension is illegal: ${file.name} (Replace with .yml)")
+            }
 
             config = YamlConfiguration.loadConfiguration(file)
             reload()
@@ -128,45 +133,6 @@ open class CoordTag private constructor(
             return name.plus('.').plus("captures").plus('.').plus(mapID)
         }
     }
-
-    /*
-    companion object {
-        /**
-         * This method allows you to access every coordinate tags in the game.
-         * CoordTag generally preserve a set of CoordCaptures per each map.
-         *
-         * @param game Which game to get the tags from?
-         * @return List of CoordTag matching the conditions above.
-         */
-        fun getAll(game: Game): List<CoordTag> {
-            return getAll(game.name)
-        }
-
-        /**
-         * Functionailty is equivalent to [getAll].
-         */
-        fun getAll(gameName: String): List<CoordTag> {
-            var tagList = storage[gameName]
-
-            if (tagList == null) {
-                try {
-                    reload(GameResource(gameName))
-                    tagList = storage[gameName]
-                } catch (e: Exception) {}
-            }
-
-            return tagList ?: emptyList()
-        }
-
-        internal fun create(resource: GameResource, mapID: String, mode: TagMode, name: String) {
-            val config = resource.tagConfig
-
-            config.set(name.plus(".mode"), mode.label)
-            config.createSection(name.plus(".captures.").plus(mapID))
-            reload(resource)
-        }
-    }
-    */
 
     /**
      * Returns all the captures.

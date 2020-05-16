@@ -76,6 +76,7 @@ class GameScriptGroovy(
         imports.addImport("ChatColor", "org.bukkit.ChatColor")
         imports.addImport("Material", "org.bukkit.Material")
         imports.addImport("CommandSender", "org.bukkit.command.CommandSender")
+        imports.addImport("EntityType", "org.bukkit.entity.EntityType")
         engine.config.addCompilationCustomizers(imports)
         script = engine.createScript(file.name, bindings)
     }
