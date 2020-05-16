@@ -29,14 +29,6 @@ class ShopkeepersListener : Listener {
                         return
                     }
 
-                    // FIXME UniqueID cannot be used to identify save file and restore it back.
-                    /*
-                     * Save resolution for each ShopObjectType.
-                     * 1) Citizen: Citizen's name is the unique identifier.
-                     * 2) Mob: Location is the unique identifier as it cannot move.
-                     * 3) Block: Location is the unique identifier.
-                     */
-
                     game.resource.loadShopkeeper(shopkeeper)
                     game.getMobService().shopkeeperList.add(shopkeeper.uniqueId)
                 }

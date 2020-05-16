@@ -308,26 +308,28 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     /*
-     * Shopkeeper must be saved before destroying npc entity.
-     * Therefore, Shopkeeper termination precedes to Citizen
+     * In editor-mode, Each Citizen shopkeeper gets saved before destroying the base entity.
+     * Therefore, Shopkeeper save process must precede to Citizen termination process.
      */
     override fun terminate() {
-        if (DependencyUtil.SHOP_KEEPER.isLoaded()) {
+
+        // Shopkeeper save process
+        if (game.editMode && DependencyUtil.SHOP_KEEPER.isLoaded()) {
             while (shopkeeperList.isNotEmpty()) {
                 val registry = ShopkeepersAPI.getShopkeeperRegistry()
                 val uid = shopkeeperList.pop()
-                val shopkeeper = registry.getShopkeeperByUniqueId(uid)
 
-                if (shopkeeper != null) {
-                    if (shopkeeper is RegularAdminShopkeeper) {
-                        game.resource.saveShopkeeper(shopkeeper)
+                registry.getShopkeeperByUniqueId(uid)?.let {
+                    if (it is RegularAdminShopkeeper) {
+                        game.resource.saveShopkeeper(it)
                     }
 
-                    shopkeeper.delete()
+                    it.delete()
                 }
             }
         }
 
+        // Citizen termination process
         if (DependencyUtil.CITIZENS.isLoaded()) {
             npcList.iterator().let {
                 while (it.hasNext()) {

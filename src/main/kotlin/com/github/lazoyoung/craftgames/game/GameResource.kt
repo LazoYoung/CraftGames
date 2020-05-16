@@ -190,6 +190,14 @@ class GameResource internal constructor(private val gameName: String) {
             "This is not a RegularAdminShopkeeper."
         }
 
+        // FIXME UniqueID cannot be used to identify save file because it changes at any time.
+        /*
+         * Save resolution for each ShopObjectType.
+         * 1) Citizen: Citizen's name is the unique identifier.
+         * 2) Mob: Location is the unique identifier as it cannot move.
+         * 3) Block: Location is the unique identifier.
+         */
+
         val fileName = shopkeeper.uniqueId.toString().plus(".yml")
         val path = layout.shopkeepersDir.resolve(fileName)
         val entries = ArrayList<Map<String, ItemStack?>>()
