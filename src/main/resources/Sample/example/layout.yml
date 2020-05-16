@@ -21,10 +21,6 @@ script:
   command:
     file: commands.groovy
     compiler: dynamic
-kit:
-  directory: data/kit
 datapack:
   loot-tables:
     directory: datapack/loot_tables
-coordinate-tags:
-  file: data/coordinate-tags.yml
