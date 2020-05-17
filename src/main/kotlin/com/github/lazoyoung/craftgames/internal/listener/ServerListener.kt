@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.internal.listener
 
 import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.command.CustomCommand
 import com.github.lazoyoung.craftgames.event.*
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
@@ -217,22 +216,6 @@ class ServerListener : Listener {
                 })
             }
         }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH)
-    fun onCommandPreprocess(event: PlayerCommandPreprocessEvent) {
-        if (event.message.isEmpty()) {
-            return
-        }
-
-        // First argument indicates alias. Subsequent arguments are real ones.
-        val args = event.message.split(" ")
-        val alias = args.first().drop(1)
-        val customCommand = CustomCommand.get(alias) ?: return
-        val player = event.player
-        val game = PlayerData.get(player)?.getGame() ?: return
-
-        customCommand.getHandler(game)?.accept(player, args.drop(1).toTypedArray())
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
