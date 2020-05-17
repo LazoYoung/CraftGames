@@ -31,8 +31,14 @@ class ServerListener : Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     fun onWorldLoad(event: WorldInitEvent) {
         for (game in Game.find()) {
-            if (event.world.name == game.map.worldName) {
+            val name = event.world.name
+
+            if (name == game.map.worldName) {
                 event.world.keepSpawnInMemory = false
+
+                Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+                    Bukkit.getWorld(name)?.keepSpawnInMemory = true
+                }, 40L)
                 break
             }
         }
