@@ -6,12 +6,12 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
 import com.github.lazoyoung.craftgames.command.RESET_FORMAT
-import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.player.*
@@ -54,7 +54,9 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun getPlayersInside(areaTag: String, callback: Consumer<List<Player>>) {
-        game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Player>> {
+        val tag = ModuleService.getRelevantTag(game, areaTag, TagMode.AREA)
+
+        game.getWorldService().getEntitiesInside(tag, Consumer<List<Player>> {
             callback.accept(it)
             script.printDebug("Found ${it.size} players inside area: $areaTag")
         })

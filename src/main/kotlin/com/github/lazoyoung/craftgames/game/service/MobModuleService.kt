@@ -2,6 +2,10 @@ package com.github.lazoyoung.craftgames.game.service
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.MobModule
 import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture

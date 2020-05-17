@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.game.service
 
-import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.CommandHandler
+import com.github.lazoyoung.craftgames.Main
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.CommandModule
 import com.github.lazoyoung.craftgames.game.Game
@@ -35,7 +35,8 @@ class CommandModuleService(
         script.debug = verbose
     }
 
-    override fun register(name: String, permissions: CommandPermission, aliases: Array<String>?, args: LinkedHashMap<String, Argument>?, handler: CommandHandler) {
+    override fun register(name: String, permissions: CommandPermission, aliases: Array<String>?,
+                          args: LinkedHashMap<String, Argument>?, handler: CommandHandler) {
         val executor = CommandExecutor { sender, arguments ->
 
             val callee = if (sender is ProxiedCommandSender) {

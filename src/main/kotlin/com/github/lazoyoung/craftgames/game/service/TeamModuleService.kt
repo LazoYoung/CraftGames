@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.api.module.TeamModule
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor

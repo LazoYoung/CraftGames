@@ -1,32 +1,35 @@
-package com.github.lazoyoung.craftgames.coordtag.tag
+package com.github.lazoyoung.craftgames.api.coordtag.tag
 
-import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.CoordCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.CoordCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.game.GameLayout
 import com.github.lazoyoung.craftgames.game.GameMap
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.IOException
 import java.nio.file.Files
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
-open class CoordTag private constructor(
-        val name: String,
-        val mode: TagMode,
+class CoordTag private constructor(
+        var name: String,
+        var mode: TagMode,
         val registry: Registry,
-
-        /** List of captures in this tag */
-        private val captures: List<CoordCapture>,
-
-        /** Suppress warning that it's incomplete. */
-        private var suppress: Boolean = false
+        private val captures: LinkedList<CoordCapture>,
+        private var suppress: Boolean
 ) {
+    var removed: Boolean = false
+        private set
+
+    private var synced: Boolean = true
+
     class Registry internal constructor(val layout: GameLayout) {
 
         /** CoordTags configuration for every maps in this game. **/
         internal val config: YamlConfiguration
-
         private val path = layout.dataDir.resolve("coordinate-tags.yml")
         private val file = path.toFile()
         private val storage = HashMap<String, CoordTag>()
@@ -49,20 +52,48 @@ open class CoordTag private constructor(
             }
 
             config = YamlConfiguration.loadConfiguration(file)
-            reload()
+            reload(null)
         }
 
-        fun get(tagName: String): CoordTag? {
-            return storage[tagName]
+        /**
+         * Get a specific [CoordTag].
+         *
+         * @param tagName Name of tag to get.
+         * @param mapID Filter out captures inside the maps other than this map.
+         * @return Returns the [CoordTag] matching with [tagName] if found. Otherwise null.
+         */
+        fun get(tagName: String, mapID: String? = null): CoordTag? {
+            return if (mapID != null) {
+                val origin = storage[tagName] ?: return null
+                val captures = origin.captures.filter { mapID == it.mapID }
+                val tag = CoordTag(origin.name, origin.mode, origin.registry, LinkedList(captures), origin.suppress)
+                tag.synced = false
+
+                tag
+            } else {
+                storage[tagName]
+            }
+        }
+
+        /**
+         * Get all [CoordTag]s in this registry.
+         */
+        fun getAll(): List<CoordTag> {
+            return storage.values.toList()
         }
 
         internal fun create(mapID: String, mode: TagMode, name: String) {
             config.set(name.plus(".mode"), mode.label)
             config.createSection(name.plus(".captures.").plus(mapID))
-            reload()
+            reload(null)
         }
 
-        internal fun reload() {
+        /**
+         * Reload this registry.
+         *
+         * @param tag Reference which is going to be updated to reflect changes.
+         */
+        internal fun reload(tag: CoordTag?) {
             storage.clear()
 
             for (name in config.getKeys(false)) {
@@ -70,7 +101,7 @@ open class CoordTag private constructor(
                         ?: continue
                 val mode = TagMode.valueOf(modeStr)
                 val suppress = config.getBoolean(name.plus(".suppress"), false)
-                val captList = ArrayList<CoordCapture>()
+                val captList = LinkedList<CoordCapture>()
                 val mapIterate = config.getConfigurationSection(
                         name.plus('.').plus("captures")
                 )?.getKeys(false) ?: emptyList<String>()
@@ -78,8 +109,11 @@ open class CoordTag private constructor(
                 for (map in mapIterate) {
                     captList.addAll(deserialize(map, mode, name))
                 }
+
                 storage[name] = CoordTag(name, mode, this, captList, suppress)
             }
+
+            tag?.update(storage[tag.name])
         }
 
         internal fun saveToDisk() {
@@ -122,10 +156,6 @@ open class CoordTag private constructor(
             }
             return list
         }
-
-        fun getAll(): List<CoordTag> {
-            return storage.values.toList()
-        }
     }
 
     companion object {
@@ -139,8 +169,13 @@ open class CoordTag private constructor(
      *
      * @param mapID Excludes the captures outside the given map, if specified.
      * @return List of CoordCapture matching the conditions.
+     * @throws IllegalStateException is raised if [removed] is true.
      */
     fun getCaptures(mapID: String?): List<CoordCapture> {
+        check(!removed) {
+            "This tag has been removed."
+        }
+
         return captures.filter { mapID == null || mapID == it.mapID }
     }
 
@@ -148,10 +183,15 @@ open class CoordTag private constructor(
      * Choose whether or not to suppress warning that tag is incomplete.
      *
      * @param suppress whether or not to suppress warning.
+     * @throws IllegalStateException is raised if [removed] is true.
      */
-    fun suppress(suppress: Boolean) {
+    internal fun suppress(suppress: Boolean) {
+        check(!removed) {
+            "This tag has been removed."
+        }
+
         registry.config.set(name.plus(".suppress"), suppress)
-        registry.reload()
+        registry.reload(this)
     }
 
     /**
@@ -159,8 +199,13 @@ open class CoordTag private constructor(
      * Incomplete tags are those who omit to capture coordinate at least 1 map.
      *
      * @return List of [GameMap] at which this tag haven't captured.
+     * @throws IllegalStateException is raised if [removed] is true.
      */
-    fun scanIncompleteMaps(): List<GameMap> {
+    internal fun scanIncompleteMaps(): List<GameMap> {
+        check(!removed) {
+            "This tag has been removed."
+        }
+
         val list = ArrayList<GameMap>()
 
         if (!suppress) {
@@ -177,10 +222,16 @@ open class CoordTag private constructor(
     /**
      * Remove the tag and the whole captures in it.
      * You will have to manually save the config to disk.
+     *
+     * @throws IllegalStateException is raised if [removed] is true.
      */
-    fun remove() {
+    internal fun remove() {
+        check(!removed) {
+            "This tag has been removed."
+        }
+
         registry.config.set(name, null)
-        registry.reload()
+        registry.reload(this)
     }
 
     /**
@@ -188,16 +239,37 @@ open class CoordTag private constructor(
      * You will have to manually save the config to disk.
      *
      * @throws IllegalArgumentException if [capture] is not registerd to a tag.
+     * @throws IllegalStateException is raised if [removed] is true.
      */
-    fun removeCapture(capture: CoordCapture) {
+    internal fun removeCapture(capture: CoordCapture) {
+        check(!removed) {
+            "This tag has been removed."
+        }
+
         try {
             val key = getKeyToCaptureStream(name, capture.mapID!!)
             val stream = registry.config.getStringList(key)
             stream.removeAt(capture.index!!)
             registry.config.set(key, stream)
-            registry.reload()
+            registry.reload(this)
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
+        }
+    }
+
+    private fun update(tag: CoordTag?) {
+        if (tag == null) {
+            this.removed = true
+        } else {
+            this.removed = tag.removed
+
+            if (synced) {
+                this.captures.clear()
+                this.captures.addAll(tag.captures)
+                this.mode = tag.mode
+                this.name = tag.name
+                this.suppress = tag.suppress
+            }
         }
     }
 }

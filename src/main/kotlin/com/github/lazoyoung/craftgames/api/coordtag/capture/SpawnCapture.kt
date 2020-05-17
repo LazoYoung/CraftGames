@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.coordtag.capture
+package com.github.lazoyoung.craftgames.api.coordtag.capture
 
 import org.bukkit.Location
 import org.bukkit.World
@@ -8,8 +8,8 @@ class SpawnCapture(
         val x: Double,
         val y: Double,
         val z: Double,
-        val yaw: Float,
-        val pitch: Float,
+        private val yaw: Float,
+        private val pitch: Float,
         mapID: String,
         index: Int? = null
 ) : CoordCapture(mapID, index) {

@@ -1,10 +1,10 @@
 package com.github.lazoyoung.craftgames.game
 
 import com.github.lazoyoung.craftgames.Main
-import com.github.lazoyoung.craftgames.coordtag.capture.AreaCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.service.WorldModuleService
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.util.FileUtil

@@ -1,9 +1,9 @@
 package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.api.module.ItemModule
-import com.github.lazoyoung.craftgames.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
+import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound

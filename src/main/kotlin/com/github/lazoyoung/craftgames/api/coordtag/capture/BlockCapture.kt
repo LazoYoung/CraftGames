@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.coordtag.capture
+package com.github.lazoyoung.craftgames.api.coordtag.capture
 
 import org.bukkit.Location
 import org.bukkit.World

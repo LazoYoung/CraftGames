@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.game.service
 
 import com.github.lazoyoung.craftgames.api.module.*
-import com.github.lazoyoung.craftgames.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.game.Game
 import com.github.lazoyoung.craftgames.game.GamePhase
 import com.github.lazoyoung.craftgames.game.GameTask
