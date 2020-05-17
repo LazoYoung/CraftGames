@@ -165,11 +165,6 @@ dokka {
             prefix = "com.github.lazoyoung.craftgames.game"
             suppress = true
         }
-
-        perPackageOption {
-            prefix = "com.github.lazoyoung.craftgames.coordtag"
-            suppress = true
-        }
     }
 }
 
