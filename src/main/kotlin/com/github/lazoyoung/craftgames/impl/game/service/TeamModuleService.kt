@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
-import com.github.lazoyoung.craftgames.api.module.TeamModule
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.module.TeamModule
 import com.github.lazoyoung.craftgames.impl.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
@@ -161,7 +161,17 @@ class TeamModuleService(private val game: Game) : TeamModule, Service {
     }
 
     override fun setSpawnpoint(team: Team, spawnTag: String) {
-        this.spawnTag[team.name] = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA)
+        error("Deprecated function.")
+    }
+
+    override fun setSpawnpoint(team: Team, tag: CoordTag) {
+        val mode = tag.mode
+
+        require(mode == TagMode.SPAWN || mode == TagMode.AREA) {
+            "Illegal tag mode: ${mode.label}"
+        }
+
+        this.spawnTag[team.name] = tag
     }
 
     internal fun getSpawnpoint(player: Player): CoordTag? {

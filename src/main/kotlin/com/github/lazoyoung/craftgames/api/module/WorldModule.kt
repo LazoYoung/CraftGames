@@ -14,14 +14,29 @@ interface WorldModule {
     fun getMapID(): String
 
     /**
+     * Get [Location] of this world.
+     *
+     * @param x X-coordinate
+     * @param y Y-coordinate
+     * @param z Z-coordinate
+     * @param yaw Yaw angle
+     * @param pitch Pitch angle
+     * @throws MapNotFound is thrown if world is not generated yet.
+     */
+    fun getLocation(x: Double, y: Double, z: Double, yaw: Float, pitch: Float): Location
+
+    /**
      * Get [CoordTag] by searching for [name].
+     *
+     * One tag can store as many locations as you want.
+     * Tags are captured via '/ctag capture' in game.
      */
     fun getCoordTag(name: String): CoordTag?
 
     /**
      * Get [WorldBorder] of this world.
      *
-     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws MapNotFound is thrown if world is not generated yet.
      */
     fun getWorldBorder(): WorldBorder
 
@@ -32,7 +47,7 @@ interface WorldModule {
      * @param index Index of capture (This is optional).
      * @throws IllegalArgumentException is thrown if [blockTag]
      * does not indicate a block coordinate in this world.
-     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws MapNotFound is thrown if world is not generated yet.
      */
     fun setBorderCenter(blockTag: String, index: Int = 0)
 

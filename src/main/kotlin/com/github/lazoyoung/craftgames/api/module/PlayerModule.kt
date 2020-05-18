@@ -1,6 +1,8 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import org.bukkit.Location
 import org.bukkit.Material
@@ -21,7 +23,17 @@ interface PlayerModule {
      * @param callback Callback function that will accept the result
      * ([List] of players inside) once the process is completed.
      */
+    @Deprecated("Direct use of CoordTag is encouraged.", ReplaceWith("getPlayersInside(CoordTag, Consumer)"))
     fun getPlayersInside(areaTag: String, callback: Consumer<List<Player>>)
+
+    /**
+     * Inspect which [Player]s are inside the area.
+     *
+     * @param areaTag Coordinate tag which designates the area.
+     * @param callback Callback function that will accept the result
+     * ([List] of players inside) once the process is completed.
+     */
+    fun getPlayersInside(areaTag: CoordTag, callback: Consumer<List<Player>>)
 
     /**
      * Check if [player] is playing this game.
@@ -95,7 +107,20 @@ interface PlayerModule {
      * @param spawnTag Name of the coordinate tag which captures spawnpoints.
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
+    @Deprecated("Direct use of CoordTag is encouraged.",
+            ReplaceWith("setSpawnpoint(PlayerType, CoordTag)"))
     fun setSpawnpoint(type: PlayerType, spawnTag: String)
+
+    /**
+     * Set spawnpoint for the players associated in certain [type][PlayerType].
+     *
+     * For team-based spawnpoint, see [TeamModule.setSpawnpoint].
+     *
+     * @param type [PlayerType] indicating whose spawnpoint it is.
+     * @param tag Coordinate tag which designates spawnpoint(s).
+     * @throws IllegalArgumentException is raised if [tag] mode is neither [TagMode.SPAWN] nor [TagMode.AREA].
+     */
+    fun setSpawnpoint(type: PlayerType, tag: CoordTag)
 
     /**
      * Set new spawnpoint for individual player.
@@ -107,6 +132,8 @@ interface PlayerModule {
      * @param index (Optional) The capture index of that coordinate tag.
      * This is randomly chosen if you to pass null.
      */
+    @Deprecated("Direct use of CoordTag is encouraged.",
+            ReplaceWith("overrideSpawnpoint(player, CoordTag, index)"))
     fun overrideSpawnpoint(player: Player, tagName: String, index: Int = 0)
 
     /**
@@ -115,7 +142,20 @@ interface PlayerModule {
      * Default spawnpoint becomes ineffective for that [player].
      *
      * @param player The target player.
-     * @param location New spawnpoint to override.
+     * @param tag Coordinate tag indicating spawnpoint.
+     * @param index (Optional) The capture index of that coordinate tag.
+     * This is randomly chosen if you to pass null.
+     * @throws IllegalArgumentException is raised if [tag] mode is neither [TagMode.SPAWN] nor [TagMode.AREA].
+     */
+    fun overrideSpawnpoint(player: Player, tag: CoordTag, index: Int = 0)
+
+    /**
+     * Set new spawnpoint for individual player.
+     *
+     * Default spawnpoint becomes ineffective for that [player].
+     *
+     * @param player The target player.
+     * @param location Location of new spawnpoint.
      */
     fun overrideSpawnpoint(player: Player, location: Location)
 

@@ -70,8 +70,8 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
-    @Deprecated("Location should be used to determine spawnpoint.",
-            ReplaceWith("spawnMob(String, String?, LootTable?, Location)"))
+    @Deprecated("Direct use of CoordTag is encouraged.",
+            ReplaceWith("spawnMob(String, String?, LootTable?, CoordTag)"))
     fun spawnMob(type: String, name: String?, loot: LootTable?, tagName: String): CompletableFuture<Int>
 
     /**
@@ -115,7 +115,7 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if MythicMobs is not installed.
      */
-    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnMythicMob(String, Int, Location)"))
+    @Deprecated("Direct use of CoordTag is encouraged.", ReplaceWith("spawnMythicMob(String, Int, CoordTag)"))
     fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int>
 
     /**
@@ -157,7 +157,7 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
-    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnNPC(String, EntityType, String?, Location)"))
+    @Deprecated("Direct use of CoordTag is encouraged.", ReplaceWith("spawnNPC(String, EntityType, String?, CoordTag)"))
     fun spawnNPC(name: String, type: EntityType, assignment: String?, tagName: String): CompletableFuture<Int>
 
     /**
@@ -198,7 +198,7 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
-    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnPlayerNPC(String, String?, String?, Location)"))
+    @Deprecated("Direct use of CoordTag is encouraged.", ReplaceWith("spawnPlayerNPC(String, String?, String?, CoordTag)"))
     fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tagName: String): CompletableFuture<Int>
 
     /**

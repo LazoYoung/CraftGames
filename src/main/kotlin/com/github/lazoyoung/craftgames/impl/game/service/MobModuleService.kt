@@ -1,16 +1,16 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.GameShopkeeper
 import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.MobModule
-import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
@@ -39,7 +39,6 @@ import java.net.URLEncoder
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
-import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule, Service {
@@ -64,7 +63,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     override fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>) {
-        this.getMobsInside(ModuleService.getRelevantTag(game, areaTag, TagMode.AREA), callback)
+        error("Deprecated function.")
     }
 
     override fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>) {
@@ -98,10 +97,13 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     override fun setMobCapacity(max: Int) {
-        mobCap = max
+        error("Deprecated function.")
     }
 
     override fun spawnMob(type: String, name: String?, loot: LootTable?, tagName: String): CompletableFuture<Int> {
+        error("Deprecated function.")
+        /*
+        TODO Remove this comment
         val mapID = game.map.id
         val worldModule = game.getWorldService()
         val world = worldModule.getWorld()
@@ -172,6 +174,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             script.printDebug("Spawned ${mobList.size} $typeKey")
             CompletableFuture.completedFuture(mobList.size)
         }
+         */
     }
 
     override fun spawnMob(type: String, name: String?, loot: LootTable?, location: Location): Mob {
@@ -193,6 +196,9 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int> {
+        error("Deprecated function.")
+        /*
+          TODO Remove this comment
         if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
@@ -279,6 +285,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         }
 
         return future
+         */
     }
 
     override fun spawnMythicMob(name: String, level: Int, location: Location): Entity {

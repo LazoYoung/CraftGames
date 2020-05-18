@@ -1,18 +1,16 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.github.lazoyoung.craftgames.api.module.ItemModule
-import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
-import com.github.lazoyoung.craftgames.impl.game.Game
-import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
+import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.PlayerDisguise
 import me.libraryaddict.disguise.utilities.parser.DisguiseParser
 import org.bukkit.*
+import org.bukkit.entity.Item
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
@@ -52,34 +50,17 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
     }
 
     override fun spawnItem(tag: String, itemStack: ItemStack) {
-        val map = game.map
-        val world = map.world ?: throw MapNotFound()
-        val ctag = ModuleService.getRelevantTag(game, tag, TagMode.SPAWN, TagMode.BLOCK)
-        var counter = 0
+        error("Deprecated function.")
+    }
 
-        if (ctag.mode == TagMode.SPAWN) { // SpawnCapture
-            ctag.getCaptures(map.id).filterIsInstance(SpawnCapture::class.java).forEach {
-                world.dropItemNaturally(Location(world, it.x, it.y, it.z), itemStack)
-                counter++
-            }
-        } else { // BlockCapture
-            val blockList = ctag.getCaptures(map.id).filterIsInstance(BlockCapture::class.java).map {
-                Location(world, it.x.toDouble(), it.y.toDouble(), it.z.toDouble()).block
-            }
+    override fun spawnItem(location: Location, item: ItemStack): Item {
+        val world = location.world
 
-            for (block in blockList) {
-                var b = block
-
-                while (!b.isEmpty) {
-                    b = world.getBlockAt(b.x, b.y + 1, b.z)
-                }
-
-                world.dropItemNaturally(b.location, itemStack)
-                counter++
-            }
+        if(!location.isWorldLoaded) {
+            throw MapNotFound("World is not loaded: ${world.name}")
         }
 
-        script.printDebug("Spawned $counter items across all ${ctag.name} captures.")
+        return world.dropItemNaturally(location, item)
     }
 
     override fun getLootTable(key: NamespacedKey): LootTable? {

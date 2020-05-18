@@ -1,6 +1,9 @@
 package com.github.lazoyoung.craftgames.api.module
 
+import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
+import org.bukkit.Location
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Item
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootTable
@@ -13,7 +16,18 @@ interface ItemModule {
      * @param tag Name of the coordinate tag designating the spawnpoint.
      * @param itemStack [ItemStack] which represents attribute of the item.
      */
+    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnItem(Location, itemStack)"))
     fun spawnItem(tag: String, itemStack: ItemStack)
+
+    /**
+     * Spawn a floating item.
+     *
+     * @param location Location of spawnpoint.
+     * @param item [ItemStack] which represents attribute of the item.
+     * @return [Item] entity that is spawned.
+     * @throws MapNotFound is thrown if [location] indicates a world which is not loaded.
+     */
+    fun spawnItem(location: Location, item: ItemStack): Item
 
     /**
      * Find [LootTable] by the [key][NamespacedKey].

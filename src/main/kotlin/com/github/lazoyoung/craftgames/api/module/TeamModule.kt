@@ -1,5 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 import org.bukkit.scoreboard.Objective
@@ -101,6 +103,17 @@ interface TeamModule {
      * @param spawnTag Name of the coordinate tag which captures spawnpoints.
      * @throws IllegalArgumentException is thrown if [spawnTag] is not in this game.
      */
+    @Deprecated("Direct use of CoordTag is encouraged.",
+            ReplaceWith("setSpawnpoint(team, CoordTag)"))
     fun setSpawnpoint(team: Team, spawnTag: String)
+
+    /**
+     * Set spawnpoint for the team.
+     *
+     * @param team The target [Team].
+     * @param tag Coordinate tag which captures spawnpoints.
+     * @throws IllegalArgumentException is thrown if [tag] mode is neither [TagMode.SPAWN] nor [TagMode.AREA].
+     */
+    fun setSpawnpoint(team: Team, tag: CoordTag)
 
 }

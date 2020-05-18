@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.destroystokyo.paper.Title
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.api.TimeUnit
@@ -11,12 +10,13 @@ import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.command.RESET_FORMAT
+import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
+import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.game.player.*
-import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
-import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import me.libraryaddict.disguise.DisguiseAPI
 import me.libraryaddict.disguise.disguisetypes.*
@@ -54,12 +54,11 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun getPlayersInside(areaTag: String, callback: Consumer<List<Player>>) {
-        val tag = ModuleService.getRelevantTag(game, areaTag, TagMode.AREA)
+        error("Deprecated function.")
+    }
 
-        game.getWorldService().getEntitiesInside(tag, Consumer<List<Player>> {
-            callback.accept(it)
-            script.printDebug("Found ${it.size} players inside area: $areaTag")
-        })
+    override fun getPlayersInside(areaTag: CoordTag, callback: Consumer<List<Player>>) {
+        game.getWorldService().getEntitiesInside(areaTag, callback)
     }
 
     override fun isOnline(player: Player): Boolean {
@@ -174,7 +173,15 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun setSpawnpoint(type: PlayerType, spawnTag: String) {
-        val tag = ModuleService.getRelevantTag(game, spawnTag, TagMode.SPAWN, TagMode.AREA)
+        error("Deprecated function.")
+    }
+
+    override fun setSpawnpoint(type: PlayerType, tag: CoordTag) {
+        val mode = tag.mode
+
+        require(mode == TagMode.AREA || mode == TagMode.SPAWN) {
+            "Illegal tag mode: ${mode.label}"
+        }
 
         when (type) {
             PlayerType.PLAYER -> playerSpawn = tag
@@ -184,12 +191,20 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
     }
 
     override fun overrideSpawnpoint(player: Player, tagName: String, index: Int) {
-        val tag = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA)
+        error("Deprecated function.")
+    }
+
+    override fun overrideSpawnpoint(player: Player, tag: CoordTag, index: Int) {
+        val mode = tag.mode
+
+        require(mode == TagMode.SPAWN || mode == TagMode.AREA) {
+            "Illegal tag mode: ${mode.label}"
+        }
 
         getSpawnpointByTag(tag, index).handleAsync { location, t ->
             if (t != null) {
                 t.printStackTrace()
-                script.print("Failed to override ${player.name}'s spawnpoint to $tagName/$index.")
+                script.print("Failed to override ${player.name}'s spawnpoint to ${tag.name}/$index.")
             } else {
                 Bukkit.getScheduler().runTask(Main.instance, Runnable {
                     overrideSpawnpoint(player, location)

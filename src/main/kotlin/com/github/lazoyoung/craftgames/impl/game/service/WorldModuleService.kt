@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
@@ -8,11 +7,12 @@ import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.WorldModule
-import com.github.lazoyoung.craftgames.impl.game.Game
-import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.exception.UndefinedCoordTag
+import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.WorldEditException
@@ -58,6 +58,10 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
 
     override fun getMapID(): String {
         return game.map.id
+    }
+
+    override fun getLocation(x: Double, y: Double, z: Double, yaw: Float, pitch: Float): Location {
+        return Location(getWorld(), x, y, z, yaw, pitch)
     }
 
     /**

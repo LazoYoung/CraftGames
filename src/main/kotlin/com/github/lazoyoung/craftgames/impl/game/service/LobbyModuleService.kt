@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.LobbyModule
+import com.github.lazoyoung.craftgames.impl.Main
+import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GamePhase
-import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.TextComponent
@@ -35,11 +35,15 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     private var minimum = 1
 
     override fun setSpawnpoint(x: Double, y: Double, z: Double) {
-        loc = Location(null, x, y, z)
+        error("Deprecated function.")
     }
 
     override fun setSpawnpoint(x: Double, y: Double, z: Double, yaw: Float, pitch: Float) {
-        loc = Location(null, x, y, z, yaw, pitch)
+        error("Deprecated function.")
+    }
+
+    override fun setSpawnpoint(location: Location) {
+        this.loc = location
     }
 
     override fun setTimer(timer: Timer) {
