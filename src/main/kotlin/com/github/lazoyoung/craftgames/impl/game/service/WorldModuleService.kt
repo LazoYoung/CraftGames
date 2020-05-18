@@ -68,7 +68,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
      * Get [CoordTag] by searching for [name].
      */
     override fun getCoordTag(name: String): CoordTag? {
-        return game.resource.tagRegistry.get(name, getMapID())
+        return game.resource.tagRegistry.get(name)
     }
 
     override fun getWorldBorder(): WorldBorder {

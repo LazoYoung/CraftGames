@@ -4,7 +4,6 @@ import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameResource
 import com.github.lazoyoung.craftgames.impl.game.service.CommandModuleService
-import com.github.lazoyoung.craftgames.impl.listener.ShopkeepersListener
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import org.bukkit.Bukkit
 import org.bukkit.plugin.PluginManager
@@ -52,14 +51,6 @@ enum class DependencyUtil(
     DENIZEN("Denizen", null),
 
     SHOP_KEEPER("Shopkeepers", null) {
-        override fun init(pluginManager: PluginManager) {
-            super.init(pluginManager)
-
-            if (isLoaded()) {
-                Bukkit.getServer().pluginManager.registerEvents(ShopkeepersListener(), Main.instance)
-            }
-        }
-
         override fun isLoaded(): Boolean {
             return super.isLoaded() && ShopkeepersAPI.isEnabled()
         }

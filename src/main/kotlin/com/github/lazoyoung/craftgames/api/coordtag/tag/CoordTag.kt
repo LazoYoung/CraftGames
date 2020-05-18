@@ -4,9 +4,9 @@ import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.CoordCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import com.github.lazoyoung.craftgames.impl.game.GameMap
-import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.IOException
 import java.nio.file.Files
@@ -23,8 +23,6 @@ class CoordTag private constructor(
 ) {
     var removed: Boolean = false
         private set
-
-    private var synced: Boolean = true
 
     class Registry internal constructor(val layout: GameLayout) {
 
@@ -59,20 +57,10 @@ class CoordTag private constructor(
          * Get a specific [CoordTag].
          *
          * @param tagName Name of tag to get.
-         * @param mapID Filter out captures inside the maps other than this map.
          * @return Returns the [CoordTag] matching with [tagName] if found. Otherwise null.
          */
-        fun get(tagName: String, mapID: String? = null): CoordTag? {
-            return if (mapID != null) {
-                val origin = storage[tagName] ?: return null
-                val captures = origin.captures.filter { mapID == it.mapID }
-                val tag = CoordTag(origin.name, origin.mode, origin.registry, LinkedList(captures), origin.suppress)
-                tag.synced = false
-
-                tag
-            } else {
-                storage[tagName]
-            }
+        fun get(tagName: String): CoordTag? {
+            return storage[tagName]
         }
 
         /**
@@ -262,14 +250,11 @@ class CoordTag private constructor(
             this.removed = true
         } else {
             this.removed = tag.removed
-
-            if (synced) {
-                this.captures.clear()
-                this.captures.addAll(tag.captures)
-                this.mode = tag.mode
-                this.name = tag.name
-                this.suppress = tag.suppress
-            }
+            this.captures.clear()
+            this.captures.addAll(tag.captures)
+            this.mode = tag.mode
+            this.name = tag.name
+            this.suppress = tag.suppress
         }
     }
 }
