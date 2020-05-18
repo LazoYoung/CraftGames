@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
-import com.github.lazoyoung.craftgames.api.GameShopkeeper
+import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
 import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
@@ -24,6 +24,7 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.loot.LootTable
 import org.bukkit.scheduler.BukkitRunnable
 import org.json.simple.JSONObject
@@ -55,7 +56,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     private lateinit var getEntityMethod: Method
     private lateinit var unregisterMethod: Method
     private lateinit var removeMethod: Method
-    internal val shopkeeperList = LinkedList<UUID>()
     private val npcList = LinkedList<UUID>()
 
     override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
@@ -323,8 +323,10 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
+        val world = game.getWorldService().getWorld()
         val locFuture = CompletableFuture.completedFuture(location)
-        return spawnNPC0(name, type, locFuture, null, assignment)
+
+        return spawnNPC0(name, type, locFuture, null, assignment, world)
     }
 
     override fun spawnNPC(name: String, type: EntityType, assignment: String?, tag: CoordTag): Array<Entity> {
@@ -332,10 +334,11 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
+        val world = game.getWorldService().getWorld()
         val entityList = LinkedList<Entity>()
 
         this.getTagLocations(tag).forEach {
-            entityList.add(this.spawnNPC0(name, type, it, null, assignment))
+            entityList.add(this.spawnNPC0(name, type, it, null, assignment, world))
         }
 
         return entityList.toTypedArray()
@@ -350,8 +353,10 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
+        val world = game.getWorldService().getWorld()
         val locFuture = CompletableFuture.completedFuture(location)
-        return spawnNPC0(name, EntityType.PLAYER, locFuture, skinURL, assignment)
+
+        return spawnNPC0(name, EntityType.PLAYER, locFuture, skinURL, assignment, world)
     }
 
     override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tag: CoordTag): Array<Entity> {
@@ -359,10 +364,11 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
+        val world = game.getWorldService().getWorld()
         val entityList = LinkedList<Entity>()
 
         this.getTagLocations(tag).forEach {
-            entityList.add(this.spawnNPC0(name, EntityType.PLAYER, it, skinURL, assignment))
+            entityList.add(this.spawnNPC0(name, EntityType.PLAYER, it, skinURL, assignment, world))
         }
 
         return entityList.toTypedArray()
@@ -432,6 +438,8 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
      */
     override fun terminate() {
 
+        /*
+        TODO Delete this comment
         // Shopkeeper save process
         if (game.editMode && DependencyUtil.SHOP_KEEPER.isLoaded()) {
             while (shopkeeperList.isNotEmpty()) {
@@ -447,6 +455,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
                 }
             }
         }
+         */
 
         // Citizen termination process
         if (DependencyUtil.CITIZENS.isLoaded()) {
@@ -557,7 +566,8 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             type: EntityType,
             locFuture: CompletableFuture<Location>,
             skinURL: String?,
-            assignment: String?
+            assignment: String?,
+            world: World
     ): Entity {
         val scheduler = Bukkit.getScheduler()
         val npc = CitizensAPI.getNPCRegistry().createNPC(type, name)
@@ -590,14 +600,16 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             if (t != null) {
                 script.print("Failed to resolve spawnpoint for NPC: $name")
                 script.writeStackTrace(t)
+                npc.destroy()
             } else {
                 Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                    npc.spawn(location)
+                    npc.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN)
                     npcList.add(npc.uniqueId)
                 })
             }
         }
 
+        npc.spawn(world.spawnLocation)
         return npc.entity
     }
 

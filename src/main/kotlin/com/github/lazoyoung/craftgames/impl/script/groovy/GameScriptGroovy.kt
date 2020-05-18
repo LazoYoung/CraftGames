@@ -71,6 +71,8 @@ class GameScriptGroovy(
         imports.addStarImports("com.github.lazoyoung.craftgames.api.coordtag")
         imports.addStarImports("com.github.lazoyoung.craftgames.api.event")
         imports.addStarImports("com.github.lazoyoung.craftgames.api.script")
+        imports.addStarImports("com.github.lazoyoung.craftgames.api.shopkeepers")
+        // FIXME This is softdepend
         imports.addStarImports("io.github.jorelali.commandapi.api")
         imports.addStarImports("io.github.jorelali.commandapi.api.arguments")
         imports.addImport("Module", "com.github.lazoyoung.craftgames.api.module.Module")
