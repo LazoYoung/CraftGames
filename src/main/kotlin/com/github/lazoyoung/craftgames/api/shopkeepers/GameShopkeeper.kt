@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.api
+package com.github.lazoyoung.craftgames.api.shopkeepers
 
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
@@ -17,20 +17,20 @@ class GameShopkeeper(
 
     private var id: String? = null
 
-    fun getOffers(): List<TradingOffer> {
-        return instance.offers
+    fun getTrades(): List<Trade> {
+        return instance.offers.map { encapsulate(it) }
     }
 
-    fun clearOffers() {
+    fun clearTrades() {
         instance.clearOffers()
     }
 
-    fun setOffers(offers: List<TradingOffer>) {
-        instance.offers = offers
+    fun setTrades(trade: List<Trade>) {
+        instance.offers = trade.map { decapsulate(it) }
     }
 
-    fun addOffer(offer: TradingOffer) {
-        instance.addOffer(offer)
+    fun addTrade(trade: Trade) {
+        instance.addOffer(decapsulate(trade))
     }
 
     fun load(id: String) {
@@ -56,7 +56,7 @@ class GameShopkeeper(
                     val item1 = entry["item1"] as ItemStack
                     val item2 = entry["item2"] as ItemStack?
 
-                    addOffer(SKTradingOffer(result, item1, item2))
+                    addTrade(Trade(result, item1, item2))
                 }
             }
         } catch (e: Exception) {
@@ -93,12 +93,12 @@ class GameShopkeeper(
         file.bufferedReader().use { reader ->
             val config = YamlConfiguration.loadConfiguration(reader)
 
-            getOffers().forEach {
+            getTrades().forEach {
                 val map = HashMap<String, ItemStack?>()
 
-                map["result"] = it.resultItem
-                map["item1"] = it.item1
-                map["item2"] = it.item2
+                map["result"] = it.result
+                map["item1"] = it.cost1
+                map["item2"] = it.cost2
                 entries.add(map)
             }
 
@@ -120,6 +120,14 @@ class GameShopkeeper(
         } catch (e: IOException) {
             e.printStackTrace()
         }
+    }
+
+    private fun encapsulate(o: TradingOffer): Trade {
+        return Trade(o.resultItem, o.item1, o.item2)
+    }
+
+    private fun decapsulate(t: Trade): TradingOffer {
+        return SKTradingOffer(t.result, t.cost1, t.cost2)
     }
 
 }

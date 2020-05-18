@@ -79,7 +79,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     // Dependency-bound functions should be separated into modules.
-    override fun getShopkeeper(entity: Entity): GameShopkeeper? {
+    override fun getShopkeeper(entity: Entity): GameShopkeeper {
         if (!DependencyUtil.SHOP_KEEPER.isLoaded()) {
             throw DependencyNotFound("Shopkeepers is not installed.")
         }
