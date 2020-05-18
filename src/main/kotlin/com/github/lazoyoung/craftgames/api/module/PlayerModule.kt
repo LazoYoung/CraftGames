@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
-import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
+import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.EntityType

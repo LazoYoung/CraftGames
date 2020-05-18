@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
-import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import org.bukkit.*
 import org.bukkit.loot.LootTable
 import org.bukkit.loot.Lootable

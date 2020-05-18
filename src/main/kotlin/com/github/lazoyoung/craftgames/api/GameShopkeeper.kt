@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.api
 
-import com.github.lazoyoung.craftgames.game.GameLayout
+import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
 import com.nisovin.shopkeepers.api.shopkeeper.offers.TradingOffer
 import com.nisovin.shopkeepers.shopkeeper.offers.SKTradingOffer

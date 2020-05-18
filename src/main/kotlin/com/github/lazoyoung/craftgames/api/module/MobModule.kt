@@ -1,8 +1,11 @@
 package com.github.lazoyoung.craftgames.api.module
 
-import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
-import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
+import com.github.lazoyoung.craftgames.api.GameShopkeeper
+import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
+import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
+import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType

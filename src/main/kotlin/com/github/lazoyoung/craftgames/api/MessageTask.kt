@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.api
 
-import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.impl.Main
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable

@@ -4,9 +4,9 @@ import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.CoordCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.game.GameLayout
-import com.github.lazoyoung.craftgames.game.GameMap
-import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.impl.game.GameLayout
+import com.github.lazoyoung.craftgames.impl.game.GameMap
+import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.IOException
 import java.nio.file.Files

@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.api
 
-import com.github.lazoyoung.craftgames.event.*
+import com.github.lazoyoung.craftgames.api.event.*
 
 enum class EventType(val clazz: Class<out GameEvent>) {
     /**

@@ -1,5 +1,5 @@
 name: CraftGames
-main: com.github.lazoyoung.craftgames.Main
+main: com.github.lazoyoung.craftgames.impl.Main
 author: LazoYoung
 version: $version
 website: https://github.com/LazoYoung/CraftGames

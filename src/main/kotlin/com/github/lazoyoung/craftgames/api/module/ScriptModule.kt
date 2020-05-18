@@ -1,11 +1,11 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.api.ScriptCompiler
+import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.event.GameEvent
-import com.github.lazoyoung.craftgames.game.script.GameScript
-import com.github.lazoyoung.craftgames.internal.exception.ScriptEngineNotFound
+import com.github.lazoyoung.craftgames.api.event.GameEvent
+import com.github.lazoyoung.craftgames.api.script.GameScript
+import com.github.lazoyoung.craftgames.impl.exception.ScriptEngineNotFound
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
 import org.bukkit.entity.LivingEntity

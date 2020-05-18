@@ -152,17 +152,7 @@ dokka {
         }
 
         perPackageOption {
-            prefix = "com.github.lazoyoung.craftgames.internal"
-            suppress = true
-        }
-
-        perPackageOption {
-            prefix = "com.github.lazoyoung.craftgames.command"
-            suppress = true
-        }
-
-        perPackageOption {
-            prefix = "com.github.lazoyoung.craftgames.game"
+            prefix = "com.github.lazoyoung.craftgames.impl"
             suppress = true
         }
     }
