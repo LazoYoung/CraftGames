@@ -1,9 +1,9 @@
 package com.github.lazoyoung.craftgames.api.script
 
 import com.github.lazoyoung.craftgames.impl.Main
+import com.github.lazoyoung.craftgames.impl.exception.ScriptEngineNotFound
 import com.github.lazoyoung.craftgames.impl.script.groovy.GameScriptGroovy
 import com.github.lazoyoung.craftgames.impl.script.jsr223.GameScriptGroovyLegacy
-import com.github.lazoyoung.craftgames.impl.exception.ScriptEngineNotFound
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,13 +12,13 @@ class ScriptFactory {
     enum class Engine(vararg val extension: String) {
         GROOVY("groovy") {
             override fun load(file: File, mode: ScriptCompiler): GameScriptGroovy {
-                return GameScriptGroovy(file, mode)
+                return GameScriptGroovy(this, file, mode)
             }
         },
 
         JSR223("groovy") {
             override fun load(file: File, mode: ScriptCompiler): GameScriptGroovyLegacy {
-                return GameScriptGroovyLegacy(file)
+                return GameScriptGroovyLegacy(this, file)
             }
         };
 

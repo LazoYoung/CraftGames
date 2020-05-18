@@ -1,14 +1,18 @@
 package com.github.lazoyoung.craftgames.impl.script.jsr223
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.script.GameScript
+import com.github.lazoyoung.craftgames.api.script.ScriptFactory
+import com.github.lazoyoung.craftgames.impl.Main
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
 import java.io.*
 import javax.script.*
 import javax.script.ScriptContext.ENGINE_SCOPE
 
-class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groovy$".toRegex()) {
-    private val engine = GroovyScriptEngineFactory().scriptEngine
+class GameScriptGroovyLegacy(
+        engine: ScriptFactory.Engine,
+        file: File
+) : GameScript(engine, file, "^Script\\d+\\.groovy$".toRegex()) {
+    private val scriptEngine = GroovyScriptEngineFactory().scriptEngine
     private var script: CompiledScript? = null
     private val reader = file.bufferedReader(Main.charset)
     private var logger: PrintWriter? = null
@@ -16,9 +20,9 @@ class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groov
     private val bindings: Bindings
 
     init {
-        bindings = engine.createBindings()
-        engine.context = context
-        engine.setBindings(bindings, ENGINE_SCOPE)
+        bindings = scriptEngine.createBindings()
+        scriptEngine.context = context
+        scriptEngine.setBindings(bindings, ENGINE_SCOPE)
     }
 
     override fun bind(arg: String, obj: Any) {
@@ -42,7 +46,7 @@ class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groov
     override fun parse() {
         super.parse()
 
-        script = (engine as Compilable).compile(reader)
+        script = (scriptEngine as Compilable).compile(reader)
         printDebug("Script parse is complete.")
     }
 
@@ -50,7 +54,7 @@ class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groov
         if (script != null) {
             script!!.eval()
         } else {
-            engine.eval(reader)
+            scriptEngine.eval(reader)
         }
 
         printDebug("Script execution is complete.")
@@ -60,7 +64,7 @@ class GameScriptGroovyLegacy(file: File) : GameScript(file, "^Script\\d+\\.groov
         if (script != null) {
             script!!.eval()
         } else {
-            engine.eval(reader)
+            scriptEngine.eval(reader)
         }
 
         printDebug("Executing function \'$name\' in ${file.name}")

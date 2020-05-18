@@ -11,6 +11,7 @@ import java.time.Instant
 import java.util.*
 
 abstract class GameScript(
+        val engine: ScriptFactory.Engine,
         internal val file: File,
         private val regex: Regex
 ) {

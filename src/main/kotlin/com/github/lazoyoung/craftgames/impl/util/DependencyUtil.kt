@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameResource
 import com.github.lazoyoung.craftgames.impl.game.service.CommandModuleService
+import com.github.lazoyoung.craftgames.impl.script.groovy.GameScriptGroovy
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import org.bukkit.Bukkit
 import org.bukkit.plugin.PluginManager
@@ -27,11 +28,17 @@ enum class DependencyUtil(
                 val resource = GameResource(gameName)
 
                 resource.commandScript?.let {
+                    require(it is GameScriptGroovy) {
+                        "Command script is not compatible with ${it.engine} engine."
+                    }
+
                     val commandModule = CommandModuleService(it, resource.layout)
 
                     try {
                         it.startLogging()
                         it.bind("CommandModule", commandModule)
+                        it.addImports(true, "io.github.jorelali.commandapi.api")
+                        it.addImports(true, "io.github.jorelali.commandapi.api.arguments")
                         it.parse()
                         it.run()
                     } catch (e: Throwable) {
