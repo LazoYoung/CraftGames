@@ -151,7 +151,9 @@ class GameResource internal constructor(private val gameName: String) {
 
     /**
      * @param shopkeeper an instance of [RegularAdminShopkeeper]
+     * @throws IllegalArgumentException is raised if [shopkeeper] is not a [RegularAdminShopkeeper].
      */
+    @Deprecated("GameShopkeeper is the alternative.")
     internal fun <T> loadShopkeeper(shopkeeper: T) {
         require(shopkeeper is RegularAdminShopkeeper) {
             "This is not a RegularAdminShopkeeper."
@@ -184,19 +186,21 @@ class GameResource internal constructor(private val gameName: String) {
 
     /**
      * @param shopkeeper an instance of [RegularAdminShopkeeper]
+     * @throws IllegalArgumentException is raised if [shopkeeper] is not a [RegularAdminShopkeeper].
+     * @throws IllegalStateException is raised if [shopkeeper] is invalid.
+     * @throws IllegalStateException is raised if [shopkeeper]'s object is inactive or unsupported.
      */
+    @Deprecated("GameShopkeeper is the alternative.")
     internal fun <T> saveShopkeeper(shopkeeper: T) {
         require(shopkeeper is RegularAdminShopkeeper) {
             "This is not a RegularAdminShopkeeper."
         }
-
-        // FIXME UniqueID cannot be used to identify save file because it changes at any time.
-        /*
-         * Save resolution for each ShopObjectType.
-         * 1) Citizen: Citizen's name is the unique identifier.
-         * 2) Mob: Location is the unique identifier as it cannot move.
-         * 3) Block: Location is the unique identifier.
-         */
+        check(shopkeeper.isValid) {
+            "This shopkeeper is not valid."
+        }
+        check(shopkeeper.shopObject.isActive) {
+            "This shopkeeper object is not active."
+        }
 
         val fileName = shopkeeper.uniqueId.toString().plus(".yml")
         val path = layout.shopkeepersDir.resolve(fileName)
@@ -229,6 +233,7 @@ class GameResource internal constructor(private val gameName: String) {
         }
     }
 
+    @Deprecated("GameShopkeeper is the alternative.")
     internal fun <T> discardShopkeeper(shopkeeper: T) {
         require(shopkeeper is RegularAdminShopkeeper) {
             "This is not a RegularAdminShopkeeper."

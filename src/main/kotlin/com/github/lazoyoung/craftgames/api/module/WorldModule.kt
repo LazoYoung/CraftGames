@@ -13,6 +13,11 @@ interface WorldModule {
     fun getMapID(): String
 
     /**
+     * Get [CoordTag] by searching for [name].
+     */
+    fun getCoordTag(name: String): CoordTag?
+
+    /**
      * Get [WorldBorder] of this world.
      *
      * @throws MapNotFound is thrown if world is not yet loaded.

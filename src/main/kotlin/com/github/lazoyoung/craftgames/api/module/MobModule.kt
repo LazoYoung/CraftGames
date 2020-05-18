@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.internal.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.internal.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.internal.exception.MapNotFound
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
@@ -27,12 +28,30 @@ interface MobModule {
      * @param callback Callback function that will accept the result
      * ([List] of mobs inside) once the process is completed.
      */
+    @Deprecated("Direct use of CoordTag is encouraged.", ReplaceWith("getMobsInside(CoordTag, Consumer)"))
     fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>)
+
+    /**
+     * Inspect which [Mob]s are inside the area.
+     *
+     * @param areaTag Coordinate tag which designates the area.
+     * @param callback Callback function that will accept the result
+     * ([List] of mobs inside) once the process is completed.
+     */
+    fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>)
+
+    /**
+     * Get [GameShopkeeper] by [entity].
+     *
+     * @throws IllegalArgumentException is raised if this [entity] is not a [GameShopkeeper]
+     */
+    fun getShopkeeper(entity: Entity): GameShopkeeper?
 
     /**
      * Set [max] number of mobs that can be spawned.
      * (Defaults to 100)
      */
+    @Deprecated("It actually has no use.")
     fun setMobCapacity(max: Int)
 
     /**
@@ -48,7 +67,39 @@ interface MobModule {
      * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
+    @Deprecated("Location should be used to determine spawnpoint.",
+            ReplaceWith("spawnMob(String, String?, LootTable?, Location)"))
     fun spawnMob(type: String, name: String?, loot: LootTable?, tagName: String): CompletableFuture<Int>
+
+    /**
+     * Spawn one vanilla mob at [location].
+     *
+     * @param type Type of [Mob]s to be spawned.
+     * @param name Custom name.
+     * @param loot The [LootTable] which defines the items to drop upon death.
+     * Use [ItemModule.getLootTable] to get a loot table.
+     * @param location Location of spawnpoint.
+     * @return [Mob] that is spawned.
+     * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
+     * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     */
+    fun spawnMob(type: String, name: String?, loot: LootTable?, location: Location): Mob
+
+    /**
+     * Spawn vanilla mobs across the locations captured by [tag].
+     *
+     * @param type Type of [Mob]s to be spawned.
+     * @param name Custom name.
+     * @param loot The [LootTable] which defines the items to drop upon death.
+     * Use [ItemModule.getLootTable] to get a loot table.
+     * @param tag [CoordTag] that captures spawnpoint(s).
+     * @return array of [mobs][Mob] that are spawned. This never returns null.
+     * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
+     * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     */
+    fun spawnMob(type: String, name: String?, loot: LootTable?, tag: CoordTag): Array<Mob>
 
     /**
      * Spawn MythicMobs.
@@ -61,7 +112,36 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if MythicMobs is not installed.
      */
+    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnMythicMob(String, Int, Location)"))
     fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int>
+
+    /**
+     * Spawn one MythicMob at [location].
+     *
+     * @param name Name of the MythicMob(s) to be spawned.
+     * @param level Initial level of the MythicMob(s).
+     * @param location Location of spawnpoint.
+     * @return [Entity] that is spawned.
+     * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if MythicMobs is not installed.
+     * @throws ReflectiveOperationException
+     */
+    fun spawnMythicMob(name: String, level: Int, location: Location): Entity
+
+    /**
+     * Spawn MythicMobs across the locations captured by [tag].
+     *
+     * @param name Name of the MythicMob(s) to be spawned.
+     * @param level Initial level of the MythicMob(s).
+     * @param tag [CoordTag] that captures spawnpoint(s).
+     * @return array of [Entity] that are spawned. This never return null.
+     * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if MythicMobs is not installed.
+     * @throws ReflectiveOperationException
+     */
+    fun spawnMythicMob(name: String, level: Int, tag: CoordTag): Array<Entity>
 
     /**
      * Spawn NPC with specific [type] at the position where [tag][tagName] indicates.
@@ -74,7 +154,35 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
+    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnNPC(String, EntityType, String?, Location)"))
     fun spawnNPC(name: String, type: EntityType, assignment: String?, tagName: String): CompletableFuture<Int>
+
+    /**
+     * Spawn one NPC at [location].
+     *
+     * @param name Name of this NPC.
+     * @param type Entity type of this NPC.
+     * @param assignment (Optional) Name of Denizen script assignment.
+     * @param location Location of spawnpoint.
+     * @return [Entity] that is spawned.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if Citizens is not installed.
+     */
+    fun spawnNPC(name: String, type: EntityType, assignment: String?, location: Location): Entity
+
+    /**
+     * Spawn NPCs across the locations captured by [tag].
+     *
+     * @param name Name of this NPC.
+     * @param type Entity type of this NPC.
+     * @param assignment (Optional) Name of Denizen script assignment.
+     * @param tag [CoordTag] that captures spawnpoint(s).
+     * @return array of [Entity] that are spawned. This never return null.
+     * @throws IllegalArgumentException is raised if [tag] mode is not relevant.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if Citizens is not installed.
+     */
+    fun spawnNPC(name: String, type: EntityType, assignment: String?, tag: CoordTag): Array<Entity>
 
     /**
      * Spawn Player NPC at the position where [tag][tagName] indicates.
@@ -87,7 +195,34 @@ interface MobModule {
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
+    @Deprecated("Location should be used to determine spawnpoint.", ReplaceWith("spawnPlayerNPC(String, String?, String?, Location)"))
     fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tagName: String): CompletableFuture<Int>
+
+    /**
+     * Spawn one Player-typed NPC at [location].
+     *
+     * @param name Name of this NPC.
+     * @param skinURL (Optional) URL of skin file. Link must be available for download.
+     * @param assignment (Optional) Name of Denizen script assignment.
+     * @param location Location of spawnpoint.
+     * @return [Entity] that is spawned.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if Citizens is not installed.
+     */
+    fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, location: Location): Entity
+
+    /**
+     * Spawn Player-typed NPCs across the locations captured by [tag].
+     *
+     * @param name Name of this NPC.
+     * @param skinURL (Optional) URL of skin file. Link must be available for download.
+     * @param assignment (Optional) Name of Denizen script assignment.
+     * @param tag [CoordTag] that captures spawnpoint(s).
+     * @return array of [Entity] that are spawned. This never return null.
+     * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws DependencyNotFound is thrown if Citizens is not installed.
+     */
+    fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tag: CoordTag): Array<Entity>
 
     /**
      * Despawn specific [type][EntityType] of entities.

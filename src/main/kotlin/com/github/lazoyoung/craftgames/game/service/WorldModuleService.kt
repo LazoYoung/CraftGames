@@ -59,6 +59,13 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         return game.map.id
     }
 
+    /**
+     * Get [CoordTag] by searching for [name].
+     */
+    override fun getCoordTag(name: String): CoordTag? {
+        return game.resource.tagRegistry.get(name, getMapID())
+    }
+
     override fun getWorldBorder(): WorldBorder {
         return getWorld().worldBorder
     }
@@ -281,9 +288,16 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         return game.map.world ?: throw MapNotFound()
     }
 
-    internal inline fun <reified T : Entity> getEntitiesInside(areaTag: String, callback: Consumer<List<T>>) {
+    /**
+     * @param tag Area tag.
+     * @param callback Supplier of entities inside the area.
+     */
+    internal inline fun <reified T : Entity> getEntitiesInside(tag: CoordTag, callback: Consumer<List<T>>) {
+        require(tag.mode == TagMode.AREA) {
+            "${tag.mode} tag is illegal."
+        }
+
         val world = game.getWorldService().getWorld()
-        val tag = ModuleService.getRelevantTag(game, areaTag, TagMode.AREA)
         val captures = tag.getCaptures(game.map.id)
                 .filterIsInstance(AreaCapture::class.java)
         val futureMap = LinkedHashMap<CompletableFuture<Chunk>, AreaCapture>()

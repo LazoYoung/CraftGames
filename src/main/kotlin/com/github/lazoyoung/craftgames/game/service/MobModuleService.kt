@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.game.service
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
 import com.github.lazoyoung.craftgames.Main
+import com.github.lazoyoung.craftgames.api.GameShopkeeper
 import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
@@ -17,12 +18,11 @@ import com.github.lazoyoung.craftgames.internal.util.DependencyUtil
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
 import net.citizensnpcs.api.CitizensAPI
-import net.citizensnpcs.api.npc.NPC
-import net.citizensnpcs.api.npc.NPCRegistry
 import net.citizensnpcs.trait.SkinTrait
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
+import org.bukkit.World
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
@@ -67,6 +67,10 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
     }
 
     override fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>) {
+        this.getMobsInside(ModuleService.getRelevantTag(game, areaTag, TagMode.AREA), callback)
+    }
+
+    override fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>) {
         game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Mob>> {
             callback.accept(it)
 
@@ -76,6 +80,24 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
                     transform = { mob -> mob.type.name })
             )
         })
+    }
+
+    // Dependency-bound functions should be separated into modules.
+    override fun getShopkeeper(entity: Entity): GameShopkeeper? {
+        if (!DependencyUtil.SHOP_KEEPER.isLoaded()) {
+            throw DependencyNotFound("Shopkeepers is not installed.")
+        }
+
+        val shopkeeper = ShopkeepersAPI.getShopkeeperRegistry().getShopkeeperByEntity(entity)
+
+        requireNotNull(shopkeeper) {
+            "This entity is not a Shopkeeper."
+        }
+        require(shopkeeper is RegularAdminShopkeeper) {
+            "This entity is not a RegularAdminShopkeeper."
+        }
+
+        return GameShopkeeper(game.resource.layout, shopkeeper)
     }
 
     override fun setMobCapacity(max: Int) {
@@ -155,8 +177,25 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         }
     }
 
-    override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int> {
+    override fun spawnMob(type: String, name: String?, loot: LootTable?, location: Location): Mob {
+        val world = game.getWorldService().getWorld()
+        val locFuture = CompletableFuture.completedFuture(location)
 
+        return this.spawnMob0(type, name, loot, locFuture, world)
+    }
+
+    override fun spawnMob(type: String, name: String?, loot: LootTable?, tag: CoordTag): Array<Mob> {
+        val world = game.getWorldService().getWorld()
+        val mobList = LinkedList<Mob>()
+
+        this.getTagLocations(tag).forEach {
+            mobList.add(this.spawnMob0(type, name, loot, it, world))
+        }
+
+        return mobList.toTypedArray()
+    }
+
+    override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int> {
         if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
@@ -245,12 +284,84 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return future
     }
 
+    override fun spawnMythicMob(name: String, level: Int, location: Location): Entity {
+        if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
+            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
+        }
+
+        val world = game.getWorldService().getWorld()
+        val locFuture = CompletableFuture.completedFuture(location)
+
+        return spawnMythicMob0(name, locFuture, level, world)
+    }
+
+    override fun spawnMythicMob(name: String, level: Int, tag: CoordTag): Array<Entity> {
+        if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
+            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
+        }
+
+        val world = game.getWorldService().getWorld()
+        val entityList = LinkedList<Entity>()
+
+        this.getTagLocations(tag).forEach {
+            entityList.add(this.spawnMythicMob0(name, it, level, world))
+        }
+
+        return entityList.toTypedArray()
+    }
+
     override fun spawnNPC(name: String, type: EntityType, assignment: String?, tagName: String): CompletableFuture<Int> {
-        return spawnNPC(type, name, null, assignment, tagName)
+        error("Deprecated function.")
+    }
+
+    override fun spawnNPC(name: String, type: EntityType, assignment: String?, location: Location): Entity {
+        if (!DependencyUtil.CITIZENS.isLoaded()) {
+            throw DependencyNotFound("Citizens is required to spawn NPC.")
+        }
+
+        val locFuture = CompletableFuture.completedFuture(location)
+        return spawnNPC0(name, type, locFuture, null, assignment)
+    }
+
+    override fun spawnNPC(name: String, type: EntityType, assignment: String?, tag: CoordTag): Array<Entity> {
+        if (!DependencyUtil.CITIZENS.isLoaded()) {
+            throw DependencyNotFound("Citizens is required to spawn NPC.")
+        }
+
+        val entityList = LinkedList<Entity>()
+
+        this.getTagLocations(tag).forEach {
+            entityList.add(this.spawnNPC0(name, type, it, null, assignment))
+        }
+
+        return entityList.toTypedArray()
     }
 
     override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tagName: String): CompletableFuture<Int> {
-        return spawnNPC(EntityType.PLAYER, name, skinURL, assignment, tagName)
+        error("Deprecated function.")
+    }
+
+    override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, location: Location): Entity {
+        if (!DependencyUtil.CITIZENS.isLoaded()) {
+            throw DependencyNotFound("Citizens is required to spawn NPC.")
+        }
+
+        val locFuture = CompletableFuture.completedFuture(location)
+        return spawnNPC0(name, EntityType.PLAYER, locFuture, skinURL, assignment)
+    }
+
+    override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tag: CoordTag): Array<Entity> {
+        if (!DependencyUtil.CITIZENS.isLoaded()) {
+            throw DependencyNotFound("Citizens is required to spawn NPC.")
+        }
+
+        val entityList = LinkedList<Entity>()
+
+        this.getTagLocations(tag).forEach {
+            entityList.add(this.spawnNPC0(name, EntityType.PLAYER, it, skinURL, assignment))
+        }
+
+        return entityList.toTypedArray()
     }
 
     override fun despawnEntities(type: EntityType): Int {
@@ -346,145 +457,144 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         }
     }
 
-    private fun spawnNPC(
-            type: EntityType,
-            name: String,
-            skinURL: String?,
-            assignment: String?,
-            tagName: String
-    ): CompletableFuture<Int> {
-        if (!DependencyUtil.CITIZENS.isLoaded()) {
-            throw DependencyNotFound("Citizens is required to spawn NPC.")
+    private fun getTagLocations(tag: CoordTag): List<CompletableFuture<Location>> {
+        val locFutures = LinkedList<CompletableFuture<Location>>()
+        val world = game.getWorldService().getWorld()
+        val mapID = game.getWorldService().getMapID()
+        val captures = tag.getCaptures(mapID)
+
+        if (captures.isEmpty()) {
+            throw FaultyConfiguration("Tag ${tag.name} has no capture in map: $mapID")
         }
 
-        val worldService = game.module.getWorldModule() as WorldModuleService
-        val world = worldService.getWorld()
-        val mapID = worldService.getMapID()
-        val registry = CitizensAPI.getNPCRegistry()
-        val tag = ModuleService.getRelevantTag(game, tagName, TagMode.AREA, TagMode.SPAWN)
-        val npcList = ArrayList<NPC>()
-        val taskList = LinkedList<CompletableFuture<Unit>>()
-        val future = CompletableFuture<Int>()
-
-        if (tag.getCaptures(mapID).isEmpty()) {
-            throw FaultyConfiguration("Tag $tagName has no capture in map: $mapID")
-        }
-
-        fun computeTask(future: CompletableFuture<NPC>): CompletableFuture<Unit> {
-            return future.handleAsync { npc, t ->
-
-                if (t != null) {
-                    this.script.print("Failed to spawn NPC. (${type.key})")
-                    this.script.writeStackTrace(t)
-                } else {
-                    Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                        npcList.add(npc)
-                    })
-                }
-                return@handleAsync
-            }
-        }
-
-        when (tag.mode) {
+        when (val mode = tag.mode) {
             TagMode.SPAWN -> {
-                tag.getCaptures(mapID).forEach {
-                    it as SpawnCapture
+                captures.filterIsInstance(SpawnCapture::class.java).forEach {
+                    val loc = it.toLocation(world)
+                    val future = CompletableFuture.completedFuture(loc)
 
-                    val locFuture = CompletableFuture.completedFuture(it.toLocation(world))
-                    taskList.add(computeTask(handleNPC(registry, type, name, locFuture, skinURL, assignment)))
+                    locFutures.add(future)
                 }
             }
             TagMode.AREA -> {
-                tag.getCaptures(mapID).forEach {
-                    it as AreaCapture
+                captures.filterIsInstance(AreaCapture::class.java).forEach {
+                    val future = it.toLocation(world, maxAttempt)
 
-                    val locFuture = it.toLocation(world, maxAttempt)
-                    taskList.add(computeTask(handleNPC(registry, type, name, locFuture, skinURL, assignment)))
+                    locFutures.add(future)
                 }
             }
-            else -> {
-                error("Illegal tag mode.")
-            }
+            else -> throw IllegalArgumentException("Cannot spawn with ${mode.label} tag.")
         }
 
-        CompletableFuture.allOf(*taskList.toTypedArray()).whenCompleteAsync {
-            _, t ->
-
-            if (t != null) {
-                this.script.print("Failed to spawn NPC. (${type.key})")
-                this.script.writeStackTrace(t)
-                future.completeExceptionally(t)
-            } else {
-                this.script.printDebug("Spawned ${npcList.size} NPCs. (${type.key})")
-                future.complete(npcList.size)
-            }
-        }
-
-        return future
+        return locFutures
     }
 
-    private fun handleNPC(
-            registry: NPCRegistry,
-            type: EntityType,
+    private fun spawnMob0(type: String, name: String?, loot: LootTable?, locFuture: CompletableFuture<Location>, world: World): Mob {
+        val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
+        val typeKey = entityType.key
+
+        require(entityType.isSpawnable) {
+            "This is not spawn-able: $typeKey"
+        }
+
+        val entity = world.spawnEntity(world.spawnLocation, entityType)
+
+        require(entity is Mob) {
+            entity.remove()
+            "This is not a Mob: $typeKey"
+        }
+
+        name?.let { entity.customName = it }
+        loot?.let { entity.setLootTable(it, Random.nextLong()) }
+        locFuture.whenCompleteAsync { location, t ->
+            if (t != null) {
+                script.print("Failed to resolve spawnpoint for mob: $name")
+                script.writeStackTrace(t)
+            } else {
+                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                    entity.teleport(location)
+                })
+            }
+        }
+        return entity
+    }
+
+    private fun spawnMythicMob0(name: String, locFuture: CompletableFuture<Location>, level: Int, world: World): Entity {
+        try {
+            val entity = spawnMethod.invoke(apiHelper, name, world.spawnLocation, level) as Entity
+
+            require(entity is Mob) {
+                entity.remove()
+                "This is not a Mob: ${entity.type.key}"
+            }
+            locFuture.whenCompleteAsync { location, t ->
+                if (t != null) {
+                    script.print("Failed to resolve spawnpoint for mob: $name")
+                    script.writeStackTrace(t)
+                } else {
+                    Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                        entity.teleport(location)
+                    })
+                }
+            }
+
+            return entity
+        } catch (e: InvocationTargetException) {
+            if (e.cause?.javaClass?.simpleName == "InvalidMobTypeException") {
+                throw IllegalArgumentException("Unable to identify MythicMob: $name")
+            }
+
+            throw ReflectiveOperationException(e.cause)
+        }
+    }
+
+    private fun spawnNPC0(
             name: String,
-            locationFuture: CompletableFuture<Location>,
+            type: EntityType,
+            locFuture: CompletableFuture<Location>,
             skinURL: String?,
             assignment: String?
-    ): CompletableFuture<NPC> {
-        val future = CompletableFuture<NPC>()
+    ): Entity {
         val scheduler = Bukkit.getScheduler()
+        val npc = CitizensAPI.getNPCRegistry().createNPC(type, name)
+
+        if (assignment != null) {
+            if (!DependencyUtil.DENIZEN.isLoaded()) {
+                this.script.print("Failed to inject NPC script. Denizen is not installed.")
+            } else {
+                npc.getTrait(AssignmentTrait::class.java).setAssignment(assignment, null)
+            }
+        }
 
         if (skinURL != null) {
-            val skinFuture = fetchSkin(skinURL)
-
-            CompletableFuture.allOf(skinFuture, locationFuture).handleAsync {
-                _, t ->
-
+            fetchSkin(skinURL).whenCompleteAsync { skin, t ->
                 if (t != null) {
-                    future.completeExceptionally(t)
+                    script.print("Failed to fetch skin for NPC: $name, from URL: $skinURL")
+                    script.writeStackTrace(t)
                 } else {
                     scheduler.runTask(Main.instance, Runnable {
-                        val npc = registry.createNPC(type, name)
                         val skinTrait = npc.getTrait(SkinTrait::class.java)
-                        val skin = skinFuture.join()
-                        val location = locationFuture.join()
-
-                        if (assignment != null) {
-                            if (!DependencyUtil.DENIZEN.isLoaded()) {
-                                this.script.print("Failed to inject script to NPC. Denizen is not installed.")
-                            } else {
-                                npc.getTrait(AssignmentTrait::class.java).setAssignment(assignment, null)
-                            }
-                        }
 
                         skinTrait.clearTexture()
                         skinTrait.setSkinPersistent(skin.uuid, skin.signature, skin.value)
-                        npc.spawn(location)
-                        npcList.add(npc.uniqueId)
-                        future.complete(npc)
                     })
                 }
-                return@handleAsync
-            }
-        } else {
-            locationFuture.handleAsync {
-                location, t ->
-
-                if (t != null) {
-                    future.completeExceptionally(t)
-                } else {
-                    scheduler.runTask(Main.instance, Runnable {
-                        val npc = registry.createNPC(type, name)
-
-                        npc.spawn(location)
-                        future.complete(npc)
-                    })
-                }
-                return@handleAsync
             }
         }
 
-        return future
+        locFuture.whenCompleteAsync { location, t ->
+            if (t != null) {
+                script.print("Failed to resolve spawnpoint for NPC: $name")
+                script.writeStackTrace(t)
+            } else {
+                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                    npc.spawn(location)
+                    npcList.add(npc.uniqueId)
+                })
+            }
+        }
+
+        return npc.entity
     }
 
     private fun fetchSkin(skinURL: String): CompletableFuture<SkinData> {
