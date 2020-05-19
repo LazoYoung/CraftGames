@@ -447,9 +447,9 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         // Shopkeeper deletion
         if (DependencyUtil.SHOP_KEEPER.isLoaded()) {
             val registry = ShopkeepersAPI.getShopkeeperRegistry()
+            val list = LinkedList(registry.getShopkeepersInWorld(game.map.worldName))
 
-            registry.getShopkeepersInWorld(game.map.worldName)
-                    .forEach(Shopkeeper::delete)
+            list.forEach(Shopkeeper::delete)
         }
 
         /*
