@@ -1,19 +1,23 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
-import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
 import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.MobModule
+import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
+import com.nisovin.shopkeepers.api.shopkeeper.DefaultShopTypes
+import com.nisovin.shopkeepers.api.shopkeeper.Shopkeeper
+import com.nisovin.shopkeepers.api.shopkeeper.admin.AdminShopCreationData
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
+import com.nisovin.shopkeepers.api.shopobjects.DefaultShopObjectTypes
 import net.citizensnpcs.api.CitizensAPI
 import net.citizensnpcs.trait.SkinTrait
 import org.bukkit.Bukkit
@@ -84,7 +88,8 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             throw DependencyNotFound("Shopkeepers is not installed.")
         }
 
-        val shopkeeper = ShopkeepersAPI.getShopkeeperRegistry().getShopkeeperByEntity(entity)
+        val registry = ShopkeepersAPI.getShopkeeperRegistry()
+        val shopkeeper = registry.getShopkeeperByEntity(entity)
 
         requireNotNull(shopkeeper) {
             "This entity is not a Shopkeeper."
@@ -92,6 +97,27 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         require(shopkeeper is RegularAdminShopkeeper) {
             "This entity is not a RegularAdminShopkeeper."
         }
+
+        return GameShopkeeper(game.resource.layout, shopkeeper)
+    }
+
+    override fun makeShopkeeper(entity: Entity): GameShopkeeper {
+        if (!DependencyUtil.SHOP_KEEPER.isLoaded()) {
+            throw DependencyNotFound("Shopkeepers is not installed.")
+        }
+
+        val registry = ShopkeepersAPI.getShopkeeperRegistry()
+        val shopType = DefaultShopTypes.ADMIN()
+        val objType = if (DependencyUtil.CITIZENS.isLoaded() &&
+                CitizensAPI.getNPCRegistry().getNPC(entity) != null) {
+            DefaultShopObjectTypes.CITIZEN()
+        } else {
+            DefaultShopObjectTypes.LIVING().get(entity.type)
+        }
+        val data = AdminShopCreationData.create(
+                null, shopType, objType, entity.location, null
+        )
+        val shopkeeper = registry.createShopkeeper(data) as RegularAdminShopkeeper
 
         return GameShopkeeper(game.resource.layout, shopkeeper)
     }
@@ -181,18 +207,14 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         val world = game.getWorldService().getWorld()
         val locFuture = CompletableFuture.completedFuture(location)
 
-        return this.spawnMob0(type, name, loot, locFuture, world)
+        return spawnMob0(type, name, loot, locFuture, world)
     }
 
-    override fun spawnMob(type: String, name: String?, loot: LootTable?, tag: CoordTag): Array<Mob> {
+    override fun spawnMob(type: String, name: String?, loot: LootTable?, tag: CoordTag): Mob {
         val world = game.getWorldService().getWorld()
-        val mobList = LinkedList<Mob>()
+        val locFuture = getRandomLocation(tag)
 
-        this.getTagLocations(tag).forEach {
-            mobList.add(this.spawnMob0(type, name, loot, it, world))
-        }
-
-        return mobList.toTypedArray()
+        return spawnMob0(type, name, loot, locFuture, world)
     }
 
     override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int> {
@@ -299,19 +321,15 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return spawnMythicMob0(name, locFuture, level, world)
     }
 
-    override fun spawnMythicMob(name: String, level: Int, tag: CoordTag): Array<Entity> {
+    override fun spawnMythicMob(name: String, level: Int, tag: CoordTag): Entity {
         if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
             throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
         }
 
         val world = game.getWorldService().getWorld()
-        val entityList = LinkedList<Entity>()
+        val locFuture = getRandomLocation(tag)
 
-        this.getTagLocations(tag).forEach {
-            entityList.add(this.spawnMythicMob0(name, it, level, world))
-        }
-
-        return entityList.toTypedArray()
+        return spawnMythicMob0(name, locFuture, level, world)
     }
 
     override fun spawnNPC(name: String, type: EntityType, assignment: String?, tagName: String): CompletableFuture<Int> {
@@ -329,19 +347,15 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return spawnNPC0(name, type, locFuture, null, assignment, world)
     }
 
-    override fun spawnNPC(name: String, type: EntityType, assignment: String?, tag: CoordTag): Array<Entity> {
+    override fun spawnNPC(name: String, type: EntityType, assignment: String?, tag: CoordTag): Entity {
         if (!DependencyUtil.CITIZENS.isLoaded()) {
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
         val world = game.getWorldService().getWorld()
-        val entityList = LinkedList<Entity>()
+        val locFuture = getRandomLocation(tag)
 
-        this.getTagLocations(tag).forEach {
-            entityList.add(this.spawnNPC0(name, type, it, null, assignment, world))
-        }
-
-        return entityList.toTypedArray()
+        return spawnNPC0(name, type, locFuture, null, assignment, world)
     }
 
     override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tagName: String): CompletableFuture<Int> {
@@ -359,19 +373,15 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return spawnNPC0(name, EntityType.PLAYER, locFuture, skinURL, assignment, world)
     }
 
-    override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tag: CoordTag): Array<Entity> {
+    override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tag: CoordTag): Entity {
         if (!DependencyUtil.CITIZENS.isLoaded()) {
             throw DependencyNotFound("Citizens is required to spawn NPC.")
         }
 
         val world = game.getWorldService().getWorld()
-        val entityList = LinkedList<Entity>()
+        val locFuture = getRandomLocation(tag)
 
-        this.getTagLocations(tag).forEach {
-            entityList.add(this.spawnNPC0(name, EntityType.PLAYER, it, skinURL, assignment, world))
-        }
-
-        return entityList.toTypedArray()
+        return spawnNPC0(name, EntityType.PLAYER, locFuture, skinURL, assignment, world)
     }
 
     override fun despawnEntities(type: EntityType): Int {
@@ -432,11 +442,15 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         }
     }
 
-    /*
-     * In editor-mode, Each Citizen shopkeeper gets saved before destroying the base entity.
-     * Therefore, Shopkeeper save process must precede to Citizen termination process.
-     */
     override fun terminate() {
+
+        // Shopkeeper deletion
+        if (DependencyUtil.SHOP_KEEPER.isLoaded()) {
+            val registry = ShopkeepersAPI.getShopkeeperRegistry()
+
+            registry.getShopkeepersInWorld(game.map.worldName)
+                    .forEach(Shopkeeper::delete)
+        }
 
         /*
         TODO Delete this comment
@@ -470,8 +484,7 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         }
     }
 
-    private fun getTagLocations(tag: CoordTag): List<CompletableFuture<Location>> {
-        val locFutures = LinkedList<CompletableFuture<Location>>()
+    private fun getRandomLocation(tag: CoordTag): CompletableFuture<Location> {
         val world = game.getWorldService().getWorld()
         val mapID = game.getWorldService().getMapID()
         val captures = tag.getCaptures(mapID)
@@ -480,26 +493,17 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             throw FaultyConfiguration("Tag ${tag.name} has no capture in map: $mapID")
         }
 
-        when (val mode = tag.mode) {
+        return when (val mode = tag.mode) {
             TagMode.SPAWN -> {
-                captures.filterIsInstance(SpawnCapture::class.java).forEach {
-                    val loc = it.toLocation(world)
-                    val future = CompletableFuture.completedFuture(loc)
-
-                    locFutures.add(future)
-                }
+                val capture = captures.filterIsInstance(SpawnCapture::class.java).random()
+                CompletableFuture.completedFuture(capture.toLocation(world))
             }
             TagMode.AREA -> {
-                captures.filterIsInstance(AreaCapture::class.java).forEach {
-                    val future = it.toLocation(world, maxAttempt)
-
-                    locFutures.add(future)
-                }
+                val capture = captures.filterIsInstance(AreaCapture::class.java).random()
+                capture.toLocation(world, maxAttempt)
             }
             else -> throw IllegalArgumentException("Cannot spawn with ${mode.label} tag.")
         }
-
-        return locFutures
     }
 
     private fun spawnMob0(type: String, name: String?, loot: LootTable?, locFuture: CompletableFuture<Location>, world: World): Mob {

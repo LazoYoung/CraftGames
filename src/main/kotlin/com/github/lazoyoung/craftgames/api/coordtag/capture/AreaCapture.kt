@@ -1,13 +1,14 @@
 package com.github.lazoyoung.craftgames.api.coordtag.capture
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.concurrent.CompletableFuture
+import java.util.function.Consumer
 import kotlin.random.Random
 import kotlin.random.nextInt
 
@@ -36,6 +37,18 @@ class AreaCapture(
         }
 
         return builder.removeSuffix(",").toString()
+    }
+
+    fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 2.0, callback: Consumer<Location?>) {
+        this.toLocation(world, maxAttempt, offsetY).whenCompleteAsync { location, t ->
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                if (t != null) {
+                    callback.accept(null)
+                } else {
+                    callback.accept(location)
+                }
+            })
+        }
     }
 
     fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 2.0): CompletableFuture<Location> {

@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.CoordCapture
 import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
+import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import com.github.lazoyoung.craftgames.impl.game.GameMap
@@ -158,6 +159,7 @@ class CoordTag private constructor(
      * @param mapID Excludes the captures outside the given map, if specified.
      * @return List of CoordCapture matching the conditions.
      * @throws IllegalStateException is raised if [removed] is true.
+     * @see [WorldModule.getMapID]
      */
     fun getCaptures(mapID: String?): List<CoordCapture> {
         check(!removed) {
@@ -186,8 +188,8 @@ class CoordTag private constructor(
      * This method scans the captures to examine if this tag is incomplete.
      * Incomplete tags are those who omit to capture coordinate at least 1 map.
      *
-     * @return List of [GameMap] at which this tag haven't captured.
-     * @throws IllegalStateException is raised if [removed] is true.
+     * @return List of [GameMap] where this tag is incomplete.
+     * @throws IllegalStateException is raised if this tag has been [removed].
      */
     internal fun scanIncompleteMaps(): List<GameMap> {
         check(!removed) {

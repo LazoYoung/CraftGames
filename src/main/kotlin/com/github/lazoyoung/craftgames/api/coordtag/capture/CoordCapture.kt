@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.api.coordtag.capture
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
-import org.bukkit.Location
+import com.github.lazoyoung.craftgames.impl.Main
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.concurrent.CompletableFuture
 
@@ -11,18 +11,27 @@ abstract class CoordCapture(
         val index: Int?
 ) {
 
-    fun teleport(player: Player): CompletableFuture<Location> {
+    fun teleport(player: Player): CompletableFuture<Void> {
         val world = player.world
         val maxAttempt = Main.getConfig()?.getInt("optimization.safezone-calculation.player-throttle", 10) ?: 10
         val future = when (this) {
             is AreaCapture -> this.toLocation(player.world, maxAttempt)
             is BlockCapture -> CompletableFuture.completedFuture(this.toLocation(world))
             is SpawnCapture -> CompletableFuture.completedFuture(this.toLocation(world))
-            else -> error("Unknown tag mode.")
+            else -> null
         }
 
-        future.thenAccept { player.teleport(it) }
-        return future
+        return if (future == null) {
+            val failure = CompletableFuture<Void>()
+            failure.completeExceptionally(IllegalStateException("This CoordCapture has unknown type."))
+            failure
+        } else {
+            future.thenAcceptAsync {
+                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                    player.teleport(it)
+                })
+            }
+        }
     }
 
     /**
