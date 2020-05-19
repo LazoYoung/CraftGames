@@ -3,11 +3,11 @@ package com.github.lazoyoung.craftgames.impl.command
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
+import com.github.lazoyoung.craftgames.api.tag.coordinate.BlockCapture
+import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import net.md_5.bungee.api.ChatColor

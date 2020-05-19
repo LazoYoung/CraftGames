@@ -1,9 +1,5 @@
-package com.github.lazoyoung.craftgames.api.coordtag.tag
+package com.github.lazoyoung.craftgames.api.tag.coordinate
 
-import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.BlockCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.CoordCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
 import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.GameLayout

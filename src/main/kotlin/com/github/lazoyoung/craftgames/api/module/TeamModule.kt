@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 import org.bukkit.scoreboard.Objective

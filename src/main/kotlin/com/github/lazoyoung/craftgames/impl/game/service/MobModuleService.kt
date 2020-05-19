@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
-import com.github.lazoyoung.craftgames.api.coordtag.capture.AreaCapture
-import com.github.lazoyoung.craftgames.api.coordtag.capture.SpawnCapture
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
 import com.github.lazoyoung.craftgames.api.module.MobModule
 import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
+import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
+import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration

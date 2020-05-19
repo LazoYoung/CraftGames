@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.api.module
 
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration

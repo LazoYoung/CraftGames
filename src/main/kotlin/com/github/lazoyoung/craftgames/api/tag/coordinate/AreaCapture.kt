@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.api.coordtag.capture
+package com.github.lazoyoung.craftgames.api.tag.coordinate
 
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer

@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.PlayerType
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
-import com.github.lazoyoung.craftgames.api.coordtag.tag.TagMode
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import org.bukkit.Location
 import org.bukkit.Material

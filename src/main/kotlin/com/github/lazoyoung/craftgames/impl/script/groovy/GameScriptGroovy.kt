@@ -70,10 +70,11 @@ class GameScriptGroovy(
         }
 
         imports.addStarImports("com.github.lazoyoung.craftgames.api")
-        imports.addStarImports("com.github.lazoyoung.craftgames.api.coordtag")
         imports.addStarImports("com.github.lazoyoung.craftgames.api.event")
         imports.addStarImports("com.github.lazoyoung.craftgames.api.script")
         imports.addStarImports("com.github.lazoyoung.craftgames.api.shopkeepers")
+        imports.addStarImports("com.github.lazoyoung.craftgames.api.tag.coordinate")
+        imports.addStarImports("com.github.lazoyoung.craftgames.api.tag.item")
         imports.addImport("Module", "com.github.lazoyoung.craftgames.api.module.Module")
         imports.addImport("BukkitTask", "org.bukkit.scheduler.BukkitTask")
         imports.addImport("ChatColor", "org.bukkit.ChatColor")

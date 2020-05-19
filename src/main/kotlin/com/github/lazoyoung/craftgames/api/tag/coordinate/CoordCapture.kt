@@ -1,6 +1,5 @@
-package com.github.lazoyoung.craftgames.api.coordtag.capture
+package com.github.lazoyoung.craftgames.api.tag.coordinate
 
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
 import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player

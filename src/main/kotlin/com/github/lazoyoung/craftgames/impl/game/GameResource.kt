@@ -2,7 +2,7 @@ package com.github.lazoyoung.craftgames.impl.game
 
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
-import com.github.lazoyoung.craftgames.api.coordtag.tag.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.script.GameScript
 import com.github.lazoyoung.craftgames.api.script.ScriptFactory
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
