@@ -1,10 +1,10 @@
 package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.event.GameEvent
 import com.github.lazoyoung.craftgames.api.script.GameScript
+import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.impl.exception.ScriptEngineNotFound
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerializable
@@ -83,6 +83,7 @@ interface ScriptModule {
      * @param counter The number of times to repeat.
      * @param interval The [frequency][Timer] of repeating task.
      * @param task The [task][Runnable] to be executed.
+     * @return [BukkitTask]
      * @throws IllegalArgumentException is thrown if [interval] is less than 1 tick.
      */
     fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask
@@ -92,6 +93,7 @@ interface ScriptModule {
      *
      * @param delay The amount of [time][Timer] to wait.
      * @param task The [task][Runnable] to be executed.
+     * @return [BukkitTask]
      * @throws IllegalArgumentException is thrown if [delay] is less than 1 tick.
      */
     fun wait(delay: Timer, task: Runnable): BukkitTask

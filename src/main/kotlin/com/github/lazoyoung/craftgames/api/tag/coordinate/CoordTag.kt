@@ -12,16 +12,20 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 class CoordTag private constructor(
-        var name: String,
-        var mode: TagMode,
+        name: String,
+        mode: TagMode,
         val registry: Registry,
         private val captures: LinkedList<CoordCapture>,
         private var suppress: Boolean
 ) {
+    var name = name
+        private set
+    var mode = mode
+        private set
     var removed: Boolean = false
         private set
 
-    class Registry internal constructor(val layout: GameLayout) {
+    class Registry internal constructor(internal val layout: GameLayout) {
 
         /** CoordTags configuration for every maps in this game. **/
         internal val config: YamlConfiguration
@@ -150,7 +154,7 @@ class CoordTag private constructor(
     }
 
     /**
-     * Returns all the captures.
+     * Returns every [CoordCapture] in this game.
      *
      * @param mapID Excludes the captures outside the given map, if specified.
      * @return List of CoordCapture matching the conditions.
