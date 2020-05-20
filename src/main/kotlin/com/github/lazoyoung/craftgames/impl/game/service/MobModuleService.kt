@@ -18,6 +18,7 @@ import com.nisovin.shopkeepers.api.shopkeeper.Shopkeeper
 import com.nisovin.shopkeepers.api.shopkeeper.admin.AdminShopCreationData
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
 import com.nisovin.shopkeepers.api.shopobjects.DefaultShopObjectTypes
+import com.nisovin.shopkeepers.shopobjects.citizens.SKCitizensShopObject
 import net.citizensnpcs.api.CitizensAPI
 import net.citizensnpcs.trait.SkinTrait
 import org.bukkit.Bukkit
@@ -108,15 +109,24 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
         val registry = ShopkeepersAPI.getShopkeeperRegistry()
         val shopType = DefaultShopTypes.ADMIN()
-        val objType = if (DependencyUtil.CITIZENS.isLoaded() &&
-                CitizensAPI.getNPCRegistry().getNPC(entity) != null) {
-            DefaultShopObjectTypes.CITIZEN()
+        val data: AdminShopCreationData
+
+        if (DependencyUtil.CITIZENS.isLoaded() && CitizensAPI.getNPCRegistry().isNPC(entity)) {
+            val npc = CitizensAPI.getNPCRegistry().getNPC(entity)
+
+            data = AdminShopCreationData.create(
+                    null, shopType, DefaultShopObjectTypes.CITIZEN(),
+                    npc.storedLocation, null
+            )
+            data.setValue(SKCitizensShopObject.CREATION_DATA_NPC_UUID_KEY, npc.uniqueId)
         } else {
-            DefaultShopObjectTypes.LIVING().get(entity.type)
+            val objType = DefaultShopObjectTypes.LIVING().get(entity.type)
+
+            data = AdminShopCreationData.create(
+                    null, shopType, objType, entity.location, null
+            )
         }
-        val data = AdminShopCreationData.create(
-                null, shopType, objType, entity.location, null
-        )
+
         val shopkeeper = registry.createShopkeeper(data) as RegularAdminShopkeeper
 
         return GameShopkeeper(game.resource.layout, shopkeeper)
