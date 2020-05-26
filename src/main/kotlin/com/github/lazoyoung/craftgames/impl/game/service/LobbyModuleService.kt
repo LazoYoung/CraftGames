@@ -35,15 +35,11 @@ class LobbyModuleService internal constructor(private val game: Game) : LobbyMod
     private var minimum = 1
 
     override fun setSpawnpoint(x: Double, y: Double, z: Double) {
-        error("Deprecated function.")
+        loc = Location(null, x, y, z)
     }
 
     override fun setSpawnpoint(x: Double, y: Double, z: Double, yaw: Float, pitch: Float) {
-        error("Deprecated function.")
-    }
-
-    override fun setSpawnpoint(location: Location) {
-        this.loc = location
+        loc = Location(null, x, y, z, yaw, pitch)
     }
 
     override fun setTimer(timer: Timer) {

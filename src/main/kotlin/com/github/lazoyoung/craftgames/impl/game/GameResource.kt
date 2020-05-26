@@ -1,10 +1,10 @@
 package com.github.lazoyoung.craftgames.impl.game
 
-import com.github.lazoyoung.craftgames.impl.Main
-import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
-import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.script.GameScript
+import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.script.ScriptFactory
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
@@ -127,7 +127,7 @@ class GameResource internal constructor(private val gameName: String) {
             val resourceDir = packDir.resolve("data").resolve(namespace)
 
             // Clone loot tables into datapack.
-            if (layout.lootTableDir != null) {
+            if (layout.lootTableDir?.toFile()?.isDirectory == true) {
                 val lootTableDir = resourceDir.resolve("loot_tables")
 
                 check(lootTableDir.isDirectory || lootTableDir.mkdirs()) {
