@@ -35,8 +35,6 @@ class Main : JavaPlugin(), CommandExecutor {
             private set
         lateinit var logger: Logger
             private set
-
-        // TODO Cache it whenever the plugin reloads.
         lateinit var config: FileConfiguration
             private set
 

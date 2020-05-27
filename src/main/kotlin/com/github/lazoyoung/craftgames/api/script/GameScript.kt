@@ -119,8 +119,8 @@ abstract class GameScript(
         t.printStackTrace(error)
         t.cause?.printStackTrace(error)
         error.close()
-        Main.logger.severe("Failed to evaluate script: ${file.path}")
-        Main.logger.severe("Error stacktrace is generated: ${errorFile.path}")
+        Main.logger.severe("Failed to evaluate ${file.name}")
+        Main.logger.severe("Error stacktrace generated: ${errorFile.path}")
         return errorFile.toPath()
     }
 

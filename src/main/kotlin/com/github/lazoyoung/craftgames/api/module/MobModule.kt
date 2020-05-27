@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.api.module
 
-import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
@@ -112,7 +112,6 @@ interface MobModule {
      * @param tag [CoordTag] that captures spawnpoint(s).
      * @return [Mob] that is spawned.
      * @throws IllegalArgumentException is thrown if [type] doesn't indicate any type of Mob.
-     * @throws RuntimeException is thrown if the specified Mob is not spawn-able.
      * @throws MapNotFound is thrown if world is not yet loaded.
      */
     fun spawnMob(type: String, name: String?, loot: LootTable?, tag: CoordTag): Mob
@@ -156,6 +155,7 @@ interface MobModule {
      * @throws IllegalArgumentException is thrown if [name] doesn't indicate any type of MythicMob.
      * @throws MapNotFound is thrown if world is not yet loaded.
      * @throws DependencyNotFound is thrown if MythicMobs is not installed.
+     * @throws RuntimeException is thrown if spawn area cannot be resolved.
      * @throws ReflectiveOperationException
      */
     fun spawnMythicMob(name: String, level: Int, tag: CoordTag): Entity
@@ -198,6 +198,7 @@ interface MobModule {
      * @return [Entity] that is spawned.
      * @throws IllegalArgumentException is raised if [tag] mode is not relevant.
      * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws RuntimeException is thrown if spawn area cannot be resolved.
      * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
     fun spawnNPC(name: String, type: EntityType, assignment: String?, tag: CoordTag): Entity
@@ -239,6 +240,7 @@ interface MobModule {
      * @param tag [CoordTag] that captures spawnpoint(s).
      * @return [Entity] that is spawned.
      * @throws MapNotFound is thrown if world is not yet loaded.
+     * @throws RuntimeException is thrown if spawn area cannot be resolved.
      * @throws DependencyNotFound is thrown if Citizens is not installed.
      */
     fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tag: CoordTag): Entity

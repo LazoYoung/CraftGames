@@ -73,7 +73,12 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
     override fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>) {
         game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Mob>> {
-            callback.accept(it)
+            try {
+                callback.accept(it)
+            } catch (t: Throwable) {
+                script.writeStackTrace(t)
+                game.forceStop(error = true)
+            }
 
             script.printDebug(it.joinToString(
                     prefix = "Found ${it.size} mobs inside $areaTag: ",
@@ -535,8 +540,8 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         loot?.let { entity.setLootTable(it, Random.nextLong()) }
         locFuture.whenCompleteAsync { location, t ->
             if (t != null) {
+                entity.remove()
                 script.print("Failed to resolve spawnpoint for mob: $name")
-                script.writeStackTrace(t)
             } else {
                 Bukkit.getScheduler().runTask(Main.instance, Runnable {
                     entity.teleport(location)
@@ -556,8 +561,8 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
             }
             locFuture.whenCompleteAsync { location, t ->
                 if (t != null) {
+                    entity.remove()
                     script.print("Failed to resolve spawnpoint for mob: $name")
-                    script.writeStackTrace(t)
                 } else {
                     Bukkit.getScheduler().runTask(Main.instance, Runnable {
                         entity.teleport(location)
@@ -613,7 +618,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         locFuture.whenCompleteAsync { location, t ->
             if (t != null) {
                 script.print("Failed to resolve spawnpoint for NPC: $name")
-                script.writeStackTrace(t)
                 npc.destroy()
             } else {
                 Bukkit.getScheduler().runTask(Main.instance, Runnable {

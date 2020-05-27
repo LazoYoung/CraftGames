@@ -2,11 +2,11 @@ package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.BlockCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
-import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
@@ -319,7 +319,12 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
                             .exceptionally { t ->
                                 t.printStackTrace()
                                 futureMap.clear()
-                                callback.accept(emptyList())
+                                try {
+                                    callback.accept(emptyList())
+                                } catch (t: Throwable) {
+                                    script.writeStackTrace(t)
+                                    game.forceStop(error = true)
+                                }
                                 null
                             }
 
@@ -335,7 +340,12 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         CompletableFuture.allOf(*futureMap.keys.toTypedArray()).handleAsync { _, t ->
             if (t != null) {
                 t.printStackTrace()
-                callback.accept(emptyList())
+                try {
+                    callback.accept(emptyList())
+                } catch (t: Throwable) {
+                    script.writeStackTrace(t)
+                    game.forceStop(error = true)
+                }
                 return@handleAsync
             }
 
@@ -356,7 +366,12 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
                     }
                 }
 
-                callback.accept(totalMobs)
+                try {
+                    callback.accept(totalMobs)
+                } catch (t: Throwable) {
+                    script.writeStackTrace(t)
+                    game.forceStop(error = true)
+                }
             })
         }
     }

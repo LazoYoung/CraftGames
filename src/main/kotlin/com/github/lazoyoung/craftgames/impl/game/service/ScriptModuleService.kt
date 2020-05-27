@@ -1,14 +1,14 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.EventType
-import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.api.event.GameEvent
-import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.api.script.GameScript
+import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.script.ScriptFactory
+import com.github.lazoyoung.craftgames.impl.Main
+import com.github.lazoyoung.craftgames.impl.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.LivingEntity
@@ -73,7 +73,11 @@ class ScriptModuleService internal constructor(
 
             override fun run() {
                 if (count-- > 0) {
-                    task.run()
+                    try {
+                        task.run()
+                    } catch (t: Throwable) {
+                        script.writeStackTrace(t)
+                    }
                 } else {
                     this.cancel()
                 }
@@ -91,7 +95,11 @@ class ScriptModuleService internal constructor(
 
         val bukkitTask = object : BukkitRunnable() {
             override fun run() {
-                task.run()
+                try {
+                    task.run()
+                } catch (t: Throwable) {
+                    script.writeStackTrace(t)
+                }
             }
         }.runTaskLater(Main.instance, delay.toTick())
 
@@ -150,9 +158,9 @@ class ScriptModuleService internal constructor(
             val wrapper = BufferedInputStream(FileInputStream(file))
             stream = BukkitObjectInputStream(wrapper)
             reader.accept(stream)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            script.writeStackTrace(e)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            script.writeStackTrace(t)
         } finally {
             try {
                 stream?.close()
@@ -173,9 +181,9 @@ class ScriptModuleService internal constructor(
             val wrapper = BufferedOutputStream(FileOutputStream(file))
             stream = BukkitObjectOutputStream(wrapper)
             writer.accept(stream)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            script.writeStackTrace(e)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            script.writeStackTrace(t)
             stream?.reset()
         } finally {
             try {
@@ -202,9 +210,9 @@ class ScriptModuleService internal constructor(
             val config = YamlConfiguration.loadConfiguration(fileReader)
             consumer.accept(config)
             config.save(file)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            script.writeStackTrace(e)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            script.writeStackTrace(t)
         } finally {
             try {
                 fileReader?.close()
