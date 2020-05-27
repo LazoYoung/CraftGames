@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender
 interface CommandHandler {
 
     /**
-     * Function will run if the underlying command is executed with [args] by [sender].
+     * This function will run if underlying command is executed with [args] by [sender].
      *
      * @param module Access point of game modules.
      * @param sender Who executed this function.

@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
+import com.github.lazoyoung.craftgames.api.module.TeamModule
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
-import com.github.lazoyoung.craftgames.api.module.TeamModule
 import com.github.lazoyoung.craftgames.impl.game.Game
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
@@ -12,14 +12,13 @@ import org.bukkit.scoreboard.Score
 import org.bukkit.scoreboard.Scoreboard
 import org.bukkit.scoreboard.Team
 import java.util.*
-import kotlin.Comparator
 import kotlin.collections.HashMap
 import kotlin.math.roundToInt
 
 class TeamModuleService(private val game: Game) : TeamModule, Service {
 
     private var spawnTag = HashMap<String, CoordTag>()
-    private var scoreboard = Bukkit.getScoreboardManager().newScoreboard
+    private val scoreboard = Bukkit.getScoreboardManager().newScoreboard
     private val script = game.resource.mainScript
 
     override fun createTeam(teamName: String, color: ChatColor): Team {
@@ -98,17 +97,9 @@ class TeamModuleService(private val game: Game) : TeamModule, Service {
             throw IllegalStateException("No team is defined.")
         }
 
-        teams.forEach {
-            table[it] = getPlayers(it).sumBy { p -> objective.getScore(p.name).score }
-        }
-
-        Collections.sort(linkedList, Comparator { e1, e2 ->
-            return@Comparator (e1.value - e2.value)
-        })
-
-        linkedList.forEach {
-            orderedTable[it.key] = it.value
-        }
+        teams.forEach { table[it] = getPlayers(it).sumBy { p -> objective.getScore(p.name).score } }
+        linkedList.sortWith(Comparator { e1, e2 -> (e1.value - e2.value) })
+        linkedList.forEach { orderedTable[it.key] = it.value }
 
         return orderedTable
     }
@@ -122,7 +113,6 @@ class TeamModuleService(private val game: Game) : TeamModule, Service {
         }
 
         team.addEntry(name)
-        player.scoreboard = scoreboard
         script.printDebug("$name is assigned to team ${team.name}.")
     }
 

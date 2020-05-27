@@ -1,13 +1,13 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.github.lazoyoung.craftgames.api.CommandHandler
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.CommandModule
+import com.github.lazoyoung.craftgames.api.script.GameScript
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
-import com.github.lazoyoung.craftgames.api.script.GameScript
 import io.github.jorelali.commandapi.api.CommandAPI
 import io.github.jorelali.commandapi.api.CommandExecutor
 import io.github.jorelali.commandapi.api.CommandPermission
@@ -50,16 +50,24 @@ class CommandModuleService(
                     val playerData = PlayerData.get(callee)
 
                     if (playerData?.isOnline() == true) {
-                        handler.run(playerData.getGame().module, callee, arguments)
-                        return@CommandExecutor
+                        try {
+                            handler.run(playerData.getGame().module, callee, arguments)
+                            return@CommandExecutor
+                        } catch (t: Throwable) {
+                            script.writeStackTrace(t)
+                        }
                     }
                 }
                 is Entity -> {
                     val game = Game.getByWorld(callee.world)
 
                     if (game != null) {
-                        handler.run(game.module, callee, arguments)
-                        return@CommandExecutor
+                        try {
+                            handler.run(game.module, callee, arguments)
+                            return@CommandExecutor
+                        } catch (t: Throwable) {
+                            script.writeStackTrace(t)
+                        }
                     }
                 }
             }
@@ -81,7 +89,11 @@ class CommandModuleService(
 
             override fun run() {
                 if (count-- > 0) {
-                    task.run()
+                    try {
+                        task.run()
+                    } catch (t: Throwable) {
+                        script.writeStackTrace(t)
+                    }
                 } else {
                     this.cancel()
                 }
@@ -99,7 +111,11 @@ class CommandModuleService(
 
         val bukkitTask = object : BukkitRunnable() {
             override fun run() {
-                task.run()
+                try {
+                    task.run()
+                } catch (t: Throwable) {
+                    script.writeStackTrace(t)
+                }
             }
         }.runTaskLater(Main.instance, delay.toTick())
 
@@ -131,9 +147,9 @@ class CommandModuleService(
             val wrapper = BufferedInputStream(FileInputStream(file))
             stream = BukkitObjectInputStream(wrapper)
             reader.accept(stream)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            script.writeStackTrace(e)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            script.writeStackTrace(t)
         } finally {
             try {
                 stream?.close()
@@ -154,9 +170,9 @@ class CommandModuleService(
             val wrapper = BufferedOutputStream(FileOutputStream(file))
             stream = BukkitObjectOutputStream(wrapper)
             writer.accept(stream)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            script.writeStackTrace(e)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            script.writeStackTrace(t)
             stream?.reset()
         } finally {
             try {
@@ -183,9 +199,9 @@ class CommandModuleService(
             val config = YamlConfiguration.loadConfiguration(fileReader)
             consumer.accept(config)
             config.save(file)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            script.writeStackTrace(e)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            script.writeStackTrace(t)
         } finally {
             try {
                 fileReader?.close()

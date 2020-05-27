@@ -74,8 +74,8 @@ class ScriptListener : Listener {
 
         try {
             game.getScriptService().events[type]?.accept(event)
-        } catch (e: Exception) {
-            game.resource.mainScript.writeStackTrace(e)
+        } catch (t: Throwable) {
+            game.resource.mainScript.writeStackTrace(t)
             game.forceStop(error = true)
 
             if (event is Cancellable) {

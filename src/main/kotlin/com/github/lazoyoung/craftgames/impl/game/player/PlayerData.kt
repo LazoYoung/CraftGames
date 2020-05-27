@@ -1,12 +1,13 @@
 package com.github.lazoyoung.craftgames.impl.game.player
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.PlayerType
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
-import com.github.lazoyoung.craftgames.impl.util.LocationUtil
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
+import com.github.lazoyoung.craftgames.impl.util.LocationUtil
 import com.github.lazoyoung.loottablefix.LootTablePatch
 import net.milkbowl.vault.economy.Economy
+import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.attribute.Attribute
@@ -234,6 +235,7 @@ open class PlayerData {
                 player.level = 0
                 player.exp = 0f
                 player.inventory.clear()
+                player.scoreboard = getGame().getTeamService().getScoreboard()
             }
             RestoreMode.RESPAWN -> {
                 if (!keepInventory) {
@@ -251,6 +253,9 @@ open class PlayerData {
                 player.addPotionEffects(restorePotionEffects)
                 player.teleportAsync(restoreLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
                         .exceptionally { it.printStackTrace(); false }
+                player.scoreboard = Bukkit.getScoreboardManager().mainScoreboard
+                player.isHealthScaled = false
+                maxHealth.baseValue = maxHealth.defaultValue
 
                 for ((index, item) in restoreItems.withIndex()) {
                     player.inventory.setItem(index, item)

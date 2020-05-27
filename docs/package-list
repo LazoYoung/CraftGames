@@ -1,6 +1,7 @@
 com.github.lazoyoung.craftgames.api
-com.github.lazoyoung.craftgames.api.coordtag.capture
-com.github.lazoyoung.craftgames.api.coordtag.tag
 com.github.lazoyoung.craftgames.api.event
 com.github.lazoyoung.craftgames.api.module
 com.github.lazoyoung.craftgames.api.script
+com.github.lazoyoung.craftgames.api.shopkeepers
+com.github.lazoyoung.craftgames.api.tag.coordinate
+com.github.lazoyoung.craftgames.api.tag.item
