@@ -69,6 +69,11 @@ class ScriptListener : Listener {
         relayToScript(event, EventType.PLAYER_INTERACT_EVENT)
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onEntityDamage(event: GameEntityDamageEvent) {
+        relayToScript(event, EventType.ENTITY_DAMAGE_EVENT)
+    }
+
     private fun <T : GameEvent> relayToScript(event: T, type: EventType) {
         val game = event.getGame()
 

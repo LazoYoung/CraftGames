@@ -61,7 +61,12 @@ enum class EventType(val clazz: Class<out GameEvent>) {
     /**
      * @see [GamePlayerInteractEvent]
      */
-    PLAYER_INTERACT_EVENT(GamePlayerInteractEvent::class.java);
+    PLAYER_INTERACT_EVENT(GamePlayerInteractEvent::class.java),
+
+    /**
+     * @see [GameEntityDamageEvent]
+     */
+    ENTITY_DAMAGE_EVENT(GameEntityDamageEvent::class.java);
 
     companion object {
         /**
