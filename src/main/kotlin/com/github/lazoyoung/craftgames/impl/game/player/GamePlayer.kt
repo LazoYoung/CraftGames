@@ -1,7 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.game.player
 
-import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.exception.ConcurrentPlayerState
+import com.github.lazoyoung.craftgames.impl.game.Game
+import org.bukkit.GameMode
 import org.bukkit.entity.Player
 
 class GamePlayer private constructor(
@@ -34,7 +35,10 @@ class GamePlayer private constructor(
 
     fun toSpectator() {
         try {
-            Spectator.register(getPlayer(), game, this)
+            val player = getPlayer()
+
+            Spectator.register(player, game, this)
+            player.gameMode = GameMode.SPECTATOR
         } catch(e: RuntimeException) {
             e.printStackTrace()
             game.leave(this)
