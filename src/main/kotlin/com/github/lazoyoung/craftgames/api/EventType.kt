@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api
 
 import com.github.lazoyoung.craftgames.api.event.*
 
+@Deprecated("Serves no purpose anymore.")
 enum class EventType(val clazz: Class<out GameEvent>) {
     /**
      * @see [GameInitEvent]

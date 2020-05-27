@@ -27,6 +27,7 @@ interface ScriptModule {
      * @param eventType [EventType] designating the event that [callback] is executed upon.
      * @return Whether it is successfully attached or not.
      */
+    @Deprecated("Use EventModule as alternative.")
     fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>): Boolean
 
     /**
@@ -39,6 +40,7 @@ interface ScriptModule {
      * that [callback] is executed upon.
      * @return Whether it is successfully attached or not.
      */
+    @Deprecated("Use EventModule as alternative.")
     fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>): Boolean
 
     /**
@@ -49,6 +51,7 @@ interface ScriptModule {
      * @param eventType [EventType] which identifies event monitor.
      * @return Whether it is successfully detached or not.
      */
+    @Deprecated("Use EventModule as alternative.")
     fun detachEventMonitor(eventType: EventType): Boolean
 
     /**
@@ -58,6 +61,7 @@ interface ScriptModule {
      *
      * @param eventType [EventType] (represented by [String]) which identifies event monitor.
      */
+    @Deprecated("Use EventModule as alternative.")
     fun detachEventMonitor(eventType: String)
 
     /**

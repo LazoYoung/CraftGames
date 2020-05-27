@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
+import com.github.lazoyoung.craftgames.api.module.*
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
-import com.github.lazoyoung.craftgames.api.module.*
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.game.GameTask
@@ -21,6 +21,7 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
     private val scriptModule = ScriptModuleService(game)
     private val worldModule = WorldModuleService(game)
     private val itemModule = ItemModuleService(game)
+    private val eventModule = EventModuleService()
 
     init {
         try {
@@ -46,6 +47,7 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
                 "ScriptModule" -> ClassHelper.make(ScriptModule::class.java)
                 "WorldModule" -> ClassHelper.make(WorldModule::class.java)
                 "ItemModule" -> ClassHelper.make(ItemModule::class.java)
+                "EventModule" -> ClassHelper.make(EventModule::class.java)
                 else -> null
             }
         }
@@ -137,6 +139,10 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
 
     override fun getWorldModule(): WorldModule {
         return worldModule
+    }
+
+    override fun getEventModule(): EventModule {
+        return eventModule
     }
 
     override fun start() {}
