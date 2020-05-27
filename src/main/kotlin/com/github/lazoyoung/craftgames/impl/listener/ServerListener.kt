@@ -1,8 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.listener
 
 import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.event.*
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.game.player.*
@@ -16,9 +16,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
-import org.bukkit.event.entity.EntityDeathEvent
-import org.bukkit.event.entity.EntitySpawnEvent
-import org.bukkit.event.entity.PlayerDeathEvent
+import org.bukkit.event.entity.*
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
@@ -224,7 +222,7 @@ class ServerListener : Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onSpectateEntity(event: PlayerStartSpectatingEntityEvent) {
         val entity = event.newSpectatorTarget
         val playerData = PlayerData.get(event.player)
@@ -236,6 +234,30 @@ class ServerListener : Listener {
             return
 
         event.isCancelled = true
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun onEntityDamage(event: EntityDamageByEntityEvent) {
+        val entity = event.entity
+        val game = Game.getByWorld(entity.world) ?: return
+
+        if (game.phase == GamePhase.PLAYING) {
+            Bukkit.getPluginManager().callEvent(
+                    GameEntityDamageEvent(game, event)
+            )
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun onEntityDamage(event: EntityDamageByBlockEvent) {
+        val entity = event.entity
+        val game = Game.getByWorld(entity.world) ?: return
+
+        if (game.phase == GamePhase.PLAYING) {
+            Bukkit.getPluginManager().callEvent(
+                    GameEntityDamageEvent(game, event)
+            )
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

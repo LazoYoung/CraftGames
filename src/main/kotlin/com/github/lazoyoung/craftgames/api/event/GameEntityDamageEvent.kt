@@ -11,9 +11,8 @@ import org.bukkit.event.entity.EntityDamageEvent
 
 class GameEntityDamageEvent(
         game: Game,
-        entity: Entity,
         private val damageEvent: EntityDamageEvent
-) : GameEntityEvent(game, entity), Cancellable {
+) : GameEntityEvent(game, damageEvent.entity), Cancellable {
 
     private var cancel = false
 
