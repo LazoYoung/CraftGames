@@ -67,10 +67,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return livingEntity.type.key
     }
 
-    override fun getMobsInside(areaTag: String, callback: Consumer<List<Mob>>) {
-        error("Deprecated function.")
-    }
-
     override fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>) {
         game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Mob>> {
             try {
@@ -137,87 +133,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return GameShopkeeper(game.resource.layout, shopkeeper)
     }
 
-    override fun setMobCapacity(max: Int) {
-        error("Deprecated function.")
-    }
-
-    override fun spawnMob(type: String, name: String?, loot: LootTable?, tagName: String): CompletableFuture<Int> {
-        error("Deprecated function.")
-        /*
-        TODO Remove this comment
-        val mapID = game.map.id
-        val worldModule = game.getWorldService()
-        val world = worldModule.getWorld()
-
-        if (world.entityCount >= mobCap) {
-            return CompletableFuture.completedFuture(0)
-        }
-
-        val captures = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
-        val mobList = ArrayList<Mob>()
-        val entityType = EntityType.valueOf(type.toUpperCase().replace(' ', '_'))
-        val typeKey = entityType.key
-        val tasks = LinkedList<CompletableFuture<Unit>>()
-
-        if (!entityType.isSpawnable) {
-            throw RuntimeException("Entity is not spawn-able: $typeKey")
-        } else if (captures.isEmpty()) {
-            throw FaultyConfiguration("Tag $tagName has no capture in map: $mapID")
-        }
-
-        captures.forEach { capture ->
-
-            fun spawnMobAt(loc: Location?) {
-                if (loc == null) {
-                    script.print("Excessive attempt to spawn mob at: $tagName")
-                    return
-                }
-
-                val entity = world.spawnEntity(loc, entityType)
-
-                if (entity !is Mob) {
-                    entity.remove()
-                    throw IllegalArgumentException("This is not a Mob: $typeKey")
-                } else {
-                    name?.let { entity.customName = it }
-                    loot?.let { entity.setLootTable(it, Random.nextLong()) }
-                    mobList.add(entity)
-                }
-            }
-
-            when (capture) {
-                is AreaCapture -> {
-                    tasks.add(capture.toLocation(world, maxAttempt).handleAsync { location, t ->
-
-                        if (t != null) {
-                            t.printStackTrace()
-                        } else {
-                            Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                                spawnMobAt(location)
-                            })
-                        }
-                        return@handleAsync
-                    })
-                }
-                is SpawnCapture -> {
-                    spawnMobAt(capture.toLocation(world))
-                }
-                else -> error("Illegal tag mode.")
-            }
-        }
-
-        return if (tasks.isNotEmpty()) {
-            CompletableFuture.allOf(*tasks.toTypedArray()).thenCompose {
-                script.printDebug("Spawned ${mobList.size} $typeKey")
-                CompletableFuture.completedFuture(mobList.size)
-            }
-        } else {
-            script.printDebug("Spawned ${mobList.size} $typeKey")
-            CompletableFuture.completedFuture(mobList.size)
-        }
-         */
-    }
-
     override fun spawnMob(type: String, name: String?, loot: LootTable?, location: Location): Mob {
         val world = game.getWorldService().getWorld()
         val locFuture = CompletableFuture.completedFuture(location)
@@ -230,99 +145,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         val locFuture = getRandomLocation(tag)
 
         return spawnMob0(type, name, loot, locFuture, world)
-    }
-
-    override fun spawnMythicMob(name: String, level: Int, tagName: String): CompletableFuture<Int> {
-        error("Deprecated function.")
-        /*
-          TODO Remove this comment
-        if (!DependencyUtil.MYTHIC_MOBS.isLoaded()) {
-            throw DependencyNotFound("MythicMobs is required to spawn custom mobs.")
-        }
-
-        val mapID = game.map.id
-        val world = game.getWorldService().getWorld()
-
-        if (world.entityCount >= mobCap) {
-            return CompletableFuture.completedFuture(0)
-        }
-
-        val captures = ModuleService.getRelevantTag(game, tagName, TagMode.SPAWN, TagMode.AREA).getCaptures(mapID)
-        val mobList = ArrayList<Mob>()
-        var typeKey: NamespacedKey? = null
-        val tasks = LinkedList<CompletableFuture<Unit>>()
-        val future = CompletableFuture<Int>()
-
-        if (captures.isEmpty()) {
-            throw FaultyConfiguration("Tag $tagName has no capture in map: $mapID")
-        }
-
-        fun teleport(loc: Location?) {
-            val entity: Entity
-
-            if (loc == null) {
-                script.print("Excessive attempt to spawn mob at: $tagName")
-                return
-            }
-
-            try {
-                entity = spawnMethod.invoke(apiHelper, name, loc, level) as Entity
-                typeKey = entity.type.key
-
-                if (entity !is Mob) {
-                    entity.remove()
-                    throw IllegalArgumentException("This is not a Mob: $typeKey")
-                }
-
-                mobList.add(entity)
-            } catch (e: InvocationTargetException) {
-                (e.cause as? Exception)?.let {
-                    if (it::class.java.simpleName == "InvalidMobTypeException") {
-                        throw IllegalArgumentException("Unable to identify MythicMob: $name")
-                    }
-                }
-            }
-        }
-
-        captures.forEach { capture ->
-            when (capture) {
-                is AreaCapture -> {
-                    tasks.add(capture.toLocation(world, maxAttempt).exceptionally {
-                        return@exceptionally null
-                    }.thenCompose { location ->
-                        Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                            teleport(location)
-                        })
-                        return@thenCompose null
-                    })
-                }
-                is SpawnCapture -> {
-                    teleport(capture.toLocation(world))
-                }
-                else -> error("Illegal tag mode.")
-            }
-        }
-
-        if (tasks.isNotEmpty()) {
-            CompletableFuture.allOf(*tasks.toTypedArray()).whenCompleteAsync {
-                _, t ->
-
-                if (t != null) {
-                    script.print("Failed to spawn mob. ($typeKey)")
-                    future.completeExceptionally(t)
-                } else {
-                    script.printDebug("Spawned ${mobList.size} $typeKey")
-                    future.complete(mobList.size)
-                }
-            }
-
-        } else {
-            script.printDebug("Spawned ${mobList.size} $typeKey")
-            future.complete(mobList.size)
-        }
-
-        return future
-         */
     }
 
     override fun spawnMythicMob(name: String, level: Int, location: Location): Entity {
@@ -347,10 +169,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         return spawnMythicMob0(name, locFuture, level, world)
     }
 
-    override fun spawnNPC(name: String, type: EntityType, assignment: String?, tagName: String): CompletableFuture<Int> {
-        error("Deprecated function.")
-    }
-
     override fun spawnNPC(name: String, type: EntityType, assignment: String?, location: Location): Entity {
         if (!DependencyUtil.CITIZENS.isLoaded()) {
             throw DependencyNotFound("Citizens is required to spawn NPC.")
@@ -371,10 +189,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
         val locFuture = getRandomLocation(tag)
 
         return spawnNPC0(name, type, locFuture, null, assignment, world)
-    }
-
-    override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, tagName: String): CompletableFuture<Int> {
-        error("Deprecated function.")
     }
 
     override fun spawnPlayerNPC(name: String, skinURL: String?, assignment: String?, location: Location): Entity {
@@ -466,25 +280,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
             list.forEach(Shopkeeper::delete)
         }
-
-        /*
-        TODO Delete this comment
-        // Shopkeeper save process
-        if (game.editMode && DependencyUtil.SHOP_KEEPER.isLoaded()) {
-            while (shopkeeperList.isNotEmpty()) {
-                val registry = ShopkeepersAPI.getShopkeeperRegistry()
-                val uid = shopkeeperList.pop()
-
-                registry.getShopkeeperByUniqueId(uid)?.let {
-                    if (it is RegularAdminShopkeeper) {
-                        game.resource.saveShopkeeper(it)
-                    }
-
-                    it.delete()
-                }
-            }
-        }
-         */
 
         // Citizen termination process
         if (DependencyUtil.CITIZENS.isLoaded()) {
