@@ -16,7 +16,10 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
-import org.bukkit.event.entity.*
+import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.entity.EntitySpawnEvent
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
@@ -237,26 +240,15 @@ class ServerListener : Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun onEntityDamage(event: EntityDamageByEntityEvent) {
+    fun onEntityDamage(event: EntityDamageEvent) {
         val entity = event.entity
         val game = Game.getByWorld(entity.world) ?: return
 
         if (game.phase == GamePhase.PLAYING) {
-            Bukkit.getPluginManager().callEvent(
-                    GameEntityDamageEvent(game, event)
-            )
-        }
-    }
+            val relayEvent = GameEntityDamageEvent(game, event)
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun onEntityDamage(event: EntityDamageByBlockEvent) {
-        val entity = event.entity
-        val game = Game.getByWorld(entity.world) ?: return
-
-        if (game.phase == GamePhase.PLAYING) {
-            Bukkit.getPluginManager().callEvent(
-                    GameEntityDamageEvent(game, event)
-            )
+            Bukkit.getPluginManager().callEvent(relayEvent)
+            event.isCancelled = relayEvent.isCancelled
         }
     }
 
