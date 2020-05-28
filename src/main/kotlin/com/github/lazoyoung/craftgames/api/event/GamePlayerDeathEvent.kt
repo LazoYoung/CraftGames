@@ -4,8 +4,8 @@ import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.impl.game.Game
-import com.github.lazoyoung.craftgames.impl.game.service.PlayerModuleService
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
+import com.github.lazoyoung.craftgames.impl.game.service.PlayerModuleService
 import org.bukkit.Location
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
@@ -70,7 +70,7 @@ class GamePlayerDeathEvent(
      * @return [EntityDamageEvent.DamageCause]
      */
     fun getCause(): EntityDamageEvent.DamageCause? {
-        val damageEvent = getPlayer().lastDamageCause
+        val damageEvent = player.lastDamageCause
 
         return if (damageEvent?.isCancelled == false) {
             damageEvent.cause
@@ -85,7 +85,7 @@ class GamePlayerDeathEvent(
      * @return [Block] if it exists, null otherwise.
      */
     fun getKillerBlock(): Block? {
-        val damageEvent = getPlayer().lastDamageCause
+        val damageEvent = player.lastDamageCause
 
         return if (damageEvent?.isCancelled == false
                 && damageEvent is EntityDamageByBlockEvent) {
@@ -101,7 +101,7 @@ class GamePlayerDeathEvent(
      * @return [Entity] if it exists, null otherwise.
      */
     fun getKillerEntity(): Entity? {
-        val damageEvent = getPlayer().lastDamageCause
+        val damageEvent = player.lastDamageCause
 
         return if (damageEvent?.isCancelled == false
                 && damageEvent is EntityDamageByEntityEvent) {
@@ -115,7 +115,7 @@ class GamePlayerDeathEvent(
      * @return The the next spawnpoint of this player.
      */
     fun getSpawnpoint(): Location {
-        return getPlayerModule().getSpawnpoint(getPlayerData(), null).join()
+        return getPlayerModule().getSpawnpoint(playerData, null).join()
     }
 
     /**
@@ -124,7 +124,7 @@ class GamePlayerDeathEvent(
     fun getRespawnTimer(): Timer {
         val emptyTimer = Timer(TimeUnit.TICK, 0)
 
-        return getPlayerModule().respawnTimer[getPlayer().uniqueId] ?: emptyTimer
+        return getPlayerModule().respawnTimer[player.uniqueId] ?: emptyTimer
     }
 
     /**
@@ -134,8 +134,6 @@ class GamePlayerDeathEvent(
      * Otherwise, spawnpoint would be reset to default one.
      */
     fun setRewind(rewind: Boolean) {
-        val player = getPlayer()
-
         if (rewind) {
             getPlayerModule().overrideSpawnpoint(player, player.location.clone())
         } else {
@@ -187,7 +185,7 @@ class GamePlayerDeathEvent(
      * Defaults to [GameModule.setRespawnTimer]
      */
     fun setRespawnTimer(timer: Timer) {
-        getPlayerModule().respawnTimer[getPlayer().uniqueId] = timer
+        getPlayerModule().respawnTimer[player.uniqueId] = timer
     }
 
     private fun getPlayerModule(): PlayerModuleService {

@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.api
 
 import com.github.lazoyoung.craftgames.api.event.*
 
+@Deprecated("Serves no purpose anymore.")
 enum class EventType(val clazz: Class<out GameEvent>) {
     /**
      * @see [GameInitEvent]
@@ -61,7 +62,12 @@ enum class EventType(val clazz: Class<out GameEvent>) {
     /**
      * @see [GamePlayerInteractEvent]
      */
-    PLAYER_INTERACT_EVENT(GamePlayerInteractEvent::class.java);
+    PLAYER_INTERACT_EVENT(GamePlayerInteractEvent::class.java),
+
+    /**
+     * @see [GameEntityDamageEvent]
+     */
+    ENTITY_DAMAGE_EVENT(GameEntityDamageEvent::class.java);
 
     companion object {
         /**

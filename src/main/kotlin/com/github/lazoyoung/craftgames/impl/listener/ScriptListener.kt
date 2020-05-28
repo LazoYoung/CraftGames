@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.impl.listener
 
-import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.event.*
 import org.bukkit.event.Cancellable
 import org.bukkit.event.EventHandler
@@ -11,69 +10,74 @@ class ScriptListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameInit(event: GameInitEvent) {
-        relayToScript(event, EventType.GAME_INIT_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameStart(event: GameStartEvent) {
-        relayToScript(event, EventType.GAME_START_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameJoin(event: GameJoinEvent) {
-        relayToScript(event, EventType.GAME_JOIN_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameJoinPost(event: GameJoinPostEvent) {
-        relayToScript(event, EventType.GAME_JOIN_POST_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameLeave(event: GameLeaveEvent) {
-        relayToScript(event, EventType.GAME_LEAVE_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameTimeout(event: GameTimeoutEvent) {
-        relayToScript(event, EventType.GAME_TIMEOUT_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onGameFinish(event: GameFinishEvent) {
-        relayToScript(event, EventType.GAME_FINISH_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onAreaEnter(event: GameAreaEnterEvent) {
-        relayToScript(event, EventType.AREA_ENTER_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onAreaExit(event: GameAreaExitEvent) {
-        relayToScript(event, EventType.AREA_EXIT_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerKill(event: GamePlayerKillEvent) {
-        relayToScript(event, EventType.PLAYER_KILL_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerDeath(event: GamePlayerDeathEvent) {
-        relayToScript(event, EventType.PLAYER_DEATH_EVENT)
+        relayToScript(event)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerInteract(event: GamePlayerInteractEvent) {
-        relayToScript(event, EventType.PLAYER_INTERACT_EVENT)
+        relayToScript(event)
     }
 
-    private fun <T : GameEvent> relayToScript(event: T, type: EventType) {
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onEntityDamage(event: GameEntityDamageEvent) {
+        relayToScript(event)
+    }
+
+    private fun <T : GameEvent> relayToScript(event: T) {
         val game = event.getGame()
 
         try {
-            game.getScriptService().events[type]?.accept(event)
+            game.getEventService().events[event.javaClass]?.accept(event)
         } catch (t: Throwable) {
             game.resource.mainScript.writeStackTrace(t)
             game.forceStop(error = true)

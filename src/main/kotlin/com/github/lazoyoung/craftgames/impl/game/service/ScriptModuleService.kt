@@ -26,25 +26,24 @@ class ScriptModuleService internal constructor(
         private val game: Game
 ) : ScriptModule, Service {
 
-    internal val events = HashMap<EventType, Consumer<in GameEvent>>()
     private val resource = game.resource
     private val script = resource.mainScript
     private val tasks = ArrayList<BukkitTask>()
 
     override fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>): Boolean {
-        return events.put(eventType, callback) == null
+        error("Deprecated function.")
     }
 
     override fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>): Boolean {
-        return attachEventMonitor(EventType.forName(eventType), callback)
+        error("Deprecated function.")
     }
 
     override fun detachEventMonitor(eventType: EventType): Boolean {
-        return events.remove(eventType) != null
+        error("Deprecated function.")
     }
 
     override fun detachEventMonitor(eventType: String) {
-        detachEventMonitor(EventType.forName(eventType))
+        error("Deprecated function.")
     }
 
     override fun setLogVerbosity(verbose: Boolean) {

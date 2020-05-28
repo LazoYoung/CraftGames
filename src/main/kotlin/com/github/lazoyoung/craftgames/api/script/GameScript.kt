@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.api.script
 
-import com.github.lazoyoung.craftgames.api.module.Module
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.service.ModuleService
 import java.io.*
@@ -53,25 +52,13 @@ abstract class GameScript(
         Files.delete(tmpFile)
     }
 
-    fun injectModules(module: ModuleService) {
-        bind("Module", module as Module)
-        bind("GameModule", module.getGameModule())
-        bind("TeamModule", module.getTeamModule())
-        bind("LobbyModule", module.getLobbyModule())
-        bind("PlayerModule", module.getPlayerModule())
-        bind("MobModule", module.getMobModule())
-        bind("ScriptModule", module.getScriptModule())
-        bind("WorldModule", module.getWorldModule())
-        bind("ItemModule", module.getItemModule())
-    }
-
     /**
      * Executes entire script.
      *
-     * Some script engine specification requires [injectModules] before execution.
+     * Some script engine specification requires [ModuleService.injectModules] before execution.
      *
      * @throws IllegalStateException is thrown if this engine
-     * requires the script to be [injectModules]d before execution.
+     * requires the script to have [modules injected][ModuleService.injectModules] before execution.
      * @throws Exception Any exception may occur during script evaluation.
      */
     abstract fun run()
@@ -79,13 +66,13 @@ abstract class GameScript(
     /**
      * Invokes specific function defined at top-most context in the COMPILED SCRIPT.
      *
-     * Some script engine specification requires [injectModules] before execution.
+     * Some script engine specification requires [ModuleService.injectModules] before execution.
      *
      * @param name Name of the function to invoke.
      * @param args Array of arguments passed to this function.
      * @return The invocation result.
      * @throws IllegalStateException is thrown if this engine
-     * requires the script to be [injectModules]d before execution.
+     * requires the script to have [modules injected][ModuleService.injectModules] before execution.
      * @throws Exception Any exception may occur during script evaluation.
      */
     abstract fun invokeFunction(name: String, vararg args: Any): Any?

@@ -2,14 +2,14 @@ package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
+import com.github.lazoyoung.craftgames.api.script.ScriptFactory
+import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameMap
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.game.player.Spectator
-import com.github.lazoyoung.craftgames.api.script.ScriptFactory
-import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -325,7 +325,7 @@ class GameCommand : CommandBase {
 
                         script.startLogging()
                         script.parse()
-                        script.injectModules(game.module)
+                        game.module.injectModules(script)
                         script.run()
                         sender.sendMessage("Successfully executed ${args[1]}")
                     } else if (args[2] == "invoke") {
@@ -334,10 +334,9 @@ class GameCommand : CommandBase {
                         }
 
                         val func = args[3]
-
                         script.startLogging()
                         script.parse()
-                        script.injectModules(game.module)
+                        game.module.injectModules(script)
 
                         if (args.size > 4) {
                             val funcArgs = try {

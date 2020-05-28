@@ -18,4 +18,6 @@ interface Module {
 
     fun getWorldModule(): WorldModule
 
+    fun getEventModule(): EventModule
+
 }

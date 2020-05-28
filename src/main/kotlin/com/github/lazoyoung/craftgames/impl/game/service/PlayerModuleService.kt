@@ -29,14 +29,17 @@ import org.bukkit.Material
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
+import org.bukkit.scheduler.BukkitTask
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
 import kotlin.collections.HashMap
 
 class PlayerModuleService internal constructor(private val game: Game) : PlayerModule, Service {
 
     internal var respawnTimer = HashMap<UUID, Timer>()
+    private val respawnTasks = ConcurrentHashMap<UUID, BukkitTask>()
     private val personalSpawn = HashMap<UUID, Location>()
     private var playerSpawn: CoordTag? = null
     private var editorSpawn: CoordTag? = null
@@ -75,8 +78,7 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
         player.sendTitle(Title(title, subTitle, 20, 80, 20))
         gamePlayer.toSpectator()
-        // TODO Cancel respawn timer
-        respawnTimer[player.uniqueId]
+        respawnTasks[player.uniqueId]?.cancel()
 
         if (game.getGameService().lastManStanding) {
             val gameService = game.getGameService()
@@ -274,17 +276,18 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
 
     internal fun respawn(gamePlayer: GamePlayer) {
         val player = gamePlayer.getPlayer()
+        val uid = player.uniqueId
         val plugin = Main.instance
         val scheduler = Bukkit.getScheduler()
         val playerService = game.getPlayerService()
-        val timer = respawnTimer[player.uniqueId]?.clone()
+        val timer = respawnTimer[uid]?.clone()
                 ?: game.getGameService().respawnTimer.clone()
         val gracePeriod = Main.getConfig()?.getLong("spawn-invincible", 60L)
                 ?: 60L
 
         player.gameMode = GameMode.SPECTATOR
 
-        object : BukkitRunnable() {
+        respawnTasks[uid] = object : BukkitRunnable() {
             override fun run() {
                 if (game.phase != GamePhase.PLAYING || !playerService.isOnline(player)) {
                     this.cancel()
@@ -313,15 +316,19 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
                     this.cancel()
                 }
             }
+
+            override fun cancel() {
+                super.cancel()
+                respawnTasks.remove(uid)
+            }
         }.runTaskTimer(plugin, 0L, 20L)
     }
 
     override fun start() {}
 
     override fun terminate() {
-        disguises.values.forEach {
-            it.stopDisguise()
-        }
+        disguises.values.forEach { it.stopDisguise() }
+        respawnTasks.forEach { (_, task) -> task.cancel() }
     }
 
     internal fun startDisguise(disguise: Disguise, player: Player, target: String) {

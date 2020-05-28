@@ -1,18 +1,18 @@
 package com.github.lazoyoung.craftgames.impl.game
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.*
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.event.GameInitEvent
 import com.github.lazoyoung.craftgames.api.event.GameJoinEvent
 import com.github.lazoyoung.craftgames.api.event.GameJoinPostEvent
 import com.github.lazoyoung.craftgames.api.event.GameLeaveEvent
-import com.github.lazoyoung.craftgames.impl.game.player.*
-import com.github.lazoyoung.craftgames.impl.game.service.*
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
+import com.github.lazoyoung.craftgames.impl.game.player.*
+import com.github.lazoyoung.craftgames.impl.game.service.*
 import com.github.lazoyoung.craftgames.impl.util.LocationUtil
 import com.github.lazoyoung.craftgames.impl.util.MessengerUtil
 import net.md_5.bungee.api.ChatColor
@@ -485,6 +485,10 @@ class Game(
 
     fun getItemService(): ItemModuleService {
         return module.getItemModule() as ItemModuleService
+    }
+
+    fun getEventService(): EventModuleService {
+        return module.getEventModule() as EventModuleService
     }
 
     /**
