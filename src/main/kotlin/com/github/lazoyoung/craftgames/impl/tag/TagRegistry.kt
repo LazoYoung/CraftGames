@@ -17,8 +17,8 @@ class TagRegistry internal constructor(
 ) {
     internal val ctagConfig: YamlConfiguration
     internal val itagConfig: YamlConfiguration
-    private val ctagPath = layout.root.resolve("coordinate-tags.yml")
-    private val itagPath = layout.root.resolve("item-tags.yml")
+    private val ctagPath = layout.dataDir.resolve("coordinate-tags.yml")
+    private val itagPath = layout.dataDir.resolve("item-tags.yml")
     private val ctagFile = ctagPath.toFile()
     private val itagFile = itagPath.toFile()
     private val ctagStorage = HashMap<String, CoordTag>()
@@ -29,6 +29,7 @@ class TagRegistry internal constructor(
     init {
         ctagConfig = loadConfig(ctagPath, ctagFile)
         itagConfig = loadConfig(itagPath, itagFile)
+        reloadCoordTags(null)
     }
 
     fun getCoordTag(name: String): CoordTag? {

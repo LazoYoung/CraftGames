@@ -1,6 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.game.player
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.api.TimeUnit
+import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
@@ -165,8 +167,13 @@ class GameEditor private constructor(
          */
         val actionbar = ActionbarTask(
                 player = player,
+                period = Timer(TimeUnit.SECOND, 1L),
                 repeat = true,
-                text = *arrayOf("&eSaving files! Please wait...")
+                text = *arrayOf(
+                        "&eSaving files! Please wait.",
+                        "&eSaving files! Please wait..",
+                        "&eSaving files! Please wait..."
+                )
         ).start()
 
         mainActionbar?.clear()

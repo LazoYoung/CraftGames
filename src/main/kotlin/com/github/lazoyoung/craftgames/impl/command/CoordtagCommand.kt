@@ -209,7 +209,7 @@ class CoordtagCommand : CommandBase {
                 val tagName = tag?.name
 
                 if (tag == null) {
-                    sender.sendMessage("[CoordTag] Tag $tagName does not exist.")
+                    sender.sendMessage("[CoordTag] Tag ${args[1]} does not exist.")
                     return true
                 }
                 if (captures.isNullOrEmpty()) {

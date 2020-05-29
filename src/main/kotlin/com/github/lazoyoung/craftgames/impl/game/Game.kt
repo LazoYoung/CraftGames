@@ -585,8 +585,12 @@ class Game(
         val actionbar = ActionbarTask(
                 player = player,
                 repeat = true,
-                period = Timer(TimeUnit.SECOND, 2),
-                text = *arrayOf("&6Loading game...", "&ePlease wait for a moment.")
+                period = Timer(TimeUnit.SECOND, 1),
+                text = *arrayOf(
+                        "&6Loading game.",
+                        "&6Loading game..",
+                        "&6Loading game..."
+                )
         ).start()
 
         fun refinedPostLogic() {
