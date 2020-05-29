@@ -62,16 +62,17 @@ script:
   # Toggle verbose output to log file (for debugging purpose)
   debug: false
 
-  # Select compiler to compile scripts by default.
+  # Select which compiler should be used to interpret scripts.
+  # This can be overridden from layout.yml
+  # Static compiler performs type validation at once. Trivial bugs are caught at early stage.
+  # Dynamic compiler does not perform type validation during compile stage.
+  # In general, Dynamic compiler never fail to compile unless syntax error is caught.
   # Available compilers: STATIC, DYNAMIC
   compiler: STATIC
 
 
 # Performance Optimization
 optimization:
-
-  # Limit the number of mobs alive per each game. (Script can override this value)
-  mob-capacity: 200
 
   # Limit the number of blocks that can be processed per each schematic.
   schematic-throttle: 10000
