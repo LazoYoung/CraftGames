@@ -64,10 +64,10 @@ script:
 
   # Select which compiler should be used to interpret scripts.
   # This can be overridden from layout.yml
-  # Static compiler performs type validation at once. Trivial bugs are caught at early stage.
-  # Dynamic compiler does not perform type validation during compile stage.
+  # 1) STATIC: This compiler performs type validation at once.
+  # Therefore, trivial bugs should be caught at early stage.
+  # 2) DYNAMIC: This compiler does not perform type validation during compilation.
   # In general, Dynamic compiler never fail to compile unless syntax error is caught.
-  # Available compilers: STATIC, DYNAMIC
   compiler: STATIC
 
 
