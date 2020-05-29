@@ -1,13 +1,13 @@
 package com.github.lazoyoung.craftgames.impl.game.player
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.impl.game.Game
-import com.github.lazoyoung.craftgames.impl.game.GameMap
-import com.github.lazoyoung.craftgames.impl.game.GamePhase
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
+import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.impl.game.GameMap
+import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.util.FileUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
@@ -257,7 +257,7 @@ class GameEditor private constructor(
     }
 
     private fun informIncompleteTags(player: Player) {
-        game.resource.tagRegistry.getAll().forEach { tag ->
+        game.resource.tagRegistry.getCoordTags().forEach { tag ->
             val lobby = game.resource.mapRegistry.getLobby()
             val incomplMap = tag.scanIncompleteMaps().minus(lobby)
 

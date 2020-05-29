@@ -1,15 +1,14 @@
 package com.github.lazoyoung.craftgames.impl.script.groovy
 
-import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.impl.game.service.ModuleService
-import groovy.transform.CompileDynamic
-import org.codehaus.groovy.ast.AnnotationNode
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.MethodNode
-import org.codehaus.groovy.ast.expr.*
+import org.codehaus.groovy.ast.expr.ArgumentListExpression
+import org.codehaus.groovy.ast.expr.MethodCall
+import org.codehaus.groovy.ast.expr.PropertyExpression
+import org.codehaus.groovy.ast.expr.VariableExpression
 import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor
-import org.codehaus.groovy.transform.stc.StaticTypesMarker
 import java.net.URI
 
 class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
@@ -29,66 +28,6 @@ class GroovyASTExtension(typeCheckingVisitor: StaticTypeCheckingVisitor)
             setHandled(true)
             return true
         }
-        return false
-    }
-
-    override fun beforeMethodCall(call: MethodCall): Boolean {
-        if (call !is MethodCallExpression || call.isImplicitThis)
-            return false
-
-        val variable = call.objectExpression as? VariableExpression
-                ?: return false
-        val args = call.arguments
-        val argExpr = if (args is TupleExpression) {
-            ArgumentListExpression(args.expressions)
-        } else {
-            ArgumentListExpression(args)
-        }
-
-        if (variable.name == "ScriptModule"
-                && call.methodAsString == "attachEventMonitor"
-                && argExpr.expressions.size == 2) {
-            val eventType = argExpr.getExpression(0) as? PropertyExpression
-            val callback = argExpr.getExpression(1) as? ClosureExpression
-            val params = callback?.parameters
-
-            if (callback == null || params?.size ?: 0 > 1
-                    || eventType == null || eventType.objectExpression.type != classNodeFor(EventType::class.java)) {
-                return false
-            }
-
-            // TODO This doesn't work.
-            callback.addAnnotation(AnnotationNode(classNodeFor(CompileDynamic::class.java)))
-            callback.putNodeMetaData(StaticTypesMarker.DYNAMIC_RESOLUTION, java.lang.Boolean.TRUE)
-            call.arguments = ArgumentListExpression(eventType, callback)
-            makeDynamic(call)
-
-            /*
-            val newParams: Parameter
-            val eventNode = classNodeFor(EventType.forName(eventType.propertyAsString).clazz)
-
-            newParams = when {
-                params.isNullOrEmpty() -> {
-                    Parameter(eventNode, "it")
-                }
-                params[0].isDynamicTyped -> {
-                    Parameter(eventNode, params[0].name)
-                }
-                else -> {
-                    return false
-                }
-            }
-            // NullPointerException at ClosureWriter.getClosureSharedVariables(ClosureWriter.java:395)
-            // Maybe fixed?
-            val newClosure = ClosureExpression(arrayOf(newParams), callback.code)
-            newClosure.variableScope = callback.variableScope
-            newClosure.metaDataMap = callback.metaDataMap
-            newClosure.setSourcePosition(callback)
-            newClosure.copyNodeMetaData(callback)
-            call.arguments = ArgumentListExpression(eventType, newClosure)
-             */
-        }
-
         return false
     }
 

@@ -1,20 +1,15 @@
 package com.github.lazoyoung.craftgames.api.tag.coordinate
 
 import com.github.lazoyoung.craftgames.api.module.WorldModule
-import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import com.github.lazoyoung.craftgames.impl.game.GameMap
-import org.bukkit.configuration.file.YamlConfiguration
-import java.io.IOException
-import java.nio.file.Files
+import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
-class CoordTag private constructor(
+class CoordTag internal constructor(
         name: String,
         mode: TagMode,
-        val registry: Registry,
+        val registry: TagRegistry,
         private val captures: LinkedList<CoordCapture>,
         private var suppress: Boolean
 ) {
@@ -25,6 +20,7 @@ class CoordTag private constructor(
     var removed: Boolean = false
         private set
 
+    /* TODO Remove this comment
     class Registry internal constructor(internal val layout: GameLayout) {
 
         /** CoordTags configuration for every maps in this game. **/
@@ -108,50 +104,8 @@ class CoordTag private constructor(
         internal fun saveToDisk() {
             config.save(file)
         }
-
-        private fun deserialize(mapID: String, mode: TagMode, tagName: String): List<CoordCapture> {
-            val list = ArrayList<CoordCapture>()
-            val stream = config.getStringList(getKeyToCaptureStream(tagName, mapID))
-            var index = 0
-
-            for (line in stream) {
-                val arr = line.split(',', ignoreCase = false, limit = 6)
-
-                when (mode) {
-                    TagMode.SPAWN -> {
-                        val x = arr[0].toBigDecimal().toDouble()
-                        val y = arr[1].toBigDecimal().toDouble()
-                        val z = arr[2].toBigDecimal().toDouble()
-                        val yaw = arr[3].toBigDecimal().toFloat()
-                        val pitch = arr[4].toBigDecimal().toFloat()
-                        list.add(SpawnCapture(x, y, z, yaw, pitch, mapID, index++))
-                    }
-                    TagMode.BLOCK -> {
-                        val x = arr[0].toBigDecimal().toInt()
-                        val y = arr[1].toBigDecimal().toInt()
-                        val z = arr[2].toBigDecimal().toInt()
-                        list.add(BlockCapture(x, y, z, mapID, index++))
-                    }
-                    TagMode.AREA -> {
-                        val x1 = arr[0].toBigDecimal().toInt()
-                        val x2 = arr[1].toBigDecimal().toInt()
-                        val y1 = arr[2].toBigDecimal().toInt()
-                        val y2 = arr[3].toBigDecimal().toInt()
-                        val z1 = arr[4].toBigDecimal().toInt()
-                        val z2 = arr[5].toBigDecimal().toInt()
-                        list.add(AreaCapture(x1, x2, y1, y2, z1, z2, mapID, index++))
-                    }
-                }
-            }
-            return list
-        }
     }
-
-    companion object {
-        internal fun getKeyToCaptureStream(name: String, mapID: String): String {
-            return name.plus('.').plus("captures").plus('.').plus(mapID)
-        }
-    }
+    */
 
     /**
      * Returns every [CoordCapture] in this game.
@@ -180,8 +134,8 @@ class CoordTag private constructor(
             "This tag has been removed."
         }
 
-        registry.config.set(name.plus(".suppress"), suppress)
-        registry.reload(this)
+        registry.ctagConfig.set(name.plus(".suppress"), suppress)
+        registry.reloadCoordTags(this)
     }
 
     /**
@@ -220,34 +174,39 @@ class CoordTag private constructor(
             "This tag has been removed."
         }
 
-        registry.config.set(name, null)
-        registry.reload(this)
+        registry.ctagConfig.set(name, null)
+        registry.reloadCoordTags(this)
     }
 
     /**
-     * Remove the one capture at given index and map inside this tag.
-     * You will have to manually save the config to disk.
+     * Remove the given [capture] from this [CoordTag].
+     * [TagRegistry.saveToDisk] should be used to save changes.
      *
      * @throws IllegalArgumentException if [capture] is not registerd to a tag.
      * @throws IllegalStateException is raised if [removed] is true.
      */
     internal fun removeCapture(capture: CoordCapture) {
+        requireNotNull(capture.mapID) {
+            "This capture isn't assigned to any map."
+        }
         check(!removed) {
             "This tag has been removed."
         }
 
         try {
-            val key = getKeyToCaptureStream(name, capture.mapID!!)
-            val stream = registry.config.getStringList(key)
+            val key = registry.getCoordCaptureStreamKey(name, capture.mapID)
+            val stream = registry.getCoordCaptureStream(name, capture.mapID)
+                    .toMutableList()
+
             stream.removeAt(capture.index!!)
-            registry.config.set(key, stream)
-            registry.reload(this)
+            registry.ctagConfig.set(key, stream)
+            registry.reloadCoordTags(this)
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }
     }
 
-    private fun update(tag: CoordTag?) {
+    internal fun update(tag: CoordTag?) {
         if (tag == null) {
             this.removed = true
         } else {

@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.impl.game
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
-import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
-import com.github.lazoyoung.craftgames.impl.game.service.WorldModuleService
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
+import com.github.lazoyoung.craftgames.impl.game.service.WorldModuleService
+import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
 import com.github.lazoyoung.craftgames.impl.util.FileUtil
 import org.bukkit.*
 import org.bukkit.event.player.PlayerTeleportEvent
@@ -37,7 +37,7 @@ class GameMap internal constructor(
         /** Path to original map folder. **/
         internal val directory: Path,
 
-        private val tagRegistry: CoordTag.Registry
+        private val tagRegistry: TagRegistry
 ) {
 
     /** World instance **/
@@ -51,13 +51,13 @@ class GameMap internal constructor(
 
     internal var isGenerated = false
 
-    class Registry internal constructor(layout: GameLayout, tagRegistry: CoordTag.Registry) {
+    class Registry internal constructor(layout: GameLayout, tagRegistry: TagRegistry) {
 
         private val storage: HashMap<String, GameMap>
         private var lobby: String? = null
 
         constructor(gameName: String) : this(GameLayout(gameName))
-        private constructor(layout: GameLayout) : this(layout, CoordTag.Registry(layout))
+        private constructor(layout: GameLayout) : this(layout, TagRegistry(layout))
 
         init {
             val entryList = layout.config.getMapList("maps")
@@ -105,7 +105,7 @@ class GameMap internal constructor(
 
                 val areaRegistry = HashMap<String, List<AreaCapture>>()
 
-                tagRegistry.getAll().filter { it.mode == TagMode.AREA }.forEach {
+                tagRegistry.getCoordTags().filter { it.mode == TagMode.AREA }.forEach {
                     areaRegistry[it.name] = it.getCaptures(mapID) as List<AreaCapture>
                 }
 
@@ -326,7 +326,7 @@ class GameMap internal constructor(
                 this.worldPath = container.resolve(worldName)
 
                 // Asynchronously load chunks referred by coordinate tags.
-                tagRegistry.getAll().forEach {
+                tagRegistry.getCoordTags().forEach {
                     loop@ for (capture in it.getCaptures(id)) {
 
                         val cursorList: List<Pair<Int, Int>> = when (capture) {

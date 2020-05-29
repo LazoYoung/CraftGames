@@ -3,11 +3,11 @@ package com.github.lazoyoung.craftgames.impl.game
 import com.github.lazoyoung.craftgames.api.script.GameScript
 import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.script.ScriptFactory
-import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
+import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
 import com.github.lazoyoung.craftgames.impl.util.DatapackUtil
 import com.nisovin.shopkeepers.api.shopkeeper.admin.regular.RegularAdminShopkeeper
 import com.nisovin.shopkeepers.shopkeeper.offers.SKTradingOffer
@@ -26,7 +26,7 @@ import java.nio.file.StandardCopyOption
 class GameResource internal constructor(private val gameName: String) {
 
     internal val layout = GameLayout(gameName)
-    val tagRegistry = CoordTag.Registry(layout)
+    val tagRegistry = TagRegistry(layout)
     val mapRegistry = GameMap.Registry(layout, tagRegistry)
     val mainScript: GameScript
     val commandScript: GameScript?

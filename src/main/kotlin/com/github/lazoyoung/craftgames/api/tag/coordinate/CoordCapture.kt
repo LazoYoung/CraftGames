@@ -40,13 +40,19 @@ abstract class CoordCapture(
      * @throws RuntimeException Thrown if mapID is undefined for this instance.
      */
     internal fun add(tag: CoordTag) {
+        checkNotNull(mapID) {
+            "This CoordCapture is not assigned to any map."
+        }
+
         try {
-            val key = CoordTag.getKeyToCaptureStream(tag.name, mapID!!)
-            val config = tag.registry.config
-            val stream = config.getStringList(key)
+            val registry = tag.registry
+            val key = registry.getCoordCaptureStreamKey(tag.name, mapID)
+            val stream = registry.getCoordCaptureStream(tag.name, mapID)
+                    .toMutableList()
+
             stream.add(serialize())
-            config.set(key, stream)
-            tag.registry.reload(tag)
+            registry.ctagConfig.set(key, stream)
+            registry.reloadCoordTags(tag)
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }

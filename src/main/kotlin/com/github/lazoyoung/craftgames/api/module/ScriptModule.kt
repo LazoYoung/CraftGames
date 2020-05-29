@@ -1,6 +1,5 @@
 package com.github.lazoyoung.craftgames.api.module
 
-import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.event.GameEvent
 import com.github.lazoyoung.craftgames.api.script.GameScript
@@ -17,52 +16,6 @@ import java.io.FileNotFoundException
 import java.util.function.Consumer
 
 interface ScriptModule {
-
-    /**
-     * Attach an event monitor.
-     *
-     * [Callback][Consumer] is executed whenever a certain event occurs.
-     * Callback accepts 1 parameter which is the instance of event.
-     *
-     * @param eventType [EventType] designating the event that [callback] is executed upon.
-     * @return Whether it is successfully attached or not.
-     */
-    @Deprecated("Use EventModule as alternative.")
-    fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>): Boolean
-
-    /**
-     * Attach an event monitor.
-     *
-     * [Callback][Consumer] is executed whenever a certain event occurs.
-     * Callback accepts 1 parameter which is the instance of event.
-     *
-     * @param eventType [EventType] (represented by [String]) which designates the event
-     * that [callback] is executed upon.
-     * @return Whether it is successfully attached or not.
-     */
-    @Deprecated("Use EventModule as alternative.")
-    fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>): Boolean
-
-    /**
-     * Detach an event monitor.
-     *
-     * This incapacitates the previous [callback][Consumer] attached to the monitor.
-     *
-     * @param eventType [EventType] which identifies event monitor.
-     * @return Whether it is successfully detached or not.
-     */
-    @Deprecated("Use EventModule as alternative.")
-    fun detachEventMonitor(eventType: EventType): Boolean
-
-    /**
-     * Detach an event monitor.
-     *
-     * This incapacitates the previous [callback][Consumer] attached to the monitor.
-     *
-     * @param eventType [EventType] (represented by [String]) which identifies event monitor.
-     */
-    @Deprecated("Use EventModule as alternative.")
-    fun detachEventMonitor(eventType: String)
 
     /**
      * Set whether or not to print out debugging message inside script log.

@@ -68,7 +68,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
      * Get [CoordTag] by searching for [name].
      */
     override fun getCoordTag(name: String): CoordTag? {
-        return game.resource.tagRegistry.get(name)
+        return game.resource.tagRegistry.getCoordTag(name)
     }
 
     override fun getWorldBorder(): WorldBorder {
@@ -207,7 +207,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         val maxBlocks = Main.getConfig()?.getInt("optimization.schematic-throttle", 10000) ?: 10000
         val format = ClipboardFormats.findByFile(file)
                 ?: throw IllegalArgumentException("Unable to resolve schematic file: $filePath")
-        val ctag = game.resource.tagRegistry.get(tag)
+        val ctag = game.resource.tagRegistry.getCoordTag(tag)
                 ?: throw IllegalArgumentException("Tag $tag doesn't exist in this map.")
 
         if (ctag.mode != TagMode.BLOCK)

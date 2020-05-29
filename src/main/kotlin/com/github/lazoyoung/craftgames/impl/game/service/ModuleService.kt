@@ -74,7 +74,7 @@ class ModuleService internal constructor(val game: Game) : Module, Service {
          * @throws IllegalArgumentException is thrown if tag is irrelevant.
          */
         internal fun getRelevantTag(game: Game, name: String, vararg modes: TagMode): CoordTag {
-            val tag = game.resource.tagRegistry.get(name)
+            val tag = game.resource.tagRegistry.getCoordTag(name)
                     ?: throw IllegalArgumentException("Unable to identify $name tag!")
 
             for (mode in modes) {

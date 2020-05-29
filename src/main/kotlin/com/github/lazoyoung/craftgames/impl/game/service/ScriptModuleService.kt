@@ -1,8 +1,6 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
-import com.github.lazoyoung.craftgames.api.EventType
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.api.event.GameEvent
 import com.github.lazoyoung.craftgames.api.module.ScriptModule
 import com.github.lazoyoung.craftgames.api.script.GameScript
 import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
@@ -29,22 +27,6 @@ class ScriptModuleService internal constructor(
     private val resource = game.resource
     private val script = resource.mainScript
     private val tasks = ArrayList<BukkitTask>()
-
-    override fun attachEventMonitor(eventType: EventType, callback: Consumer<in GameEvent>): Boolean {
-        error("Deprecated function.")
-    }
-
-    override fun attachEventMonitor(eventType: String, callback: Consumer<in GameEvent>): Boolean {
-        error("Deprecated function.")
-    }
-
-    override fun detachEventMonitor(eventType: EventType): Boolean {
-        error("Deprecated function.")
-    }
-
-    override fun detachEventMonitor(eventType: String) {
-        error("Deprecated function.")
-    }
 
     override fun setLogVerbosity(verbose: Boolean) {
         script.debug = verbose
