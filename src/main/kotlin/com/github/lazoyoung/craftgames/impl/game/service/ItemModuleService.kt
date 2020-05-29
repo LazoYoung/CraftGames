@@ -63,11 +63,12 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
         return world.dropItemNaturally(location, item)
     }
 
-    override fun getLootTable(key: NamespacedKey): LootTable? {
+    @Suppress("DEPRECATION")
+    override fun getLootTable(key: String): LootTable? {
         if (!DependencyUtil.LOOT_TABLE_FIX.isLoaded())
             throw DependencyNotFound("LootTableFix plugin is required.")
 
-        return Bukkit.getLootTable(key)
+        return Bukkit.getLootTable(NamespacedKey(game.name, key))
                 ?: throw IllegalArgumentException("Unable to locate LootTable: $key")
     }
 

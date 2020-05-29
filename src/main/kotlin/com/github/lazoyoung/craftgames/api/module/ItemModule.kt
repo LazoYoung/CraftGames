@@ -2,7 +2,6 @@ package com.github.lazoyoung.craftgames.api.module
 
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import org.bukkit.Location
-import org.bukkit.NamespacedKey
 import org.bukkit.entity.Item
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -30,11 +29,11 @@ interface ItemModule {
     fun spawnItem(location: Location, item: ItemStack): Item
 
     /**
-     * Find [LootTable] by the [key][NamespacedKey].
+     * Find [LootTable] by the [key].
      *
-     * Custom LootTables can be added by installing datapacks in the server.
+     * ex) (game_dir)/datapack/loot_tables/test/loot.json -> test/loot
      */
-    fun getLootTable(key: NamespacedKey): LootTable?
+    fun getLootTable(key: String): LootTable?
 
     /**
      * Let the players select kit inside lobby.
