@@ -43,9 +43,7 @@ class CoordTag internal constructor(
      * @throws IllegalStateException is raised if [removed] is true.
      */
     internal fun suppress(suppress: Boolean) {
-        check(!removed) {
-            "This tag has been removed."
-        }
+        check(!removed)
 
         registry.ctagConfig.set(name.plus(".suppress"), suppress)
         registry.reloadCoordTags(this)
@@ -59,9 +57,7 @@ class CoordTag internal constructor(
      * @throws IllegalStateException is raised if this tag has been [removed].
      */
     internal fun scanIncompleteMaps(): List<GameMap> {
-        check(!removed) {
-            "This tag has been removed."
-        }
+        check(!removed)
 
         val list = ArrayList<GameMap>()
 
@@ -83,10 +79,7 @@ class CoordTag internal constructor(
      * @throws IllegalStateException is raised if [removed] is true.
      */
     internal fun remove() {
-        check(!removed) {
-            "This tag has been removed."
-        }
-
+        check(!removed)
         registry.ctagConfig.set(name, null)
         registry.reloadCoordTags(this)
     }
@@ -99,12 +92,8 @@ class CoordTag internal constructor(
      * @throws IllegalStateException is raised if [removed] is true.
      */
     internal fun removeCapture(capture: CoordCapture) {
-        requireNotNull(capture.mapID) {
-            "This capture isn't assigned to any map."
-        }
-        check(!removed) {
-            "This tag has been removed."
-        }
+        requireNotNull(capture.mapID)
+        check(!removed)
 
         try {
             val key = registry.getCoordCaptureStreamKey(name, capture.mapID)

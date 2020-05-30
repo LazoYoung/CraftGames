@@ -5,6 +5,7 @@ import com.github.lazoyoung.craftgames.api.tag.item.ItemTag
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -48,6 +49,29 @@ class TagRegistry internal constructor(
         return itagStorage.values.toList()
     }
 
+    fun createCoordTag(mapID: String, mode: TagMode, name: String): CoordTag {
+        require(Regex("^\\w+$").matches(name)) {
+            "Illegal character found: $name" +
+                    "\nAlphanumeric & underscore character can be used."
+        }
+
+        ctagConfig.set(name.plus(".mode"), mode.label)
+        ctagConfig.createSection(name.plus(".captures.").plus(mapID))
+        reloadCoordTags(null)
+        return checkNotNull(getCoordTag(name))
+    }
+
+    fun createItemTag(name: String, itemStack: ItemStack): ItemTag {
+        require(Regex("^\\w+$").matches(name)) {
+            "Illegal character found: $name" +
+                    "\nAlphanumeric & underscore character can be used."
+        }
+
+        itagConfig.set(name, itemStack.serialize())
+        reloadItemTags(null)
+        return requireNotNull(getItemTag(name))
+    }
+
     internal fun getCoordCaptureStream(name: String, mapID: String): List<String> {
         return ctagConfig.getStringList(getCoordCaptureStreamKey(name, mapID))
     }
@@ -59,12 +83,6 @@ class TagRegistry internal constructor(
     internal fun saveToDisk() {
         ctagConfig.save(ctagFile)
         itagConfig.save(itagFile)
-    }
-
-    internal fun createCoordTag(mapID: String, mode: TagMode, name: String) {
-        ctagConfig.set(name.plus(".mode"), mode.label)
-        ctagConfig.createSection(name.plus(".captures.").plus(mapID))
-        reloadCoordTags(null)
     }
 
     /**
@@ -123,6 +141,19 @@ class TagRegistry internal constructor(
             ctagStorage[name] = CoordTag(name, mode, this, captureList, suppress)
         }
         tag?.update(ctagStorage[tag.name])
+    }
+
+    internal fun reloadItemTags(tag: ItemTag?) {
+        itagStorage.clear()
+
+        for (name in ctagConfig.getKeys(false)) {
+            val itemStack = ctagConfig.getItemStack(name) ?: continue
+            itagStorage[name] = ItemTag(name, itemStack, this)
+        }
+
+        if (tag != null && !itagStorage.containsKey(tag.name)) {
+            tag.removed = true
+        }
     }
 
     private fun loadConfig(path: Path, file: File): YamlConfiguration {

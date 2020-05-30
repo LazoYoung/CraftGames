@@ -20,7 +20,7 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 import kotlin.collections.HashMap
 
-class CoordtagCommand : CommandBase {
+class CoordTagCommand : CommandBase {
     private val modeSel = HashMap<UUID, TagMode>()
     private val mapSel = HashMap<UUID, String>()
     private val tagSel = HashMap<UUID, String>()

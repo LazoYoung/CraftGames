@@ -65,7 +65,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val kitCmd = getCommand("kit")!!
         val infoExecutor = InfoCommand()
         val gameExecutor = GameCommand()
-        val ctExecutor = CoordtagCommand()
+        val ctExecutor = CoordTagCommand()
         val accessExecutor = GameAccessCommand()
         val voteExecutor = VoteCommand()
         val kitExecutor = KitCommand()
