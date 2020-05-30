@@ -203,7 +203,9 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             }
 
             // Trigger GameStartEvent
-            Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+            })
 
             serviceTask = object : BukkitRunnable() {
                 override fun run() {
