@@ -1,20 +1,20 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
-import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.api.event.GameFinishEvent
 import com.github.lazoyoung.craftgames.api.event.GameStartEvent
 import com.github.lazoyoung.craftgames.api.event.GameTimeoutEvent
+import com.github.lazoyoung.craftgames.api.module.GameModule
+import com.github.lazoyoung.craftgames.impl.Main
+import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
+import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GamePhase
 import com.github.lazoyoung.craftgames.impl.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.game.player.RestoreMode
-import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
-import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import net.md_5.bungee.api.chat.TextComponent
 import net.milkbowl.vault.economy.Economy
@@ -177,8 +177,6 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
         val teleportFutures = LinkedList<CompletableFuture<Boolean>>()
         var index = 0
 
-        Bukkit.getPluginManager().callEvent(GameStartEvent(game))
-
         // Setup players
         game.getPlayers().mapNotNull { PlayerData.get(it) }.forEach { p ->
 
@@ -194,45 +192,61 @@ class GameModuleService internal constructor(private val game: Game) : GameModul
             bossBar.addPlayer(p.getPlayer())
         }
 
-        serviceTask = object : BukkitRunnable() {
-            override fun run() {
-                val livingPlayers = playerModule.getLivingPlayers()
-                val format = timer.format(false)
-                val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
-                val progress = timer.toSecond().toDouble() / fullTime.toSecond()
+        val preparation = CompletableFuture.allOf(*teleportFutures.toTypedArray())
 
-                when {
-                    progress < 0.1 -> {
-                        bossBar.color = BarColor.RED
-                        title.append("\u00A7c").append(format)
+        preparation.whenCompleteAsync { _, t ->
+            if (t != null) {
+                t.printStackTrace()
+                game.getGameService().broadcast("&cFailed to teleport into field.")
+                game.forceStop(error = true)
+                return@whenCompleteAsync
+            }
+
+            // Trigger GameStartEvent
+            Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                Bukkit.getPluginManager().callEvent(GameStartEvent(game))
+            })
+
+            serviceTask = object : BukkitRunnable() {
+                override fun run() {
+                    val livingPlayers = playerModule.getLivingPlayers()
+                    val format = timer.format(false)
+                    val title = StringBuilder("\u00A76GAME TIME \u00A77- ")
+                    val progress = timer.toSecond().toDouble() / fullTime.toSecond()
+
+                    when {
+                        progress < 0.1 -> {
+                            bossBar.color = BarColor.RED
+                            title.append("\u00A7c").append(format)
+                        }
+                        progress < 0.2 -> {
+                            bossBar.color = BarColor.YELLOW
+                            title.append("\u00A7e").append(format)
+                        }
+                        else -> {
+                            bossBar.color = BarColor.WHITE
+                            title.append("\u00A7f").append(format)
+                        }
                     }
-                    progress < 0.2 -> {
-                        bossBar.color = BarColor.YELLOW
-                        title.append("\u00A7e").append(format)
+
+                    bossBar.progress = progress
+                    bossBar.setTitle(title.toString())
+                    timer.subtract(TimeUnit.SECOND, 1)
+
+                    if (livingPlayers.isEmpty() || timer.toSecond() < 0) {
+                        Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
+
+                        if (game.phase != GamePhase.FINISH) {
+                            drawGame(Timer(TimeUnit.SECOND, 5))
+                        }
+
+                        this.cancel()
+                        return
                     }
-                    else -> {
-                        bossBar.color = BarColor.WHITE
-                        title.append("\u00A7f").append(format)
-                    }
-                }
-
-                bossBar.progress = progress
-                bossBar.setTitle(title.toString())
-                timer.subtract(TimeUnit.SECOND, 1)
-
-                if (livingPlayers.isEmpty() || timer.toSecond() < 0) {
-                    Bukkit.getPluginManager().callEvent(GameTimeoutEvent(game))
-
-                    if (game.phase != GamePhase.FINISH) {
-                        drawGame(Timer(TimeUnit.SECOND, 5))
-                    }
-
-                    this.cancel()
-                    return
                 }
             }
+            serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
         }
-        serviceTask!!.runTaskTimer(Main.instance, 0L, 20L)
     }
 
     override fun terminate() {

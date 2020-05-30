@@ -1,11 +1,11 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
+import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
-import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
-import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -139,11 +139,6 @@ class GameAccessCommand : CommandBase {
     }
 
     private fun forceJoin(operator: Player, selector: String, game: Game) {
-        if (!game.canJoin(operator)) {
-            operator.sendMessage("\u00A7e".plus(game.getRejectCause(operator)!!.message))
-            return
-        }
-
         val players = LinkedList<Player>()
 
         if (!selector.contains("@")) {

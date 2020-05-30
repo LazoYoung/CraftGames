@@ -68,7 +68,7 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
         if (!DependencyUtil.LOOT_TABLE_FIX.isLoaded())
             throw DependencyNotFound("LootTableFix plugin is required.")
 
-        return Bukkit.getLootTable(NamespacedKey(game.name, key))
+        return Bukkit.getLootTable(NamespacedKey(game.name.toLowerCase(), key))
                 ?: throw IllegalArgumentException("Unable to locate LootTable: $key")
     }
 

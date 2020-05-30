@@ -116,6 +116,16 @@ class ServerListener : Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGH)
+    fun onHandSwap(event: PlayerSwapHandItemsEvent) {
+        val pdata = PlayerData.get(event.player) ?: return
+        val game = pdata.getGame()
+
+        if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
+            event.isCancelled = game.getItemService().lockInventory
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onItemDrop(event: PlayerDropItemEvent) {
         val pdata = PlayerData.get(event.player) ?: return
