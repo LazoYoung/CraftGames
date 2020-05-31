@@ -359,7 +359,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             registry.createCoordTag(game.map.id, mode, tagName)
                             ActionbarTask(sender, "&6Tag &r$tagName &6has been created.").start()
                         } catch (e: IllegalArgumentException) {
-                            sender.sendMessage("\u00A7c${e.localizedMessage}")
+                            sender.sendMessage("$error ${e.message}")
                         }
                     }
                 }

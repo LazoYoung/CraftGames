@@ -2,6 +2,7 @@ package com.github.lazoyoung.craftgames.impl.tag
 
 import com.github.lazoyoung.craftgames.api.tag.coordinate.*
 import com.github.lazoyoung.craftgames.api.tag.item.ItemTag
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
 import org.bukkit.configuration.file.YamlConfiguration
@@ -31,6 +32,7 @@ class TagRegistry internal constructor(
         ctagConfig = loadConfig(ctagPath, ctagFile)
         itagConfig = loadConfig(itagPath, itagFile)
         reloadCoordTags(null)
+        reloadItemTags(null)
     }
 
     fun getCoordTag(name: String): CoordTag? {
@@ -65,7 +67,9 @@ class TagRegistry internal constructor(
         ctagConfig.set(name.plus(".mode"), mode.label)
         ctagConfig.createSection(name.plus(".captures.").plus(mapID))
         reloadCoordTags(null)
-        return checkNotNull(getCoordTag(name))
+        return checkNotNull(getCoordTag(name)) {
+            "Failed to create coordinate tag."
+        }
     }
 
     /**
@@ -81,9 +85,11 @@ class TagRegistry internal constructor(
             "This tag already exists: $name"
         }
 
-        itagConfig.set(name, itemStack.serialize())
+        itagConfig.set(name, itemStack)
         reloadItemTags(null)
-        return requireNotNull(getItemTag(name))
+        return checkNotNull(getItemTag(name)) {
+            "Failed to create item tag."
+        }
     }
 
     internal fun getCoordCaptureStream(name: String, mapID: String): List<String> {
@@ -107,62 +113,74 @@ class TagRegistry internal constructor(
     internal fun reloadCoordTags(tag: CoordTag?) {
         ctagStorage.clear()
 
-        for (name in ctagConfig.getKeys(false)) {
-            val modeStr = ctagConfig.getString(name.plus(".mode"))?.toUpperCase()
-                    ?: continue
-            val mode = TagMode.valueOf(modeStr)
-            val suppress = ctagConfig.getBoolean(name.plus(".suppress"), false)
-            val captureList = LinkedList<CoordCapture>()
-            val mapIterate = ctagConfig.getConfigurationSection(
-                    name.plus('.').plus("captures")
-            )?.getKeys(false) ?: emptyList<String>()
+        try {
+            for (name in ctagConfig.getKeys(false)) {
+                val modeStr = ctagConfig.getString(name.plus(".mode"))?.toUpperCase()
+                        ?: continue
+                val mode = TagMode.valueOf(modeStr)
+                val suppress = ctagConfig.getBoolean(name.plus(".suppress"), false)
+                val captureList = LinkedList<CoordCapture>()
+                val mapIterate = ctagConfig.getConfigurationSection(
+                        name.plus('.').plus("captures")
+                )?.getKeys(false) ?: emptyList<String>()
 
-            for (map in mapIterate) {
-                val list = ArrayList<CoordCapture>()
-                var index = 0
+                for (map in mapIterate) {
+                    val list = ArrayList<CoordCapture>()
+                    var index = 0
 
-                for (line in getCoordCaptureStream(name, map)) {
-                    val arr = line.split(',', ignoreCase = false, limit = 6)
+                    for (line in getCoordCaptureStream(name, map)) {
+                        val arr = line.split(',', ignoreCase = false, limit = 6)
 
-                    when (mode) {
-                        TagMode.SPAWN -> {
-                            val x = arr[0].toBigDecimal().toDouble()
-                            val y = arr[1].toBigDecimal().toDouble()
-                            val z = arr[2].toBigDecimal().toDouble()
-                            val yaw = arr[3].toBigDecimal().toFloat()
-                            val pitch = arr[4].toBigDecimal().toFloat()
-                            list.add(SpawnCapture(x, y, z, yaw, pitch, map, index++))
-                        }
-                        TagMode.BLOCK -> {
-                            val x = arr[0].toBigDecimal().toInt()
-                            val y = arr[1].toBigDecimal().toInt()
-                            val z = arr[2].toBigDecimal().toInt()
-                            list.add(BlockCapture(x, y, z, map, index++))
-                        }
-                        TagMode.AREA -> {
-                            val x1 = arr[0].toBigDecimal().toInt()
-                            val x2 = arr[1].toBigDecimal().toInt()
-                            val y1 = arr[2].toBigDecimal().toInt()
-                            val y2 = arr[3].toBigDecimal().toInt()
-                            val z1 = arr[4].toBigDecimal().toInt()
-                            val z2 = arr[5].toBigDecimal().toInt()
-                            list.add(AreaCapture(x1, x2, y1, y2, z1, z2, map, index++))
+                        when (mode) {
+                            TagMode.SPAWN -> {
+                                val x = arr[0].toBigDecimal().toDouble()
+                                val y = arr[1].toBigDecimal().toDouble()
+                                val z = arr[2].toBigDecimal().toDouble()
+                                val yaw = arr[3].toBigDecimal().toFloat()
+                                val pitch = arr[4].toBigDecimal().toFloat()
+                                list.add(SpawnCapture(x, y, z, yaw, pitch, map, index++))
+                            }
+                            TagMode.BLOCK -> {
+                                val x = arr[0].toBigDecimal().toInt()
+                                val y = arr[1].toBigDecimal().toInt()
+                                val z = arr[2].toBigDecimal().toInt()
+                                list.add(BlockCapture(x, y, z, map, index++))
+                            }
+                            TagMode.AREA -> {
+                                val x1 = arr[0].toBigDecimal().toInt()
+                                val x2 = arr[1].toBigDecimal().toInt()
+                                val y1 = arr[2].toBigDecimal().toInt()
+                                val y2 = arr[3].toBigDecimal().toInt()
+                                val z1 = arr[4].toBigDecimal().toInt()
+                                val z2 = arr[5].toBigDecimal().toInt()
+                                list.add(AreaCapture(x1, x2, y1, y2, z1, z2, map, index++))
+                            }
                         }
                     }
+                    captureList.addAll(list)
                 }
-                captureList.addAll(list)
+                ctagStorage[name] = CoordTag(name, mode, this, captureList, suppress)
             }
-            ctagStorage[name] = CoordTag(name, mode, this, captureList, suppress)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            Main.logger.severe("Failed to read ${ctagFile.name}! Is it corrupted?")
         }
+
         tag?.update(ctagStorage[tag.name])
     }
 
+    @Suppress("UNCHECKED_CAST")
     internal fun reloadItemTags(tag: ItemTag?) {
         itagStorage.clear()
 
-        for (name in ctagConfig.getKeys(false)) {
-            val itemStack = ctagConfig.getItemStack(name) ?: continue
-            itagStorage[name] = ItemTag(name, itemStack, this)
+        try {
+            for (name in itagConfig.getKeys(false)) {
+                val itemStack = itagConfig.getItemStack(name) ?: continue
+                itagStorage[name] = ItemTag(name, itemStack, this)
+            }
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            Main.logger.severe("Failed to read ${itagFile.name}! Is it corrupted?")
         }
 
         if (tag != null && !itagStorage.containsKey(tag.name)) {

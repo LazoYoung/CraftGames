@@ -177,7 +177,7 @@ class ItemTagCommand : CommandBase("ItemTag") {
                     game.resource.tagRegistry.createItemTag(name, itemStack)
                     ActionbarTask(sender, "&6Item tag &f$name &6has been created.").start()
                 } catch (e: IllegalArgumentException) {
-                    sender.sendMessage("$info ${e.localizedMessage}")
+                    sender.sendMessage("$error ${e.message}")
                 }
                 return true
             }
