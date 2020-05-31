@@ -148,8 +148,8 @@ class CoordTagCommand : CommandBase("CoordTag") {
             }
         }
 
-        val pdata = PlayerData.get(sender) ?: return false
-        val game = if (pdata.isOnline()) {
+        val pdata = PlayerData.get(sender)
+        val game = if (pdata?.isOnline() == true) {
             pdata.getGame()
         } else {
             val text = PageBody(
@@ -322,7 +322,15 @@ class CoordTagCommand : CommandBase("CoordTag") {
         }
 
         if (pdata !is GameEditor) {
-            return false
+            val text = PageBody(
+                    PageBody.Element(
+                            "$error You must be in editor mode.",
+                            "&6Click here to start editing.",
+                            "/game edit "
+                    )
+            ).getBodyText(sender)
+            sender.sendMessage(*text)
+            return true
         }
 
         when (args[0].toLowerCase()) {

@@ -16,7 +16,7 @@ softdepend:
   - Vault
 commands:
   craftgames:
-    description: See all commands available in CraftGames.
+    description: View description of CraftGames.
     usage: /craftgames
     aliases: [ cg ]
     permission: craftgames.info
@@ -45,30 +45,36 @@ commands:
     usage: 'Usage: /kit [name]'
     permission: craftgames.player.kit
   game:
-    description: Manage or edit games.
+    description: Manage/edit games.
     usage: 'Type /game to see command list.'
     permission: craftgames.admin.manage
   ctag:
-    description: Manage coordinate tags.
+    description: Manage/edit coordinate tags.
     usage: 'Type /ctag to see command list.'
     aliases: [ coordtag ]
     permission: craftgames.admin.ctag
+  itag:
+    description: Manage/edit item tags.
+    usage: 'Type /itag to see command list.'
+    aliases: [ itemtag ]
+    permission: craftgames.admin.itag
 permissions:
   craftgames.player.*:
-    description: Common permissions required to play CraftGames.
+    description: Permissions required to play CraftGames.
     default: true
     children:
       craftgames.player.access: true
       craftgames.player.mapvote: true
       craftgames.player.kit: true
   craftgames.admin.*:
-    description: A permission set required to administrate.
+    description: Permissions required to administrate or manage game resources.
     children:
       craftgames.admin.forcejoin: true
       craftgames.admin.manage: true
       craftgames.admin.ctag: true
+      craftgames.admin.itag: true
   craftgames.info:
-    description: See information of CraftGames.
+    description: Permission to view CraftGames description.
     default: true
   craftgames.player.access:
     description: Basic permission to access games.
@@ -82,3 +88,5 @@ permissions:
     description: Basic permission to manage or edit games.
   craftgames.admin.ctag:
     description: Basic permission to manage coordinate tags.
+  craftgames.admin.itag:
+    description: Basic permission to manage item tags.

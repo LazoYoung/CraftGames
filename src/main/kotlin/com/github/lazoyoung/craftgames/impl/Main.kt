@@ -58,6 +58,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val infoCmd = getCommand("craftgames")!!
         val gameCmd = getCommand("game")!!
         val ctCmd = getCommand("ctag")!!
+        val itCmd = getCommand("itag")!!
         val joinCmd = getCommand("join")!!
         val leaveCmd = getCommand("leave")!!
         val forceJoinCmd = getCommand("forcejoin")!!
@@ -66,6 +67,7 @@ class Main : JavaPlugin(), CommandExecutor {
         val infoExecutor = InfoCommand()
         val gameExecutor = GameCommand()
         val ctExecutor = CoordTagCommand()
+        val itExecutor = ItemTagCommand()
         val accessExecutor = GameAccessCommand()
         val voteExecutor = VoteCommand()
         val kitExecutor = KitCommand()
@@ -80,6 +82,7 @@ class Main : JavaPlugin(), CommandExecutor {
         infoCmd.setExecutor(infoExecutor)
         gameCmd.setExecutor(gameExecutor)
         ctCmd.setExecutor(ctExecutor)
+        itCmd.setExecutor(itExecutor)
         joinCmd.setExecutor(accessExecutor)
         leaveCmd.setExecutor(accessExecutor)
         forceJoinCmd.setExecutor(accessExecutor)
@@ -88,6 +91,7 @@ class Main : JavaPlugin(), CommandExecutor {
         infoCmd.tabCompleter = infoExecutor
         gameCmd.tabCompleter = gameExecutor
         ctCmd.tabCompleter = ctExecutor
+        itCmd.tabCompleter = itExecutor
         joinCmd.tabCompleter = accessExecutor
         leaveCmd.tabCompleter = accessExecutor
         forceJoinCmd.tabCompleter = accessExecutor

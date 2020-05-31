@@ -18,7 +18,7 @@ data class PageBody constructor(val lazyElements: (CommandSender) -> LinkedList<
             val command: String? = null
     )
 
-    fun getBodyText(sender: CommandSender): Array<BaseComponent> {
+    fun getBodyText(sender: CommandSender, lineBreak: Boolean = false): Array<BaseComponent> {
         val builder = ComponentBuilder()
 
         for (e in lazyElements(sender)) {
@@ -29,7 +29,11 @@ data class PageBody constructor(val lazyElements: (CommandSender) -> LinkedList<
             e.hoverText?.let { eBuilder.event(HoverEvent(HOVER_TEXT, ComponentBuilder(trHoverText).create())) }
             e.command?.let { eBuilder.event(ClickEvent(SUGGEST_CMD, e.command)) }
 
-            val components = eBuilder.append("\n").create()
+            val components = if (lineBreak) {
+                eBuilder.append("\n").create()
+            } else {
+                eBuilder.create()
+            }
             builder.append(components, RESET_FORMAT)
         }
         return builder.create()

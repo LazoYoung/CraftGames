@@ -37,7 +37,7 @@ class CommandHelp(
             val builder = ComponentBuilder()
                     .append(BORDER_STRING, RESET_FORMAT)
                     .append("\n$name Command Manual (Page $page/${pageRange.last})\n", RESET_FORMAT)
-                    .append(pageBodies[index].getBodyText(sender))
+                    .append(pageBodies[index].getBodyText(sender, true))
 
             if (page == 1) {
                 builder.append(PREV_NAV_END, RESET_FORMAT)
