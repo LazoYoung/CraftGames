@@ -175,7 +175,8 @@ class TagRegistry internal constructor(
 
         try {
             for (name in itagConfig.getKeys(false)) {
-                val itemStack = itagConfig.getItemStack(name) ?: continue
+                val itemStack = itagConfig.getItemStack(name)
+                        ?: continue
                 itagStorage[name] = ItemTag(name, itemStack, this)
             }
         } catch (t: Throwable) {
