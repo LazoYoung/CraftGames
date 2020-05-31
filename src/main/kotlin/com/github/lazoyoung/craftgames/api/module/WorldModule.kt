@@ -29,7 +29,7 @@ interface WorldModule {
      * Get [CoordTag] by searching for [name].
      *
      * One tag can store as many locations as you want.
-     * Tags are captured via '/ctag capture' in game.
+     * Tags are captured via '/ctag capture' in editor mode.
      */
     fun getCoordTag(name: String): CoordTag?
 

@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.impl.game.service
 
 import com.github.lazoyoung.craftgames.api.module.ItemModule
+import com.github.lazoyoung.craftgames.api.tag.item.ItemTag
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
@@ -61,6 +62,11 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
         }
 
         return world.dropItemNaturally(location, item)
+    }
+
+    override fun getItemTag(name: String): ItemTag? {
+        val registry = game.resource.tagRegistry
+        return registry.getItemTag(name)
     }
 
     @Suppress("DEPRECATION")

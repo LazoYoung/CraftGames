@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.api.module
 
+import com.github.lazoyoung.craftgames.api.tag.item.ItemTag
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import org.bukkit.Location
 import org.bukkit.entity.Item
@@ -27,6 +28,14 @@ interface ItemModule {
      * @throws MapNotFound is thrown if [location] indicates a world which is not loaded.
      */
     fun spawnItem(location: Location, item: ItemStack): Item
+
+    /**
+     * Get [ItemTag] by searching for [name].
+     *
+     * One tag stores [ItemStack] information for one item.
+     * Tags are created via '/itag create' in editor mode.
+     */
+    fun getItemTag(name: String): ItemTag?
 
     /**
      * Find [LootTable] by the [key].
