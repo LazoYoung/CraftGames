@@ -3,6 +3,9 @@ package com.github.lazoyoung.craftgames.impl.command
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.script.ScriptFactory
+import com.github.lazoyoung.craftgames.impl.command.base.CommandBase
+import com.github.lazoyoung.craftgames.impl.command.base.CommandHelp
+import com.github.lazoyoung.craftgames.impl.command.base.PageBody
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameMap
@@ -11,87 +14,87 @@ import com.github.lazoyoung.craftgames.impl.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.game.player.Spectator
 import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.nio.file.Files
+import java.util.*
 import java.util.function.Consumer
 import java.util.regex.Pattern
 
-class GameCommand : CommandBase {
+class GameCommand : CommandBase("CraftGames") {
 
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (args.isEmpty() || args[0] == "help") {
+    private val help = CommandHelp(
+            "Game", "/game",
+            PageBody(
+                    PageBody.Element(
+                            "◎ /game start [map]",
+                            "Start current game.\n" +
+                                    "You may choose which map to play in.",
+                            "/game start "
+                    ),
+                    PageBody.Element(
+                            "◎ /game stop [id]",
+                            "Terminate current game.",
+                            "/game stop "
+                    ),
+                    PageBody.Element(
+                            "◎ /game edit (title) (map)",
+                            "Start editor mode.\n" +
+                                    "There you can modify game elements and blocks.",
+                            "/game edit "
+                    )
+            ),
+            PageBody {
+                val pdata = PlayerData.get(it as Player)
+                val list = LinkedList(listOf(
+                        PageBody.Element(
+                                "◎ /game save",
+                                "Leave editor mode.\n" +
+                                        "Changes will be saved into disk.",
+                                "/game save"
+                        ),
+                        PageBody.Element(
+                                "◎ /game kit <list/select/save/delete> (name)",
+                                "Save or delete a kit inventory.",
+                                "/game kit "
+                        ),
+                        PageBody.Element(
+                                "◎ /game script (file) run [(property_name:value)...]",
+                                "Execute an entire script.\n" +
+                                        "You may supply optional properties.",
+                                "/game script test.groovy run test:true"
+                        ),
+                        PageBody.Element(
+                                "◎ /game script (file) invoke (function) [argument...]",
+                                "Invoke a function defined in a script.\n" +
+                                        "&eSupplying appropriate argument(s) is mendatory!",
+                                "/game script test.groovy invoke test 123 \"Hello, world!\""
+                        )
+                ))
 
-            val page = try {
-                args[1].toInt()
-            } catch (e: Exception) {
-                1
+                if (pdata !is GameEditor) {
+                    list.addFirst(PageBody.Element(
+                            "&eNote: You must be in editor mode.",
+                            "&6Click here to start editing.",
+                            "/game edit "
+                    ))
+                }
+
+                list
             }
+    )
 
-            when (page) {
-                1 -> sender.sendMessage(
-                        *ComponentBuilder()
-                                .append(BORDER_STRING, RESET_FORMAT)
-                                .append("\nGame Command Manual (Page 1/2)\n\n", RESET_FORMAT)
-                                .append(PageElement.getPageComponents(
-                                        PageElement("◎ /game start [map]",
-                                                "Start the current game.\n" +
-                                                        "You may choose a map to play.",
-                                                "/game start "),
-                                        PageElement("◎ /game stop [id]",
-                                                "Stop a running game.",
-                                                "/game stop "),
-                                        PageElement("◎ /game edit (title) (map)",
-                                                "Start editor mode.\n" +
-                                                        "Modify game elements or build map.",
-                                                "/game edit "),
-                                        PageElement("◎ /game save",
-                                                "Leave editor mode.\n" +
-                                                        "Changes are saved to disk.",
-                                                "/game save")
-
-                                ))
-                                .append(PREV_NAV_END, RESET_FORMAT)
-                                .append(PAGE_NAV, RESET_FORMAT)
-                                .append(NEXT_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/game help 2"))
-                                .append(BORDER_STRING, RESET_FORMAT)
-                                .create()
-                )
-                2 -> sender.sendMessage(
-                        *ComponentBuilder()
-                                .append(BORDER_STRING, RESET_FORMAT)
-                                .append("\nGame Command Manual (Page 2/2)\n\n", RESET_FORMAT)
-                                .append(PageElement.getPageComponents(
-                                        PageElement("◎ /game kit <list/select/save/delete> (name)",
-                                                "Save or delete a kit inventory.",
-                                                "/game kit "),
-                                        PageElement("◎ /game script (file) run [(property_name:value)...]",
-                                                "Execute an entire script.\n" +
-                                                        "You may supply optional properties.",
-                                                "/game script test.groovy run test:true"),
-                                        PageElement("◎ /game script (file) invoke (function) [argument...]",
-                                                "Invoke a function defined in a script.\n" +
-                                                        "&eSupplying appropriate argument(s) is mendatory!",
-                                                "/game script test.groovy invoke test 123 \"Hello, world!\"")
-                                ))
-                                .append(PREV_NAV, RESET_FORMAT).event(ClickEvent(RUN_CMD, "/game help 1"))
-                                .append(PAGE_NAV, RESET_FORMAT)
-                                .append(NEXT_NAV_END, RESET_FORMAT)
-                                .append(BORDER_STRING, RESET_FORMAT)
-                                .create()
-                )
-            }
-
-            return true
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
+        if (CommandHelp.isPrompted(args)) {
+            return help.display(sender, args)
         }
 
         when (args[0].toLowerCase()) {
             "start" -> {
                 if (sender !is Player) {
-                    sender.sendMessage("This cannot be done from console.")
+                    sender.sendMessage("$error This cannot be done from console.")
                     return true
                 }
 
@@ -99,10 +102,24 @@ class GameCommand : CommandBase {
 
                 when {
                     player?.isOnline() != true -> {
-                        sender.sendMessage("You're not in game.")
+                        val text = PageBody(
+                                PageBody.Element(
+                                        "$error You must be in a game.",
+                                        "&6Click here to play game.",
+                                        "/join "
+                                )
+                        ).getBodyText(sender)
+                        sender.sendMessage(*text)
                     }
                     player is GameEditor -> {
-                        sender.sendMessage("You must leave editor mode.")
+                        val text = PageBody(
+                                PageBody.Element(
+                                        "$error You must leave editor mode.",
+                                        "&6Click here to save and exit.",
+                                        "/game save"
+                                )
+                        ).getBodyText(sender)
+                        sender.sendMessage(*text)
                     }
                     player is GamePlayer || player is Spectator -> {
                         val mapID = if (args.size > 1) {
@@ -113,12 +130,12 @@ class GameCommand : CommandBase {
 
                         try {
                             player.getGame().start(mapID, result = Consumer {
-                                sender.sendMessage("You have forced to start the game.")
+                                sender.sendMessage("$info You have forced to start the game.")
                             })
                         } catch (e: Exception) {
                             e.printStackTrace()
                             sender.sendMessage(
-                                    ComponentBuilder("Error occurred. See console for details.")
+                                    ComponentBuilder("$error Error occurred. See console for details.")
                                             .color(ChatColor.RED).create().first()
                             )
                         }
@@ -140,19 +157,26 @@ class GameCommand : CommandBase {
                             playerData.getGame()
                         }
                         else -> return if (sender is Player) {
-                            sender.sendMessage("You're not in a game.")
+                            val text = PageBody(
+                                    PageBody.Element(
+                                            "$error You must be in a game.",
+                                            "&6Click here to play game.",
+                                            "/join "
+                                    )
+                            ).getBodyText(sender)
+                            sender.sendMessage(*text)
                             true
                         } else {
-                            sender.sendMessage("This cannot be done from console.")
+                            sender.sendMessage("$error This cannot be done from console.")
                             true
                         }
                     }
 
                     if (game != null) {
                         game.forceStop(error = false)
-                        sender.sendMessage("Successfully terminated.")
+                        sender.sendMessage("$info Successfully terminated.")
                     } else {
-                        sender.sendMessage("That game does not exist.")
+                        sender.sendMessage("$error That game does not exist.")
                     }
                 } catch (e: NumberFormatException) {
                     return false
@@ -163,17 +187,24 @@ class GameCommand : CommandBase {
                     return false
 
                 if (sender !is Player) {
-                    sender.sendMessage("This cannot be done from console.")
+                    sender.sendMessage("$error This cannot be done from console.")
                     return true
                 }
 
                 when (PlayerData.get(sender)) {
                     is Spectator, is GamePlayer -> {
-                        sender.sendMessage("You have to leave the game you're at.")
+                        val text = PageBody(
+                                PageBody.Element(
+                                        "$error You have to leave the game you're at.",
+                                        "&6Click here to exit.",
+                                        "/leave"
+                                )
+                        ).getBodyText(sender)
+                        sender.sendMessage(*text)
                         return true
                     }
                     is GameEditor -> {
-                        sender.sendMessage("You're already in editor mode.")
+                        sender.sendMessage("$error You're already in editor mode.")
                         return true
                     }
                     null -> try {
@@ -195,7 +226,14 @@ class GameCommand : CommandBase {
                 val gameEditor = PlayerData.get(sender) as? GameEditor
 
                 if (gameEditor?.isOnline() != true) {
-                    sender.sendMessage("You must be in editor mode.")
+                    val text = PageBody(
+                            PageBody.Element(
+                                    "$error You have to be in editor mode.",
+                                    "&6Click here to start editing.",
+                                    "/game edit "
+                            )
+                    ).getBodyText(sender)
+                    sender.sendMessage(*text)
                 } else {
                     gameEditor.saveAndClose()
                 }
@@ -384,7 +422,7 @@ class GameCommand : CommandBase {
                     if (playerData?.isOnline() == true) {
                         getCompletions(
                                 query = args[1],
-                                options = *playerData.getGame().resource.mapRegistry.getMapNames(true).toTypedArray()
+                                options = playerData.getGame().resource.mapRegistry.getMapNames(true)
                         )
                     } else {
                         listOf()
@@ -398,8 +436,7 @@ class GameCommand : CommandBase {
                     2 -> getCompletions(args[1], *Game.getGameNames())
                     3 -> {
                         try {
-                            val names = GameMap.Registry(args[1]).getMapNames()
-                            return getCompletions(args[2], *names.toTypedArray())
+                            return getCompletions(args[2], GameMap.Registry(args[1]).getMapNames())
                         } catch (e: Exception) {}
 
                         listOf()
@@ -409,7 +446,7 @@ class GameCommand : CommandBase {
             }
             "stop" -> {
                 return when (args.size) {
-                    2 -> getCompletions(args[1], *Game.find().map { it.id.toString() }.toTypedArray())
+                    2 -> getCompletions(args[1], Game.find().map { it.id.toString() })
                     else -> listOf()
                 }
             }
@@ -425,7 +462,7 @@ class GameCommand : CommandBase {
                             if (playerData?.isOnline() == true) {
                                 getCompletions(
                                         query = args[2],
-                                        options = *playerData.getGame().resource.kitData.keys.toTypedArray()
+                                        options = playerData.getGame().resource.kitData.keys.toList()
                                 )
                             } else {
                                 listOf()
@@ -449,7 +486,7 @@ class GameCommand : CommandBase {
                         Files.newDirectoryStream(root) {
                             supportedExt.contains(it.toFile().extension)
                         }.use {
-                            return getCompletions(args[1], *it.map { path -> path.toFile().name }.toTypedArray())
+                            return getCompletions(args[1], it.map { path -> path.toFile().name })
                         }
                     }
                     3 -> return getCompletions(args[2], "run", "invoke")

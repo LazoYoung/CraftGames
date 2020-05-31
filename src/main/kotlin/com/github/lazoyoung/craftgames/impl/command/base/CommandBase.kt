@@ -1,58 +1,33 @@
-package com.github.lazoyoung.craftgames.impl.command
+package com.github.lazoyoung.craftgames.impl.command.base
 
 import com.github.lazoyoung.craftgames.impl.Main
-import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.BaseComponent
-import net.md_5.bungee.api.chat.ClickEvent
-import net.md_5.bungee.api.chat.ComponentBuilder
-import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.command.TabExecutor
 import java.util.*
 import kotlin.collections.ArrayList
 
-val RESET_FORMAT = ComponentBuilder.FormatRetention.NONE
-val OPEN_URL = ClickEvent.Action.OPEN_URL
-val SUGGEST_CMD = ClickEvent.Action.SUGGEST_COMMAND
-val HOVER_TEXT = HoverEvent.Action.SHOW_TEXT
-val RUN_CMD = ClickEvent.Action.RUN_COMMAND
-val BORDER_STRING: Array<BaseComponent> = ComponentBuilder()
-        .append("--------------------------------------------------")
-        .create()
-val PREV_NAV: Array<BaseComponent> = ComponentBuilder()
-        .append("\n< PREV ").bold(true).color(ChatColor.GOLD)
-        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to navigate.").create()))
-        .create()
-val PREV_NAV_END: Array<BaseComponent> = ComponentBuilder()
-        .append("\n< PREV ").bold(true).color(ChatColor.DARK_GRAY)
-        .create()
-val PAGE_NAV: Array<BaseComponent> = ComponentBuilder()
-        .append("- ").color(ChatColor.GRAY)
-        .append("PAGE NAVIGATION")
-        .append(" -")
-        .create()
-val NEXT_NAV: Array<BaseComponent> = ComponentBuilder()
-        .append(" NEXT >\n").bold(true).color(ChatColor.GOLD)
-        .event(HoverEvent(HOVER_TEXT, ComponentBuilder("Click here to navigate.").create()))
-        .create()
-val NEXT_NAV_END: Array<BaseComponent> = ComponentBuilder()
-        .append(" NEXT >\n").bold(true).color(ChatColor.DARK_GRAY)
-        .create()
+abstract class CommandBase(prefix: String) : TabExecutor {
 
-interface CommandBase : TabExecutor {
+    protected val info = "\u00A7r[$prefix]\u00A7r"
+    protected val warn = "\u00A7r[$prefix]\u00A7e"
+    protected val error = "\u00A7r[$prefix]\u00A7c"
 
-    fun getCompletions(query: String, vararg options: String) : List<String> {
+    fun getCompletions(query: String, vararg options: String): List<String> {
+        return getCompletions(query, options.toList())
+    }
+
+    fun getCompletions(query: String, options: List<String>): List<String> {
         return options
                 .filter { it.isEmpty() || it.startsWith(query, true) }
                 .toMutableList()
     }
 
-    fun getGameTitles(query: String) : List<String> {
+    fun getGameTitles(query: String): List<String> {
         return getCompletions(
                 query = query,
-                options = *Main.getConfig()?.getConfigurationSection("games")
+                options = Main.getConfig()?.getConfigurationSection("games")
                         ?.getKeys(false)
-                        ?.toTypedArray()
-                        ?: emptyArray()
+                        ?.toList()
+                        ?: emptyList()
         )
     }
 

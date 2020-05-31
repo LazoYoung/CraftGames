@@ -1,6 +1,7 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.impl.command.base.CommandBase
 import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
@@ -16,11 +17,11 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.util.*
 
-class GameAccessCommand : CommandBase {
+class GameAccessCommand : CommandBase("CraftGames") {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage("This cannot be done from console.")
+            sender.sendMessage("$error This cannot be done from console.")
             return true
         }
 
@@ -40,7 +41,7 @@ class GameAccessCommand : CommandBase {
                             forceJoin(sender, selector, game)
                             true
                         } else {
-                            sender.sendMessage("\u00A7ePlease specify the game.")
+                            sender.sendMessage("$error Please specify the game.")
                             false
                         }
                     }
@@ -60,10 +61,10 @@ class GameAccessCommand : CommandBase {
                             forceJoin(sender, selector, game)
                             return true
                         } catch (e: GameNotFound) {
-                            sender.sendMessage("\u00A7eNo such game exist: $arg")
+                            sender.sendMessage("$error No such game exist: $arg")
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            sender.sendMessage("\u00A7cError occurred, see console for details.")
+                            sender.sendMessage("$error Error occurred, see console for details.")
                         }
                     }
                     else -> return false
@@ -71,7 +72,7 @@ class GameAccessCommand : CommandBase {
             }
             "join" -> {
                 if (PlayerData.get(sender) != null) {
-                    sender.sendMessage("\u00A7eYou're already in game.")
+                    sender.sendMessage("$error You're already in game.")
                     return true
                 }
 
@@ -84,7 +85,7 @@ class GameAccessCommand : CommandBase {
                         val gameReg = Game.getGameNames()
 
                         if (gameReg.isEmpty()) {
-                            sender.sendMessage("There's no game available.")
+                            sender.sendMessage("$error There's no game available.")
                         } else try {
                             Game.openNew(gameReg.random(), editMode = false, mapID = null)
                                     .joinPlayer(sender)
@@ -106,10 +107,10 @@ class GameAccessCommand : CommandBase {
                         game.joinPlayer(sender)
                     }
                 } catch (e: GameNotFound) {
-                    sender.sendMessage("\u00A7eNo such game exist: ${args[0]}")
+                    sender.sendMessage("$error No such game exist: ${args[0]}")
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    sender.sendMessage("\u00A7cError occurred, see console for details.")
+                    sender.sendMessage("$error Error occurred, see console for details.")
                     return true
                 }
             }
@@ -130,7 +131,7 @@ class GameAccessCommand : CommandBase {
                         player.leaveGame()
                     }
                     else -> {
-                        sender.sendMessage("You're not in game.")
+                        sender.sendMessage("$error You're not in game.")
                     }
                 }
             }
@@ -147,7 +148,7 @@ class GameAccessCommand : CommandBase {
             if (p != null) {
                 players.add(p)
             } else {
-                operator.sendMessage("\u00A7ePlayer is not online: $selector")
+                operator.sendMessage("$warn Player is not online: $selector")
             }
         } else {
             val comp = selector.split("@", limit = 2)
@@ -157,12 +158,12 @@ class GameAccessCommand : CommandBase {
             when (tag) {
                 "group" -> {
                     if (!DependencyUtil.VAULT_PERMISSION.isLoaded()) {
-                        operator.sendMessage("\u00A7eVault is required to use group tag.")
+                        operator.sendMessage("$error Vault is required to use group tag.")
                     } else {
                         val permission = DependencyUtil.VAULT_PERMISSION.getService() as Permission
 
                         if (!permission.hasGroupSupport()) {
-                            operator.sendMessage("\u00A7ePermission plugin is required to use group tag.")
+                            operator.sendMessage("$error Permission plugin is required to use group tag.")
                         } else {
                             val groups = if (tagValue == "this") {
                                 permission.getPlayerGroups(null, operator)
@@ -191,7 +192,7 @@ class GameAccessCommand : CommandBase {
                     if (world != null) {
                         players.addAll(world.players)
                     } else {
-                        operator.sendMessage("\u00A7eWorld does not exist: $tagValue")
+                        operator.sendMessage("$warn World does not exist: $tagValue")
                     }
                 }
             }
@@ -214,7 +215,7 @@ class GameAccessCommand : CommandBase {
         }
 
         for (e in blocked.entries) {
-            operator.sendMessage("&f${e.key} &eis unable to join: ${e.value}")
+            operator.sendMessage("$warn ${e.key} was unable to join: ${e.value}")
         }
 
         ActionbarTask(operator, "&aForced &f$counter &aplayers to join &f${game.name}&a.").start()
@@ -285,7 +286,7 @@ class GameAccessCommand : CommandBase {
                             }
                         }
 
-                        return getCompletions(lastArg, *options.toTypedArray())
+                        return getCompletions(lastArg, options)
                     }
 
                     2 -> {
@@ -296,7 +297,7 @@ class GameAccessCommand : CommandBase {
                         }
 
                         options.addAll(Game.getGameNames())
-                        return getCompletions(args.last(), *options.toTypedArray())
+                        return getCompletions(args.last(), options)
                     }
                 }
             }

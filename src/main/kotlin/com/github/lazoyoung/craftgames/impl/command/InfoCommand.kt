@@ -1,5 +1,6 @@
 package com.github.lazoyoung.craftgames.impl.command
 
+import com.github.lazoyoung.craftgames.impl.command.base.*
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -7,17 +8,52 @@ import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 
-class InfoCommand : CommandBase {
+class InfoCommand : CommandBase("CraftGames") {
 
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        val components = PageElement.getPageComponents(
-                PageElement("◎ /join (game)", "Join a game.", "/join"),
-                PageElement("◎ /leave", "Leave current game.", "/leave"),
-                PageElement("◎ /mapvote (map)", "Vote for a map.", "/mapvote "),
-                PageElement("◎ /kit (name)", "Select a kit.", "/kit "),
-                PageElement("◎ /game", "Manage games.", "/game help"),
-                PageElement("◎ /ctag", "Manage coordinate tags.", "/ctag help"))
+    private val help = CommandHelp(
+            "CraftGames", "/cg",
+            PageBody(
+                    PageBody.Element(
+                            "◎ /join (game)",
+                            "Join a game.",
+                            "/join"
+                    ),
+                    PageBody.Element(
+                            "◎ /leave",
+                            "Leave current game.",
+                            "/leave"
+                    ),
+                    PageBody.Element(
+                            "◎ /mapvote (map)",
+                            "Vote for a map.",
+                            "/mapvote "
+                    ),
+                    PageBody.Element(
+                            "◎ /kit (name)",
+                            "Select a kit.",
+                            "/kit "
+                    )
+            ),
+            PageBody(
+                    PageBody.Element(
+                            "◎ /game",
+                            "Manage/edit games.",
+                            "/game help"
+                    ),
+                    PageBody.Element(
+                            "◎ /ctag",
+                            "Manage/edit coordinate tags.",
+                            "/ctag help"
+                    ),
+                    PageBody.Element(
+                            "◎ /itag",
+                            "Manage/edit item tags.",
+                            "/itag help"
+                    )
+            )
+    )
 
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         when {
             args.isEmpty() -> {
                 sender.sendMessage(
@@ -52,17 +88,8 @@ class InfoCommand : CommandBase {
                                 .append(BORDER_STRING, RESET_FORMAT)
                                 .create())
             }
-            args[0].equals("help", true) -> {
-                sender.sendMessage(
-                        *ComponentBuilder()
-                                .append(BORDER_STRING, RESET_FORMAT)
-                                .append("\nCraftGames Command Manual (Page 1/1)\n", RESET_FORMAT)
-                                .append(components, RESET_FORMAT)
-                                .append(PREV_NAV_END, RESET_FORMAT)
-                                .append(PAGE_NAV, RESET_FORMAT)
-                                .append(NEXT_NAV_END, RESET_FORMAT)
-                                .append(BORDER_STRING, RESET_FORMAT)
-                                .create())
+            CommandHelp.isPrompted(args) -> {
+                return help.display(sender, args)
             }
             else -> {
                 return false
@@ -72,11 +99,18 @@ class InfoCommand : CommandBase {
         return true
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
-        if (args.isEmpty())
-            return command.aliases
-
-        return listOf()
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<String>): List<String> {
+        return when {
+            args.isEmpty() -> {
+                listOf("help")
+            }
+            args[0] == "help" && args.size == 2 -> {
+                help.pageRange.map { it.toString() }
+            }
+            else -> {
+                emptyList()
+            }
+        }
     }
 
 }

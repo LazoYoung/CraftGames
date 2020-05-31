@@ -1,6 +1,8 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
+import com.github.lazoyoung.craftgames.impl.command.base.CommandBase
+import com.github.lazoyoung.craftgames.impl.command.base.PageBody
 import com.github.lazoyoung.craftgames.impl.game.player.GamePlayer
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import org.bukkit.ChatColor
@@ -8,11 +10,11 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
-class KitCommand : CommandBase {
+class KitCommand : CommandBase("Kit") {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage("This cannot be done from console.")
+            sender.sendMessage("$error This cannot be run from console.")
             return true
         }
 
@@ -23,10 +25,10 @@ class KitCommand : CommandBase {
 
                 when {
                     !(itemService.canSelectKit(sender)) -> {
-                        sender.sendMessage("You can't do this now.")
+                        sender.sendMessage("$error You can't do this now.")
                     }
                     args.isEmpty() -> {
-                        sender.sendMessage("Provide the name of kit to select.")
+                        sender.sendMessage("$error Please provide the name.")
                         return false
                     }
                     else -> {
@@ -42,7 +44,14 @@ class KitCommand : CommandBase {
                 }
             }
             else -> {
-                sender.sendMessage("You're not playing a game.")
+                val text = PageBody(
+                        PageBody.Element(
+                                "$error You must be in a game.",
+                                "&6Click here to play game.",
+                                "/join "
+                        )
+                ).getBodyText(sender)
+                sender.sendMessage(*text)
             }
         }
 
@@ -60,7 +69,7 @@ class KitCommand : CommandBase {
                 val kitList = playerData.getGame().resource.kitData.keys
 
                 if (kitList.isNotEmpty()) {
-                    return getCompletions(args[0], *kitList.toTypedArray())
+                    return getCompletions(args[0], kitList.toList())
                 }
             }
         }

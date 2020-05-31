@@ -49,10 +49,17 @@ class TagRegistry internal constructor(
         return itagStorage.values.toList()
     }
 
+    /**
+     * @throws IllegalArgumentException is raised if [name] contains illegal character.
+     * @throws IllegalArgumentException is raised if [name] conflicts with another tag.
+     */
     fun createCoordTag(mapID: String, mode: TagMode, name: String): CoordTag {
         require(Regex("^\\w+$").matches(name)) {
             "Illegal character found: $name" +
                     "\nAlphanumeric & underscore character can be used."
+        }
+        require(getCoordTag(name) == null) {
+            "This tag already exists: $name"
         }
 
         ctagConfig.set(name.plus(".mode"), mode.label)
@@ -61,10 +68,17 @@ class TagRegistry internal constructor(
         return checkNotNull(getCoordTag(name))
     }
 
+    /**
+     * @throws IllegalArgumentException is raised if [name] contains illegal character.
+     * @throws IllegalArgumentException is raised if [name] conflicts with another tag.
+     */
     fun createItemTag(name: String, itemStack: ItemStack): ItemTag {
         require(Regex("^\\w+$").matches(name)) {
             "Illegal character found: $name" +
                     "\nAlphanumeric & underscore character can be used."
+        }
+        require(getItemTag(name) == null) {
+            "This tag already exists: $name"
         }
 
         itagConfig.set(name, itemStack.serialize())
