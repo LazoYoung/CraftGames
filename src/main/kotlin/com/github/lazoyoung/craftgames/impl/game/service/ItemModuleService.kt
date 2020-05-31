@@ -29,7 +29,7 @@ import java.util.*
 
 class ItemModuleService(private val game: Game) : ItemModule, Service {
 
-    internal var lockInventory = false
+    internal var lockedSlots = ArrayList<Int>()
     internal var allowItemDrop = true
     private var allowKitLobby = true
     private var allowKitRespawn = false
@@ -88,7 +88,12 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
     }
 
     override fun lockInventory() {
-        lockInventory = true
+        error("This is deprecated.")
+    }
+
+    override fun lockPlayerInventory(vararg slots: Int) {
+        lockedSlots.clear()
+        lockedSlots.addAll(slots.toList())
     }
 
     override fun setDefaultKit(name: String?) {
@@ -295,6 +300,10 @@ class ItemModuleService(private val game: Game) : ItemModule, Service {
             GamePhase.PLAYING -> allowKitRespawn && player.gameMode == GameMode.SPECTATOR
             else -> false
         }
+    }
+
+    internal fun isLockedSlot(slot: Int): Boolean {
+        return lockedSlots.contains(slot)
     }
 
     /**

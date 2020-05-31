@@ -101,7 +101,7 @@ class ServerListener : Listener {
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
             if (event.action != InventoryAction.NOTHING) {
-                event.isCancelled = game.getItemService().lockInventory
+                event.isCancelled = game.getItemService().isLockedSlot(event.slot)
             }
         }
     }
@@ -112,7 +112,12 @@ class ServerListener : Listener {
         val game = pdata.getGame()
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
-            event.isCancelled = game.getItemService().lockInventory
+            for (slot in event.inventorySlots) {
+                if (game.getItemService().isLockedSlot(slot)) {
+                    event.isCancelled = true
+                    break
+                }
+            }
         }
     }
 
@@ -122,7 +127,22 @@ class ServerListener : Listener {
         val game = pdata.getGame()
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
-            event.isCancelled = game.getItemService().lockInventory
+            val inv = event.player.inventory
+            val slots = ArrayList<Int>()
+
+            if (event.mainHandItem != null) {
+                slots.add(-106)
+            }
+            if (event.offHandItem != null) {
+                slots.add(inv.heldItemSlot)
+            }
+
+            for (slot in slots) {
+                if (game.getItemService().isLockedSlot(slot))  {
+                    event.isCancelled = true
+                    break
+                }
+            }
         }
     }
 
@@ -132,7 +152,9 @@ class ServerListener : Listener {
         val game = pdata.getGame()
 
         if (pdata is GamePlayer && game.phase == GamePhase.PLAYING) {
-            event.isCancelled = !game.getItemService().allowItemDrop
+            val itemService = game.getItemService()
+            val slot = event.player.inventory.heldItemSlot
+            event.isCancelled = !itemService.allowItemDrop || itemService.isLockedSlot(slot)
         }
     }
 
@@ -188,8 +210,7 @@ class ServerListener : Listener {
 
         if (game.editMode) {
             game.getWorldService().teleportSpawn(playerData, null)
-        }
-        else if (playerData is GamePlayer && game.phase == GamePhase.PLAYING) {
+        } else if (playerData is GamePlayer && game.phase == GamePhase.PLAYING) {
             val playerService = game.getPlayerService()
             val relayEvent = GamePlayerDeathEvent(playerData, game, event)
 

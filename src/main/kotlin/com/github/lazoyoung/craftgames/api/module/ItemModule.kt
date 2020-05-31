@@ -59,7 +59,15 @@ interface ItemModule {
     /**
      * Lock inventory so that players won't be able to move items in it.
      */
+    @Deprecated("This function is replaced in order to allow locking individual slot.")
     fun lockInventory()
+
+    /**
+     * Lock specific [slots] of the inventory.
+     *
+     * Items in locked slots cannot be dropped, moved or dragged by the player.
+     */
+    fun lockPlayerInventory(vararg slots: Int)
 
     /**
      * Default kit is assigned to players who don't select anything.
