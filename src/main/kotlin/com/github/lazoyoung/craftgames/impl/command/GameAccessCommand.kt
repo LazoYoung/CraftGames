@@ -1,7 +1,6 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.impl.command.base.CommandBase
 import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game

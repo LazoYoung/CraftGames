@@ -4,7 +4,10 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.tag.coordinate.*
-import com.github.lazoyoung.craftgames.impl.command.base.*
+import com.github.lazoyoung.craftgames.impl.command.page.HOVER_TEXT
+import com.github.lazoyoung.craftgames.impl.command.page.Page
+import com.github.lazoyoung.craftgames.impl.command.page.PageBody
+import com.github.lazoyoung.craftgames.impl.command.page.RUN_CMD
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
@@ -25,8 +28,8 @@ class CoordTagCommand : CommandBase("CoordTag") {
     private val modeSel = HashMap<UUID, TagMode>()
     private val mapSel = HashMap<UUID, String>()
     private val tagSel = HashMap<UUID, String>()
-    private val help = CommandHelp(
-            "CoordTag", "/ctag",
+    private val helpPage = Page(
+            "CoordTag Command Manual", "/ctag help",
             PageBody {
                 val pdata = PlayerData.get(it as Player)
                 val list = LinkedList(listOf(
@@ -120,8 +123,8 @@ class CoordTagCommand : CommandBase("CoordTag") {
         }
 
         when {
-            CommandHelp.isPrompted(args) -> {
-                return help.display(sender, args)
+            Page.isPrompted(args) -> {
+                return helpPage.display(sender, args)
             }
             args[0].equals("suppress", true) -> {
                 if (args.size < 4) {
@@ -144,7 +147,6 @@ class CoordTagCommand : CommandBase("CoordTag") {
                     return false
                 }
                 return true
-
             }
         }
 
@@ -440,7 +442,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
             args.size == 1 ->
                 return getCompletions(args[0], "help", "create", "capture", "remove", "list", "tp", "display")
             args[0] == "help" && args.size == 2 -> {
-                return help.pageRange.map { it.toString() }
+                return helpPage.range.map { it.toString() }
             }
         }
 
@@ -550,13 +552,13 @@ class CoordTagCommand : CommandBase("CoordTag") {
         }
 
         if (tagSel == null) {
-            player.sendMessage("[CoordTag] Searching for $modeLabel tags inside $mapLabel...")
+            player.sendMessage("$info Searching for $modeLabel tags inside $mapLabel...")
         } else {
-            player.sendMessage("[CoordTag] Searching for $tagSel inside $mapLabel...")
+            player.sendMessage("$info Searching for $tagSel inside $mapLabel...")
         }
 
         if (tags.isEmpty()) {
-            player.sendMessage("No result found.")
+            player.sendMessage("$warn No result found.")
             return
         }
 
@@ -625,7 +627,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
         mapSel.remove(player.uniqueId)
         modeSel.remove(player.uniqueId)
         tagSel.remove(player.uniqueId)
-        player.sendMessage("[CoordTag] Previous flags were reset.")
+        player.sendMessage("$info Previous flags were reset.")
     }
 
     private fun selectMap(playerData: PlayerData, id: String) {
@@ -634,9 +636,9 @@ class CoordTagCommand : CommandBase("CoordTag") {
 
         if (game.resource.mapRegistry.getMapNames().contains(id)) {
             mapSel[player.uniqueId] = id
-            player.sendMessage("[CoordTag] Selected the map: $id")
+            player.sendMessage("$info Selected the map: $id")
         } else {
-            player.sendMessage("[CoordTag] Map $id is not found in ${game.id}!")
+            player.sendMessage("$error Map $id is not defined in ${game.name}!")
         }
     }
 
@@ -646,9 +648,9 @@ class CoordTagCommand : CommandBase("CoordTag") {
 
         if (registry.getCoordTag(name) != null) {
             tagSel[player.uniqueId] = name
-            player.sendMessage("[CoordTag] Selected the tag: $name")
+            player.sendMessage("$info Selected the tag: $name")
         } else {
-            player.sendMessage("[CoordTag] Tag does not exist! You should create one: /ctag create <name>")
+            player.sendMessage("$error Tag does not exist! You should create one: /ctag create <name>")
         }
     }
 
@@ -657,9 +659,9 @@ class CoordTagCommand : CommandBase("CoordTag") {
 
         try {
             modeSel[player.uniqueId] = TagMode.valueOf(label.toUpperCase())
-            player.sendMessage("[CoordTag] Selected the mode: ${label.toUpperCase()}")
+            player.sendMessage("$info Selected the mode: ${label.toUpperCase()}")
         } catch (e: IllegalArgumentException) {
-            player.sendMessage("[CoordTag] Illegal flag: -select ${label.toUpperCase()}")
+            player.sendMessage("$error Illegal flag: -select ${label.toUpperCase()}")
         }
     }
 }

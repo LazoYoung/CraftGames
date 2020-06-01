@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.impl.command
 
-import com.github.lazoyoung.craftgames.impl.command.base.*
+import com.github.lazoyoung.craftgames.impl.command.page.*
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -10,7 +10,7 @@ import org.bukkit.command.CommandSender
 
 class InfoCommand : CommandBase("CraftGames") {
 
-    private val help = CommandHelp(
+    private val help = Page(
             "CraftGames", "/cg",
             PageBody(
                     PageBody.Element(
@@ -88,7 +88,7 @@ class InfoCommand : CommandBase("CraftGames") {
                                 .append(BORDER_STRING, RESET_FORMAT)
                                 .create())
             }
-            CommandHelp.isPrompted(args) -> {
+            Page.isPrompted(args) -> {
                 return help.display(sender, args)
             }
             else -> {
@@ -105,7 +105,7 @@ class InfoCommand : CommandBase("CraftGames") {
                 listOf("help")
             }
             args[0] == "help" && args.size == 2 -> {
-                help.pageRange.map { it.toString() }
+                help.range.map { it.toString() }
             }
             else -> {
                 emptyList()

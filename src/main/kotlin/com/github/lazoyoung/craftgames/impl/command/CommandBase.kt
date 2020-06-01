@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.impl.command.base
+package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.command.TabExecutor

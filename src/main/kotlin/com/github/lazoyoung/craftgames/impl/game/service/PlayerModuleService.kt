@@ -11,7 +11,7 @@ import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
-import com.github.lazoyoung.craftgames.impl.command.base.RESET_FORMAT
+import com.github.lazoyoung.craftgames.impl.command.page.RESET_FORMAT
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game

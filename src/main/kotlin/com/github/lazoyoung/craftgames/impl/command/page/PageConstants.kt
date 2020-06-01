@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.impl.command.base
+package com.github.lazoyoung.craftgames.impl.command.page
 
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.BaseComponent
@@ -20,11 +20,6 @@ val PREV_NAV: Array<BaseComponent> = ComponentBuilder()
         .create()
 val PREV_NAV_END: Array<BaseComponent> = ComponentBuilder()
         .append("\n< PREV ").bold(true).color(ChatColor.DARK_GRAY)
-        .create()
-val PAGE_NAV: Array<BaseComponent> = ComponentBuilder()
-        .append("- ").color(ChatColor.GRAY)
-        .append("PAGE NAVIGATION")
-        .append(" -")
         .create()
 val NEXT_NAV: Array<BaseComponent> = ComponentBuilder()
         .append(" NEXT >\n").bold(true).color(ChatColor.GOLD)

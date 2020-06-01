@@ -3,9 +3,8 @@ package com.github.lazoyoung.craftgames.impl.command
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
 import com.github.lazoyoung.craftgames.api.script.ScriptFactory
-import com.github.lazoyoung.craftgames.impl.command.base.CommandBase
-import com.github.lazoyoung.craftgames.impl.command.base.CommandHelp
-import com.github.lazoyoung.craftgames.impl.command.base.PageBody
+import com.github.lazoyoung.craftgames.impl.command.page.Page
+import com.github.lazoyoung.craftgames.impl.command.page.PageBody
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameMap
@@ -25,8 +24,8 @@ import java.util.regex.Pattern
 
 class GameCommand : CommandBase("CraftGames") {
 
-    private val help = CommandHelp(
-            "Game", "/game",
+    private val helpPage = Page(
+            "Game Command Manual", "/game help",
             PageBody(
                     PageBody.Element(
                             "◎ /game start [map]",
@@ -87,8 +86,8 @@ class GameCommand : CommandBase("CraftGames") {
     )
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
-        if (CommandHelp.isPrompted(args)) {
-            return help.display(sender, args)
+        if (Page.isPrompted(args)) {
+            return helpPage.display(sender, args)
         }
 
         when (args[0].toLowerCase()) {

@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.impl.command.base
+package com.github.lazoyoung.craftgames.impl.command.page
 
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.BaseComponent
@@ -6,13 +6,13 @@ import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.command.CommandSender
 
-class CommandHelp(
-        val name: String,
+class Page(
+        private val title: String,
         val command: String,
-        private vararg val pageBodies: PageBody
+        private vararg val bodies: PageBody
 ) {
 
-    val pageRange: IntRange = 1..pageBodies.size
+    val range: IntRange = 1..bodies.size
 
     companion object {
         fun isPrompted(args: Array<String>): Boolean {
@@ -31,29 +31,32 @@ class CommandHelp(
         return true
     }
 
-    private fun getPageText(sender: CommandSender, page: Int): Array<BaseComponent> {
-        return if (page in pageRange) {
-            val index = page - 1
+    private fun getPageText(sender: CommandSender, pageNum: Int): Array<BaseComponent> {
+        return if (pageNum in range) {
             val builder = ComponentBuilder()
                     .append(BORDER_STRING, RESET_FORMAT)
-                    .append("\n$name Command Manual (Page $page/${pageRange.last})\n", RESET_FORMAT)
-                    .append(pageBodies[index].getBodyText(sender, true))
+                    .append("\n$title (Page $pageNum/${range.last})\n", RESET_FORMAT)
+                    .append(bodies[pageNum - 1].getBodyText(sender, true))
+            val pageInfo = ComponentBuilder()
+                    .color(ChatColor.GRAY)
+                    .append("--- $pageNum/${range.last} ---", RESET_FORMAT)
+                    .create()
 
-            if (page == 1) {
+            if (pageNum == 1) {
                 builder.append(PREV_NAV_END, RESET_FORMAT)
-                builder.append(PAGE_NAV, RESET_FORMAT)
+                builder.append(pageInfo, RESET_FORMAT)
             } else {
                 builder.append(PREV_NAV, RESET_FORMAT)
-                        .event(ClickEvent(RUN_CMD, "$command help ${page - 1}"))
-                builder.append(PAGE_NAV, RESET_FORMAT)
+                        .event(ClickEvent(RUN_CMD, "$command ${pageNum - 1}"))
+                builder.append(pageInfo, RESET_FORMAT)
             }
 
-            if (page == pageRange.last) {
+            if (pageNum == range.last) {
                 builder.append(NEXT_NAV_END, RESET_FORMAT)
                 builder.append(BORDER_STRING, RESET_FORMAT)
             } else {
                 builder.append(NEXT_NAV, RESET_FORMAT)
-                        .event(ClickEvent(RUN_CMD, "$command help ${page + 1}"))
+                        .event(ClickEvent(RUN_CMD, "$command ${pageNum + 1}"))
                 builder.append(BORDER_STRING, RESET_FORMAT)
             }
 
@@ -61,7 +64,7 @@ class CommandHelp(
         } else {
             ComponentBuilder()
                     .color(ChatColor.RED)
-                    .append("Undefined page: $page")
+                    .append("Undefined page: $pageNum")
                     .create()
         }
     }

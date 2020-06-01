@@ -1,7 +1,7 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.impl.command.base.*
+import com.github.lazoyoung.craftgames.impl.command.page.*
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import net.md_5.bungee.api.ChatColor
@@ -16,8 +16,8 @@ import java.util.*
 
 class ItemTagCommand : CommandBase("ItemTag") {
 
-    private val help = CommandHelp(
-            "ItemTag", "/itag",
+    private val helpPage = Page(
+            "ItemTag Command Manual", "/itag help",
             PageBody {
                 val pdata = PlayerData.get(it as Player)
                 val list = LinkedList(listOf(
@@ -78,8 +78,8 @@ class ItemTagCommand : CommandBase("ItemTag") {
                 sender.sendMessage("$error This cannot be run by console.")
                 return true
             }
-            CommandHelp.isPrompted(args) -> {
-                return help.display(sender, args)
+            Page.isPrompted(args) -> {
+                return helpPage.display(sender, args)
             }
         }
 
@@ -207,7 +207,7 @@ class ItemTagCommand : CommandBase("ItemTag") {
                 getCompletions(args[0], "help", "create", "remove", "list", "get")
             }
             args[0] == "help" && args.size == 2 -> {
-                getCompletions(args[1], help.pageRange.map { it.toString() })
+                getCompletions(args[1], helpPage.range.map { it.toString() })
             }
             (args[0] == "remove" || args[0] == "get") && args.size == 2 -> {
                 val pdata = PlayerData.get(sender as Player) ?: return emptyList()
