@@ -1,16 +1,10 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.impl.command.page.HOVER_TEXT
 import com.github.lazoyoung.craftgames.impl.command.page.Page
 import com.github.lazoyoung.craftgames.impl.command.page.PageBody
-import com.github.lazoyoung.craftgames.impl.command.page.RUN_CMD
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
-import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.ClickEvent
-import net.md_5.bungee.api.chat.ComponentBuilder
-import net.md_5.bungee.api.chat.HoverEvent
 import org.bukkit.Material
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -104,27 +98,34 @@ class ItemTagCommand : CommandBase("ItemTag") {
         when (args[0].toLowerCase()) {
             "list" -> {
                 val tags = game.resource.tagRegistry.getItemTags()
-
-                sender.sendMessage("$info Searching for item tags...")
-
-                if (tags.isEmpty()) {
-                    sender.sendMessage("$warn No result found.")
+                val bodies = LinkedList<PageBody>()
+                val elements = LinkedList<PageBody.Element>()
+                val pageNum = if (args.size == 2) {
+                    args[1].toIntOrNull() ?: 1
                 } else {
-                    val hoverText = ComponentBuilder()
-                            .color(ChatColor.GOLD)
-                            .append("Click to get this item.")
-                            .create()
+                    1
+                }
 
-                    for (name in tags.map { it.name }) {
-                        sender.sendMessage(
-                                *ComponentBuilder()
-                                        .append("● $name")
-                                        .event(HoverEvent(HOVER_TEXT, hoverText))
-                                        .event(ClickEvent(RUN_CMD, "/itag get $name"))
-                                        .create()
-                        )
+                for (indexed in tags.withIndex()) {
+                    val index = indexed.index
+                    val name = indexed.value.name
+                    val element = PageBody.Element(
+                            "\u25cf $name",
+                            "&6Click to get this item.",
+                            "/itag get $name",
+                            suggest = false
+                    )
+
+                    elements.add(element)
+
+                    if (index == tags.lastIndex || index % 5 == 4) {
+                        bodies.add(PageBody(*elements.toTypedArray()))
+                        elements.clear()
                     }
                 }
+
+                val page = Page("[ItemTag Browser]", "/itag list", *bodies.toTypedArray())
+                page.display(sender, pageNum)
                 return true
             }
             "get" -> {

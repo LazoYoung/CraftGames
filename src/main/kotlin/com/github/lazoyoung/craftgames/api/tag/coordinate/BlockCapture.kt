@@ -22,7 +22,7 @@ class BlockCapture(
     }
 
     fun toLocation(world: World): Location {
-        return Location(world, x.toDouble(), y.toDouble(), z.toDouble())
+        return Location(world, x + 0.5, y + 0.5, z + 0.5)
     }
 
 }

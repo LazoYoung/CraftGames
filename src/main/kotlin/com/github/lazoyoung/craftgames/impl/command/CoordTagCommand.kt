@@ -331,7 +331,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
                                 if (t != null) {
                                     sender.sendMessage("$error ${t.localizedMessage}")
                                 } else {
-                                    ActionbarTask(sender, "Teleported to $tagName/${capture.index}").start()
+                                    ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
 
                                     if (capture is AreaCapture) {
                                         capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
@@ -864,13 +864,13 @@ class CoordTagCommand : CommandBase("CoordTag") {
                     val x = capture.x
                     val y = capture.y
                     val z = capture.z
-                    text = "\n* Spawn $ci at $mapID ($x, $y, $z)"
+                    text = "* Spawn $ci at $mapID ($x, $y, $z)"
                 }
                 is BlockCapture -> {
                     val x = capture.x
                     val y = capture.y
                     val z = capture.z
-                    text = "\n* Block $ci at $mapID ($x, $y, $z)"
+                    text = "* Block $ci at $mapID ($x, $y, $z)"
                 }
                 is AreaCapture -> {
                     val x1 = capture.x1
@@ -879,21 +879,21 @@ class CoordTagCommand : CommandBase("CoordTag") {
                     val y2 = capture.y2
                     val z1 = capture.z1
                     val z2 = capture.z2
-                    text = "\n* Area $ci at $mapID ($x1~$x2, $y1~$y2, $z1~$z2)"
+                    text = "* Area $ci at $mapID ($x1~$x2, $y1~$y2, $z1~$z2)"
                 }
                 else -> error("Unknown TagMode.")
             }
 
             val element = if (mapID == thisMapID) {
                 PageBody.Element(
-                        text,
+                        "\n$text",
                         "&6Click here to teleport.",
                         "/ctag tp $tagSel $ci",
                         suggest = false
                 )
             } else {
                 PageBody.Element (
-                        "\u00A77$text",
+                        "\n\u00A77$text",
                         "&eThis is outside this map.",
                         null
                 )
