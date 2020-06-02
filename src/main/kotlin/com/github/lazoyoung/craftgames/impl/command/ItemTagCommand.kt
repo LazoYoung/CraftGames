@@ -1,7 +1,10 @@
 package com.github.lazoyoung.craftgames.impl.command
 
 import com.github.lazoyoung.craftgames.api.ActionbarTask
-import com.github.lazoyoung.craftgames.impl.command.page.*
+import com.github.lazoyoung.craftgames.impl.command.page.HOVER_TEXT
+import com.github.lazoyoung.craftgames.impl.command.page.Page
+import com.github.lazoyoung.craftgames.impl.command.page.PageBody
+import com.github.lazoyoung.craftgames.impl.command.page.RUN_CMD
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import net.md_5.bungee.api.ChatColor
@@ -22,13 +25,13 @@ class ItemTagCommand : CommandBase("ItemTag") {
                 val pdata = PlayerData.get(it as Player)
                 val list = LinkedList(listOf(
                         PageBody.Element(
-                                "◎ /itag create (name)",
+                                "\u25cb /itag create (name)",
                                 "Create a new item tag which represents \n" +
                                         "the data of your item in main-hand.",
                                 "/itag create "
                         ),
                         PageBody.Element(
-                                "◎ /itag remove (name)",
+                                "\u25cb /itag remove (name)",
                                 "Delete an item tag.",
                                 "/itag remove "
                         )
@@ -47,12 +50,12 @@ class ItemTagCommand : CommandBase("ItemTag") {
             PageBody {
                 val list = LinkedList(listOf(
                         PageBody.Element(
-                                "◎ /itag list",
+                                "\u25cb /itag list",
                                 "Show every item tags.",
                                 "/itag list"
                         ),
                         PageBody.Element(
-                                "◎ /itag get (name)",
+                                "\u25cb /itag get (name)",
                                 "Get item into your inventory.",
                                 "/itag get "
                         )

@@ -49,6 +49,8 @@ interface WorldModule {
      * does not indicate a block coordinate in this world.
      * @throws MapNotFound is thrown if world is not generated yet.
      */
+    // TODO Make alternative.
+    @Deprecated("Direct use of CoordTag is encouraged.")
     fun setBorderCenter(blockTag: String, index: Int = 0)
 
     /**

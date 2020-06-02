@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender
 
 class Page(
         private val title: String,
-        val command: String,
+        private val navCommand: String?,
         private vararg val bodies: PageBody
 ) {
 
@@ -31,33 +31,40 @@ class Page(
         return true
     }
 
+    fun display(sender: CommandSender, pageNum: Int) {
+        sender.sendMessage(*getPageText(sender, pageNum))
+    }
+
     private fun getPageText(sender: CommandSender, pageNum: Int): Array<BaseComponent> {
         return if (pageNum in range) {
             val builder = ComponentBuilder()
                     .append(BORDER_STRING, RESET_FORMAT)
-                    .append("\n$title (Page $pageNum/${range.last})\n", RESET_FORMAT)
+                    .append("\n$title\n", RESET_FORMAT)
                     .append(bodies[pageNum - 1].getBodyText(sender, true))
-            val pageInfo = ComponentBuilder()
-                    .color(ChatColor.GRAY)
-                    .append("--- $pageNum/${range.last} ---", RESET_FORMAT)
-                    .create()
 
-            if (pageNum == 1) {
-                builder.append(PREV_NAV_END, RESET_FORMAT)
-                builder.append(pageInfo, RESET_FORMAT)
-            } else {
-                builder.append(PREV_NAV, RESET_FORMAT)
-                        .event(ClickEvent(RUN_CMD, "$command ${pageNum - 1}"))
-                builder.append(pageInfo, RESET_FORMAT)
-            }
+            if (navCommand != null) {
+                val pageInfo = ComponentBuilder()
+                        .color(ChatColor.GRAY)
+                        .append("--- PAGE $pageNum/${range.last} ---", RESET_FORMAT)
+                        .create()
 
-            if (pageNum == range.last) {
-                builder.append(NEXT_NAV_END, RESET_FORMAT)
-                builder.append(BORDER_STRING, RESET_FORMAT)
-            } else {
-                builder.append(NEXT_NAV, RESET_FORMAT)
-                        .event(ClickEvent(RUN_CMD, "$command ${pageNum + 1}"))
-                builder.append(BORDER_STRING, RESET_FORMAT)
+                if (pageNum == 1) {
+                    builder.append(PREV_NAV_END, RESET_FORMAT)
+                    builder.append(pageInfo, RESET_FORMAT)
+                } else {
+                    builder.append(PREV_NAV, RESET_FORMAT)
+                            .event(ClickEvent(RUN_CMD, "$navCommand ${pageNum - 1}"))
+                    builder.append(pageInfo, RESET_FORMAT)
+                }
+
+                if (pageNum == range.last) {
+                    builder.append(NEXT_NAV_END, RESET_FORMAT)
+                    builder.append(BORDER_STRING, RESET_FORMAT)
+                } else {
+                    builder.append(NEXT_NAV, RESET_FORMAT)
+                            .event(ClickEvent(RUN_CMD, "$navCommand ${pageNum + 1}"))
+                    builder.append(BORDER_STRING, RESET_FORMAT)
+                }
             }
 
             builder.create()

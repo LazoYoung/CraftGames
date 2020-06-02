@@ -28,18 +28,18 @@ class GameCommand : CommandBase("CraftGames") {
             "Game Command Manual", "/game help",
             PageBody(
                     PageBody.Element(
-                            "◎ /game start [map]",
+                            "\u25cb /game start [map]",
                             "Start current game.\n" +
                                     "You may choose which map to play in.",
                             "/game start "
                     ),
                     PageBody.Element(
-                            "◎ /game stop [id]",
+                            "\u25cb /game stop [id]",
                             "Terminate current game.",
                             "/game stop "
                     ),
                     PageBody.Element(
-                            "◎ /game edit (title) (map)",
+                            "\u25cb /game edit (title) (map)",
                             "Start editor mode.\n" +
                                     "There you can modify game elements and blocks.",
                             "/game edit "
@@ -49,24 +49,24 @@ class GameCommand : CommandBase("CraftGames") {
                 val pdata = PlayerData.get(it as Player)
                 val list = LinkedList(listOf(
                         PageBody.Element(
-                                "◎ /game save",
+                                "\u25cb /game save",
                                 "Leave editor mode.\n" +
                                         "Changes will be saved into disk.",
                                 "/game save"
                         ),
                         PageBody.Element(
-                                "◎ /game kit <list/select/save/delete> (name)",
+                                "\u25cb /game kit <list/select/save/delete> (name)",
                                 "Save or delete a kit inventory.",
                                 "/game kit "
                         ),
                         PageBody.Element(
-                                "◎ /game script (file) run [(property_name:value)...]",
+                                "\u25cb /game script (file) run [(property_name:value)...]",
                                 "Execute an entire script.\n" +
                                         "You may supply optional properties.",
                                 "/game script test.groovy run test:true"
                         ),
                         PageBody.Element(
-                                "◎ /game script (file) invoke (function) [argument...]",
+                                "\u25cb /game script (file) invoke (function) [argument...]",
                                 "Invoke a function defined in a script.\n" +
                                         "&eSupplying appropriate argument(s) is mendatory!",
                                 "/game script test.groovy invoke test 123 \"Hello, world!\""

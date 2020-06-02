@@ -4,18 +4,13 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.tag.coordinate.*
-import com.github.lazoyoung.craftgames.impl.command.page.HOVER_TEXT
-import com.github.lazoyoung.craftgames.impl.command.page.Page
-import com.github.lazoyoung.craftgames.impl.command.page.PageBody
-import com.github.lazoyoung.craftgames.impl.command.page.RUN_CMD
+import com.github.lazoyoung.craftgames.impl.command.page.*
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.CoordTagFilter
 import net.md_5.bungee.api.ChatColor
-import net.md_5.bungee.api.chat.ClickEvent
-import net.md_5.bungee.api.chat.ComponentBuilder
-import net.md_5.bungee.api.chat.HoverEvent
-import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.chat.*
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -34,25 +29,20 @@ class CoordTagCommand : CommandBase("CoordTag") {
                 val pdata = PlayerData.get(it as Player)
                 val list = LinkedList(listOf(
                         PageBody.Element(
-                                "◎ /ctag create (tag) <mode>",
+                                "\u25cb /ctag create (tag) <mode>",
                                 "Create a new tag.",
                                 "/ctag create "
                         ),
                         PageBody.Element(
-                                "◎ /ctag capture (tag)",
+                                "\u25cb /ctag capture (tag)",
                                 "Capture current coordinate.",
                                 "/ctag capture "
                         ),
                         PageBody.Element(
-                                "◎ /ctag remove (tag) [index]",
+                                "\u25cb /ctag remove (tag) [index]",
                                 "Wipe out the whole tag. You may supply &eindex\n"
                                         + "&rif you need to delete a specific capture only.",
                                 "/ctag remove "
-                        ),
-                        PageBody.Element(
-                                "◎ /ctag tp (tag) [index]",
-                                "Teleport to one of captures defined in the tag.",
-                                "/ctag tp "
                         )
                 ))
 
@@ -69,34 +59,18 @@ class CoordTagCommand : CommandBase("CoordTag") {
             PageBody {
                 val list = LinkedList(listOf(
                         PageBody.Element(
-                                "◎ /ctag list",
+                                "\u25cb /ctag list",
                                 "Show all captures matching the flags.\n" +
                                         "Flags: -mode, -tag, -map",
                                 "/ctag list"
                         ),
                         PageBody.Element(
-                                "◎ /ctag list -reset",
-                                "Reset all the flags.",
-                                "/ctag list -reset"
-                        )
-                ))
-
-                if (PlayerData.get(it as Player) == null) {
-                    list.addFirst(
-                            PageBody.Element(
-                                    "&eNote: You must be in a game.",
-                                    "&6Click here to play game.",
-                                    "/join "
-                            )
-                    )
-                }
-
-                list
-            },
-            PageBody {
-                val list = LinkedList(listOf(
+                                "\u25cb /ctag tp (tag) [index]",
+                                "Teleport to one of captures defined in the tag.",
+                                "/ctag tp "
+                        ),
                         PageBody.Element(
-                                "◎ /ctag display (tag) <index>",
+                                "\u25cb /ctag display (tag) <index>",
                                 "Display a particular capture.",
                                 "/ctag display "
                         )
@@ -166,30 +140,154 @@ class CoordTagCommand : CommandBase("CoordTag") {
         }
 
         when (args[0].toLowerCase()) {
+            // /ctag list-filter [(filter_flag)...] [(filter_mapping)...]
+            "list-filter" -> {
+                val filterMap = HashMap<CoordTagFilter, String>()
+                val options = LinkedList<CoordTagFilter>()
+
+                for (indexed in args.withIndex()) {
+                    val index = indexed.index
+                    val arg = if (index == 0) {
+                        continue
+                    } else {
+                        indexed.value
+                    }
+
+                    try {
+                        options.add(CoordTagFilter.getByFlag(arg))
+                    } catch (e: NoSuchElementException) {
+                        val mapArgs = args.drop(index - 1).toTypedArray()
+                        options.removeLast()
+                        filterMap.putAll(extractFilterMappings(mapArgs))
+                        break
+                    }
+                }
+
+                if (options.isEmpty()) {
+                    sender.sendMessage("$warn No filter available.")
+                    return true
+                }
+
+                val bodies = LinkedList<PageBody>()
+                val elements = LinkedList<PageBody.Element>()
+                var title = "[Filters]"
+
+                fun getButton(prefix: String, text: String, hover: HoverEvent, click: ClickEvent): PageBody.Element {
+                    val builder = ComponentBuilder("\n")
+                            .append(prefix, RESET_FORMAT)
+                            .append(text, RESET_FORMAT)
+                            .color(ChatColor.GOLD).underlined(true)
+                            .event(hover)
+                            .event(click)
+                            .append("")
+                            .color(ChatColor.RESET).underlined(false)
+                            .event(HoverEvent(HOVER_TEXT, ComponentBuilder().create()))
+                            .event(ClickEvent(SUGGEST_CMD, ""))
+                    return PageBody.Element(builder.create())
+                }
+
+                if (options.size == 1) {
+                    val hoverText = ComponentBuilder("Apply this filter...")
+                            .color(ChatColor.GOLD).create()
+                    val hoverEvent = HoverEvent(HOVER_TEXT, hoverText)
+
+                    when (options.first) {
+                        CoordTagFilter.MODE -> {
+                            val modes = TagMode.values()
+                            title = "[Mode Filters]"
+
+                            for (indexed in modes.withIndex()) {
+                                val index = indexed.index
+                                val mode = indexed.value
+                                filterMap[CoordTagFilter.MODE] = mode.label
+                                val clickCommand = appendFilterMappings("/ctag list", filterMap)
+
+                                elements.add(getButton("* ", mode.name, hoverEvent, ClickEvent(RUN_CMD, clickCommand)))
+
+                                if (index == modes.lastIndex || index % 5 == 4) {
+                                    bodies.add(PageBody(*elements.toTypedArray()))
+                                    elements.clear()
+                                }
+                            }
+                            filterMap.remove(CoordTagFilter.MODE)
+                        }
+                        CoordTagFilter.MAP -> {
+                            val maps = game.resource.mapRegistry.getMapNames()
+                            title = "[Map Filters]"
+
+                            for (indexed in maps.withIndex()) {
+                                val index = indexed.index
+                                val map = indexed.value
+                                filterMap[CoordTagFilter.MAP] = map
+                                val clickCommand = appendFilterMappings("/ctag list", filterMap)
+
+                                elements.add(getButton("* ", map, hoverEvent, ClickEvent(RUN_CMD, clickCommand)))
+
+                                if (index == maps.lastIndex || index % 5 == 4) {
+                                    bodies.add(PageBody(*elements.toTypedArray()))
+                                    elements.clear()
+                                }
+                            }
+                            filterMap.remove(CoordTagFilter.MAP)
+                        }
+                        else -> {
+                            elements.add(PageBody.Element("&7No filter available."))
+                        }
+                    }
+                } else {
+                    val hoverText = ComponentBuilder("Select this category...")
+                            .color(ChatColor.GOLD).create()
+                    val hoverEvent = HoverEvent(HOVER_TEXT, hoverText)
+                    title = "[Filter Categories]"
+
+                    for (indexed in options.withIndex()) {
+                        val index = indexed.index
+                        val filter = indexed.value
+                        val name = filter.name
+                        val clickCommand = appendFilterMappings("/ctag list-filter $name", filterMap)
+
+                        elements.add(getButton("* ", name, hoverEvent, ClickEvent(RUN_CMD, clickCommand)))
+
+                        if (index == options.lastIndex || index % 5 == 4) {
+                            bodies.add(PageBody(*elements.toTypedArray()))
+                            elements.clear()
+                        }
+                    }
+                }
+
+                elements.addFirst(PageBody.Element("&eNote: Click on a filter to apply!"))
+
+                val navCommand = args.joinToString(separator = " ", prefix = "/ctag ")
+                val page = Page(title, navCommand, *bodies.toTypedArray())
+                page.display(sender, 1)
+                return true
+            }
             "list" -> {
                 var lastOption: String? = null
+                val filter = HashMap<CoordTagFilter, String>()
+                var pageNum = 1
 
-                if (args.size == 1) {
-                    showCaptureList(pdata)
-                } else for (index in args.indices) {
-                    if (index == 0)
+                for (index in args.indices) {
+                    if (index == 0) {
                         continue
+                    }
 
                     if (index % 2 == 1) {
-                        if (args[index].equals("-reset", true)) {
-                            reset(pdata)
-                        }
-
                         lastOption = args[index].toLowerCase()
-                        continue
+                    } else when (lastOption) {
+                        "-mode" -> filter[CoordTagFilter.MODE] = args[index]
+                        "-tag" -> filter[CoordTagFilter.TAG] = args[index]
+                        "-map" -> filter[CoordTagFilter.MAP] = args[index]
+                        "-page" -> pageNum = args[index].toIntOrNull() ?: pageNum
                     }
+                }
 
-                    val value = args[index]
-                    when (lastOption) {
-                        "-mode" -> selectMode(pdata, value)
-                        "-tag" -> selectTag(pdata, value)
-                        "-map" -> selectMap(pdata, value)
-                    }
+                if (filter.containsKey(CoordTagFilter.TAG)) {
+                    filter.remove(CoordTagFilter.MODE)
+                    browseCaptures(pdata, filter, pageNum)
+                } else {
+                    filter.remove(CoordTagFilter.MAP)
+                    browseTags(pdata, filter, pageNum)
                 }
                 return true
             }
@@ -456,24 +554,20 @@ class CoordTagCommand : CommandBase("CoordTag") {
         when (args[0].toLowerCase()) {
             "list" -> {
                 return when (args.size % 2) { // Interpret -flag values
-                    0 -> getCompletions(args.last(), "-tag", "-mode", "-map", "-reset")
+                    0 -> getCompletions(args.last(), "-tag", "-mode", "-map", "-page")
                     1 -> when (args[args.size - 2].toLowerCase()) {
                         "-mode" -> getCompletions(args.last(), "block", "area", "spawn")
                         "-tag" -> {
-                            val mode = modeSel[pdata.getPlayer().uniqueId]
-                            val map = mapSel[pdata.getPlayer().uniqueId]
                             getCompletions(
-                                    query = args.last(),
-                                    options = game.resource.tagRegistry.getCoordTags()
-                                            .filter {
-                                                mode == null || mode == it.mode
-                                                        && it.getCaptures(map).isNotEmpty()
-                                            }
-                                            .map { it.name }
+                                    args.last(),
+                                    game.resource.tagRegistry.getCoordTags().map { it.name }
                             )
                         }
                         "-map" -> {
                             game.resource.mapRegistry.getMapNames().toMutableList()
+                        }
+                        "-page" -> {
+                            listOf("(Page_Number)")
                         }
                         else -> emptyList()
                     }
@@ -524,103 +618,322 @@ class CoordTagCommand : CommandBase("CoordTag") {
         return emptyList()
     }
 
-    private fun showCaptureList(playerData: PlayerData) {
-        val player = playerData.getPlayer()
-        val game = playerData.getGame()
-        val modeSel = modeSel[player.uniqueId]
-        val tagSel = tagSel[player.uniqueId]
-        val mapSel = mapSel[player.uniqueId]
-        val modeLabel = modeSel?.label ?: "all"
-        val mapLabel = if (mapSel.isNullOrBlank()) {
-            "every maps"
-        } else {
-            mapSel
+    /**
+     * Append [filterMappings] at the end of [command].
+     *
+     * An example where 2 mappings are appended: /ctag list -tag dummy -map lobby
+     *
+     * Do not append extra argument to this [String]
+     * in order to ensure that filters are placed at the end of this command.
+     */
+    private fun appendFilterMappings(command: String, filterMappings: Map<CoordTagFilter, String>): String {
+        val builder = StringBuilder(command)
+        val tagSel = filterMappings[CoordTagFilter.TAG]
+        val modeSel = filterMappings[CoordTagFilter.MODE]
+        val mapSel = filterMappings[CoordTagFilter.MAP]
+
+        if (tagSel != null) {
+            builder.append(" -tag $tagSel")
+        }
+        if (modeSel != null) {
+            builder.append(" -mode $modeSel")
+        }
+        if (mapSel != null) {
+            builder.append(" -map $mapSel")
         }
 
-        /** The remainders that correspond to the selection **/
-        val tags = ArrayList<CoordTag>()
-
-        if (tagSel.isNullOrEmpty()) {
-            game.resource.tagRegistry.getCoordTags().forEach {
-                if (modeSel == null || modeSel == it.mode) {
-                    tags.add(it)
-                }
-            }
-        } else {
-            // Insert specific tag only. Disregard modeSel
-            game.resource.tagRegistry.getCoordTag(tagSel)?.let { tags.add(it) }
-        }
-
-        if (tagSel == null) {
-            player.sendMessage("$info Searching for $modeLabel tags inside $mapLabel...")
-        } else {
-            player.sendMessage("$info Searching for $tagSel inside $mapLabel...")
-        }
-
-        if (tags.isEmpty()) {
-            player.sendMessage("$warn No result found.")
-            return
-        }
-
-        tags.forEach {
-            val mode = it.mode.label.capitalize()
-            val name = it.name
-
-            player.sendMessage(arrayOf(" ", "$mode Tag \'$name\' >"))
-
-            loop@ for (capture in it.getCaptures(mapSel)) {
-                val i = capture.index
-                val text: TextComponent
-                val mapID = capture.mapID
-                val thisMapID = game.map.id
-
-                when (capture) {
-                    is SpawnCapture -> {
-                        val x = capture.x
-                        val y = capture.y
-                        val z = capture.z
-                        text = TextComponent("Spawnpoint $i at ($x, $y, $z) inside $mapID")
-                    }
-                    is BlockCapture -> {
-                        val x = capture.x
-                        val y = capture.y
-                        val z = capture.z
-                        text = TextComponent("Block $i at ($x, $y, $z) inside $mapID")
-                    }
-                    is AreaCapture -> {
-                        val x1 = capture.x1
-                        val x2 = capture.x2
-                        val y1 = capture.y1
-                        val y2 = capture.y2
-                        val z1 = capture.z1
-                        val z2 = capture.z2
-                        text = TextComponent("Area $i at ($x1~$x2, $y1~$y2, $z1~$z2) inside $mapID")
-                    }
-                    else -> continue@loop
-                }
-
-
-                if (mapID == thisMapID) {
-                    val hoverText = ComponentBuilder()
-                            .color(ChatColor.GOLD)
-                            .append("Click here to teleport.")
-                            .create()
-                    text.hoverEvent = HoverEvent(HOVER_TEXT, hoverText)
-                    text.clickEvent = ClickEvent(RUN_CMD, "/ctag tp $name $i")
-                } else {
-                    val hoverText = ComponentBuilder()
-                            .color(ChatColor.YELLOW)
-                            .append("This is outside this map.")
-                            .create()
-                    text.hoverEvent = HoverEvent(HOVER_TEXT, hoverText)
-                    text.color = ChatColor.GRAY
-                }
-                player.sendMessage(text)
-            }
-            player.sendMessage(" ")
-        }
+        return builder.toString()
     }
 
+    /**
+     * @param args Command arguments
+     * @return Extracted filter mappings
+     */
+    private fun extractFilterMappings(args: Array<String>): Map<CoordTagFilter, String> {
+        var lastFilter: CoordTagFilter? = null
+        val filterMap = HashMap<CoordTagFilter, String>()
+
+        for (arg in args) {
+            try {
+                lastFilter = CoordTagFilter.getByFlag(arg)
+            } catch (e: NoSuchElementException) {
+                if (lastFilter != null) {
+                    val filterValue = filterMap[lastFilter] ?: ""
+                    filterMap[lastFilter] = filterValue.plus(arg)
+                }
+            }
+        }
+
+        return filterMap
+    }
+
+    private fun getTagButton(
+            playerData: PlayerData, mapSel: String?,
+            tag: CoordTag, prefix: String,
+            actionText: String, command: String
+    ): Array<BaseComponent> {
+        val map = mapSel ?: playerData.getGame().map.id
+        val global = tag.getCaptures(null).size
+        val local  = tag.getCaptures(map).size
+        val actionComponent = ChatColor.translateAlternateColorCodes('&', actionText)
+        val counterText = when (global) {
+            0 -> {
+                val globalText = TextComponent("\u25cf No capture found.\n\n")
+                globalText.color = ChatColor.GRAY
+                globalText
+            }
+            else -> {
+                val globalText = if (global > 1) {
+                    TextComponent("\u25cf $global captures in total\n")
+                } else {
+                    TextComponent("\u25cf $global capture in total\n")
+                }
+                val localText = when {
+                    local > 1 -> {
+                        TextComponent("\u25cf $local captures found in $map\n\n")
+                    }
+                    local == 1 -> {
+                        TextComponent("\u25cf $local capture found in $map\n\n")
+                    }
+                    else -> {
+                        TextComponent("\u25cf No capture found in $map\n\n")
+                    }
+                }
+                globalText.color = ChatColor.GRAY
+                localText.color = ChatColor.GRAY
+                globalText.addExtra(localText)
+                globalText
+            }
+        }
+        val hoverText = ComponentBuilder()
+                .append(tag.name)
+                .color(ChatColor.WHITE)
+                .append("\n")
+                .append("\u25cf ${tag.mode.label} mode\n").color(ChatColor.GRAY)
+                .append(counterText, RESET_FORMAT)
+                .append(actionComponent, RESET_FORMAT)
+                .create()
+        return ComponentBuilder()
+                .append(prefix)
+                .append(tag.name).color(ChatColor.AQUA).underlined(true)
+                .event(HoverEvent(HOVER_TEXT, hoverText))
+                .event(ClickEvent(RUN_CMD, command))
+                .create()
+    }
+
+    private fun getFilterButton(
+            filterMap: Map<CoordTagFilter, String>,
+            vararg filterable: CoordTagFilter
+    ): Array<BaseComponent> {
+        val builder = ComponentBuilder("Filter: ")
+        val selection = filterMap.filterKeys { filterable.contains(it) }
+        val extraFilters = filterable.filter { !filterMap.containsKey(it) }
+        val addHover = HoverEvent(HOVER_TEXT, ComponentBuilder("Click to add filter!").color(ChatColor.YELLOW).create())
+
+        if (selection.isEmpty()) {
+            val extraFlags = extraFilters.joinToString(separator = " ", transform = { it.flag })
+            val addCommand = appendFilterMappings("/ctag list-filter $extraFlags", filterMap)
+
+            builder.append("NONE").underlined(true)
+                    .event(addHover)
+                    .event(ClickEvent(RUN_CMD, addCommand))
+        } else {
+            val hoverText = ComponentBuilder("Click to remove filter.")
+                    .color(ChatColor.YELLOW).create()
+            val removeHover = HoverEvent(HOVER_TEXT, hoverText)
+
+            for (entry in selection) {
+                val thisFilter = entry.key
+                val removedFilter = HashMap(filterMap)
+                removedFilter.remove(thisFilter)
+                val removeCommand = appendFilterMappings("/ctag list", removedFilter)
+
+                builder.append(thisFilter.toString())
+                        .color(ChatColor.GOLD).underlined(true)
+                        .event(removeHover)
+                        .event(ClickEvent(RUN_CMD, removeCommand))
+                        .append(" ", RESET_FORMAT)
+                        .color(ChatColor.RESET).underlined(false)
+                        .event(HoverEvent(HOVER_TEXT, ComponentBuilder().create()))
+                        .event(ClickEvent(SUGGEST_CMD, ""))
+            }
+
+            val flags = extraFilters.joinToString(separator = " ", transform = { it.flag })
+
+            if (extraFilters.isNotEmpty()) {
+                builder.underlined(true).color(ChatColor.GOLD)
+                        .append("+")
+                        .event(addHover)
+                        .event(ClickEvent(RUN_CMD, "/ctag list-filter $flags"))
+            }
+        }
+
+        return builder.create()
+    }
+
+    /**
+     * @param filter [CoordTagFilter.MODE] is optional,
+     * [CoordTagFilter.MAP] and [CoordTagFilter.TAG] is not applicable.
+     */
+    private fun browseTags(playerData: PlayerData, filter: MutableMap<CoordTagFilter, String>, pageNum: Int) {
+        val player = playerData.getPlayer()
+        val registry = playerData.getGame().resource.tagRegistry
+        val bodies = LinkedList<PageBody>()
+        val elements = LinkedList<PageBody.Element>()
+        val modeSel = try {
+            TagMode.getByLabel(filter[CoordTagFilter.MODE] ?: "")
+        } catch (e: NoSuchElementException) {
+            filter.remove(CoordTagFilter.MODE)
+            null
+        }
+        val tags = if (modeSel != null) {
+            registry.getCoordTags().filter { it.mode == modeSel }
+        } else {
+            registry.getCoordTags()
+        }
+
+        require(filter[CoordTagFilter.MAP] == null) {
+            "Map filter is not applicable!"
+        }
+        require(filter[CoordTagFilter.TAG] == null) {
+            "Tag filter is not applicable!"
+        }
+
+        for (indexed in tags.withIndex()) {
+            val tag = indexed.value
+            val index = indexed.index
+            val tagName = tag.name
+            val tagButton = this.getTagButton(
+                    playerData, null, tag, "\n* ",
+                    "&eClick to view captures!",
+                    "/ctag list -tag $tagName"
+            )
+
+            elements.add(PageBody.Element(tagButton))
+
+            if (index == tags.lastIndex || index % 5 == 4) {
+                val filterElement = PageBody.Element(
+                        this.getFilterButton(filter, CoordTagFilter.MODE)
+                )
+
+                elements.addFirst(filterElement)
+                bodies.add(PageBody(*elements.toTypedArray()))
+                elements.clear()
+            }
+        }
+
+        if (bodies.isEmpty()) {
+            bodies.add(PageBody(PageBody.Element("&7No result found.")))
+        }
+
+        val pageCommand = appendFilterMappings("/ctag list", filter).plus(" -page")
+        val page = Page("[CoordTag Browser]", pageCommand, *bodies.toTypedArray())
+        page.display(player, pageNum)
+    }
+
+    /**
+     * @param filter [CoordTagFilter.TAG] is required,
+     * [CoordTagFilter.MAP] is optional, [CoordTagFilter.MODE] is not applicable.
+     */
+    private fun browseCaptures(playerData: PlayerData, filter: Map<CoordTagFilter, String>, pageNum: Int) {
+        val player = playerData.getPlayer()
+        val game = playerData.getGame()
+        val registry = game.resource.tagRegistry
+        val bodies = LinkedList<PageBody>()
+        val elements = LinkedList<PageBody.Element>()
+        val tagSel = requireNotNull(filter[CoordTagFilter.TAG]) {
+            "Tag filter is required!"
+        }
+        require(filter[CoordTagFilter.MODE] == null) {
+            "Mode filter is not applicable!"
+        }
+        val mapSel = filter[CoordTagFilter.MAP]
+        val tag = registry.getCoordTag(tagSel)
+        val captures = tag?.getCaptures(mapSel) ?: emptyList()
+
+        for (indexed in captures.withIndex()) {
+            val capture = indexed.value
+            val index = indexed.index
+            val ci = capture.index
+            val mapID = capture.mapID
+            val thisMapID = game.map.id
+            val text: String
+
+            when (capture) {
+                is SpawnCapture -> {
+                    val x = capture.x
+                    val y = capture.y
+                    val z = capture.z
+                    text = "\n* Spawn $ci at $mapID ($x, $y, $z)"
+                }
+                is BlockCapture -> {
+                    val x = capture.x
+                    val y = capture.y
+                    val z = capture.z
+                    text = "\n* Block $ci at $mapID ($x, $y, $z)"
+                }
+                is AreaCapture -> {
+                    val x1 = capture.x1
+                    val x2 = capture.x2
+                    val y1 = capture.y1
+                    val y2 = capture.y2
+                    val z1 = capture.z1
+                    val z2 = capture.z2
+                    text = "\n* Area $ci at $mapID ($x1~$x2, $y1~$y2, $z1~$z2)"
+                }
+                else -> error("Unknown TagMode.")
+            }
+
+            val element = if (mapID == thisMapID) {
+                PageBody.Element(
+                        text,
+                        "&6Click here to teleport.",
+                        "/ctag tp $tagSel $ci",
+                        suggest = false
+                )
+            } else {
+                PageBody.Element (
+                        "\u00A77$text",
+                        "&eThis is outside this map.",
+                        null
+                )
+            }
+
+            elements.add(element)
+
+            if (index == captures.lastIndex || index % 5 == 4) {
+                val tagButton = this.getTagButton(
+                        playerData, mapID, checkNotNull(tag), "Tag: ",
+                        "&eClick to browse all tags!",
+                        "/ctag list"
+                )
+                val tagElement = PageBody.Element(tagButton)
+                val filterElement = PageBody.Element(
+                        this.getFilterButton(filter, CoordTagFilter.MAP)
+                )
+
+                elements.addFirst(filterElement) // second
+                elements.addFirst(tagElement) // first
+                bodies.add(PageBody(*elements.toTypedArray()))
+                elements.clear()
+            }
+        }
+
+        if (bodies.isEmpty()) {
+            val text = if (tag == null) {
+                "&eUnknown tag: $tagSel"
+            } else {
+                "&7No result found."
+            }
+            bodies.add(PageBody(PageBody.Element(text)))
+        }
+
+        val pageCommand = appendFilterMappings("/ctag list", filter).plus(" -page")
+        val page = Page("[CoordCapture Browser]", pageCommand, *bodies.toTypedArray())
+        page.display(player, pageNum)
+    }
+
+    @Deprecated("Filter is no longer cached.")
     private fun reset(playerData: PlayerData) {
         val player = playerData.getPlayer()
 
@@ -630,6 +943,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
         player.sendMessage("$info Previous flags were reset.")
     }
 
+    @Deprecated("Filter is no longer cached.")
     private fun selectMap(playerData: PlayerData, id: String) {
         val player = playerData.getPlayer()
         val game = playerData.getGame()
@@ -642,6 +956,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
         }
     }
 
+    @Deprecated("Filter is no longer cached.")
     private fun selectTag(playerData: PlayerData, name: String) {
         val registry = playerData.getGame().resource.tagRegistry
         val player = playerData.getPlayer()
@@ -654,6 +969,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
         }
     }
 
+    @Deprecated("Filter is no longer cached.")
     private fun selectMode(playerData: PlayerData, label: String) {
         val player = playerData.getPlayer()
 
