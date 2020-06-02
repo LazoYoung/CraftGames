@@ -309,14 +309,15 @@ class CoordTagCommand : CommandBase("CoordTag") {
                 }
 
                 val tag = game.resource.tagRegistry.getCoordTag(args[1])
-                val captures = tag?.getCaptures(game.map.id)
+                val captures = tag?.getCaptures(game.map.id)?.toMutableList()
+                        ?: mutableListOf()
                 val tagName = tag?.name
 
                 if (tag == null) {
                     sender.sendMessage("$error Tag ${args[1]} does not exist.")
                     return true
                 }
-                if (captures.isNullOrEmpty()) {
+                if (captures.isEmpty()) {
                     sender.sendMessage("$error Tag $tagName has no captures in this map.")
                     return true
                 }
@@ -330,12 +331,11 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             future.handle { _, t ->
                                 if (t != null) {
                                     sender.sendMessage("$error ${t.localizedMessage}")
-                                } else {
+                                } else try {
                                     ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-
-                                    if (capture is AreaCapture) {
-                                        capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
-                                    }
+                                    capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
+                                } catch (e: IllegalStateException) {
+                                    // Do nothing
                                 }
                             }
                         }
@@ -352,41 +352,31 @@ class CoordTagCommand : CommandBase("CoordTag") {
                                 future.handle { _, t ->
                                     if (t != null) {
                                         sender.sendMessage("$error ${t.localizedMessage}")
-                                    } else {
+                                    } else try {
                                         ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-
-                                        if (capture is AreaCapture) {
-                                            capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
-                                        }
+                                        capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
+                                    } catch (e: IllegalStateException) {
+                                        // Do nothing
                                     }
                                 }
                             }
                         }
                     }
                 } else if (args[0].equals("display", true)) {
-
                     val timer = Timer(TimeUnit.SECOND, 20)
-                    val areaCaptures = LinkedList(
-                            captures.filterIsInstance(AreaCapture::class.java)
-                    )
 
-                    if (tag.mode != TagMode.AREA) {
-                        sender.sendMessage("$error Display feature doesn't support ${tag.mode} tags yet.")
-                        return true
-                    }
-
-                    if (areaCaptures.isEmpty()) {
+                    if (captures.isEmpty()) {
                         sender.sendMessage("$error This tag is empty.")
                         return true
                     }
 
                     if (args.size > 2) {
                         try {
-                            val capture = areaCaptures.firstOrNull { it.index == args[2].toInt() }
+                            val capture = captures.firstOrNull { it.index == args[2].toInt() }
 
                             if (capture != null) {
-                                areaCaptures.clear()
-                                areaCaptures.add(capture)
+                                captures.clear()
+                                captures.add(capture)
                             } else {
                                 sender.sendMessage("$error Unable to find capture by index: ${args[2]}")
                                 return true
@@ -396,25 +386,23 @@ class CoordTagCommand : CommandBase("CoordTag") {
                         }
                     }
 
-                    if (areaCaptures.size == 1) {
-                        val capture = areaCaptures.first
+                    try {
+                        val text = if (captures.size == 1) {
+                            val capture = captures.first()
+                            capture.displayBorder(sender.world, timer)
 
-                        capture.displayBorder(sender.world, timer)
-                        ActionbarTask(
-                                player = sender,
-                                period = timer,
-                                text = *arrayOf("&9Displaying area: $tagName/${capture.index}")
-                        ).start()
-                    } else {
-                        areaCaptures.forEach {
-                            it.displayBorder(sender.world, timer)
+                            "&9Displaying tag: $tagName/${capture.index}"
+                        } else {
+                            captures.forEach {
+                                it.displayBorder(sender.world, timer)
+                            }
+
+                            "&9Displaying tag: $tagName"
                         }
 
-                        ActionbarTask(
-                                player = sender,
-                                period = timer,
-                                text = *arrayOf("&9Displaying area: $tagName")
-                        ).start()
+                        ActionbarTask(sender, timer, text = *arrayOf(text)).start()
+                    } catch (e: IllegalStateException) {
+                        sender.sendMessage("$error ${e.message}")
                     }
                 }
                 return true

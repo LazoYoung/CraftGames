@@ -1,7 +1,9 @@
 package com.github.lazoyoung.craftgames.api.tag.coordinate
 
+import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.Bukkit
+import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.concurrent.CompletableFuture
 
@@ -9,6 +11,7 @@ abstract class CoordCapture(
         val mapID: String?,
         val index: Int?
 ) {
+    var display: Boolean = false
 
     fun teleport(player: Player): CompletableFuture<Void> {
         val world = player.world
@@ -56,6 +59,25 @@ abstract class CoordCapture(
         } catch (e: NullPointerException) {
             throw IllegalArgumentException(e)
         }
+    }
+
+    /**
+     * Display border of this capture.
+     *
+     * @param world The world where this capture belongs to.
+     * @param duration Duration of display.
+     * @throws IllegalStateException is raised if display is in progress.
+     */
+    open fun displayBorder(world: World, duration: Timer) {
+        check(!display) {
+            "Display is in progress."
+        }
+
+        display = true
+
+        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+            display = false
+        }, duration.toTick())
     }
 
     protected abstract fun serialize(): String

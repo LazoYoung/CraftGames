@@ -1,7 +1,13 @@
 package com.github.lazoyoung.craftgames.api.tag.coordinate
 
+import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.impl.Main
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.World
+import org.bukkit.entity.ArmorStand
+import org.bukkit.entity.EntityType
+import org.bukkit.inventory.EquipmentSlot
 import java.math.RoundingMode
 
 class SpawnCapture(
@@ -13,6 +19,23 @@ class SpawnCapture(
         mapID: String,
         index: Int? = null
 ) : CoordCapture(mapID, index) {
+
+    override fun displayBorder(world: World, duration: Timer) {
+        super.displayBorder(world, duration)
+
+        val armorStand = world.spawnEntity(toLocation(world), EntityType.ARMOR_STAND) as ArmorStand
+        armorStand.isMarker = true
+        armorStand.removeWhenFarAway = false
+        armorStand.isGlowing = true
+        armorStand.setDisabledSlots(*EquipmentSlot.values())
+        armorStand.setArms(true)
+        armorStand.setBasePlate(false)
+        armorStand.setGravity(false)
+
+        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
+            armorStand.remove()
+        }, duration.toTick())
+    }
 
     override fun serialize() : String {
         val r = RoundingMode.HALF_UP

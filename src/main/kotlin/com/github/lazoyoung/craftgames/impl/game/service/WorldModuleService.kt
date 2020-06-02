@@ -138,8 +138,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
 
         captures.filterIsInstance(BlockCapture::class.java).forEach {
             val ident = ctag.name.plus("/").plus(it.index)
-            val loc = it.toLocation(world)
-            val block = loc.block
+            val block = it.getBlock(world)
             val state = block.state
 
             if (state !is Lootable || state !is Container) {

@@ -51,7 +51,7 @@ class AreaCapture(
         }
     }
 
-    fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 2.0): CompletableFuture<Location> {
+    fun toLocation(world: World, maxAttempt: Int, offsetY: Double = 1.0): CompletableFuture<Location> {
         this.maxAttempt = maxAttempt
         return toLocation(world, offsetY)
     }
@@ -126,16 +126,15 @@ class AreaCapture(
         return future
     }
 
-    /**
-     * Spawn particles inside [world] to depict the border of this area.
-     *
-     * @param timer How long will particles shows up?
-     */
-    fun displayBorder(world: World, timer: Timer) {
+    override fun displayBorder(world: World, duration: Timer) {
+        super.displayBorder(world, duration)
+
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
-        val res = Main.getConfig()?.getInt("optimization.particle-resolution", 2) ?: 2
-        val distance = Main.getConfig()?.getInt("optimization.particle-render-distance", 30) ?: 30
+        val resolutionPath = "rendering.capture-display.area-particles.resolution"
+        val distancePath = "rendering.capture-display.area-particles.distance"
+        val res = Main.getConfig()?.getInt(resolutionPath, 2) ?: 2
+        val distance = Main.getConfig()?.getInt(distancePath, 30) ?: 30
         val interval = Timer(TimeUnit.SECOND, 2)
         val builder = Particle.END_ROD.builder()
                 .count(1)
@@ -144,7 +143,7 @@ class AreaCapture(
                 .force(false)
 
         object : BukkitRunnable() {
-            var counter = timer.toTick() / interval.toTick()
+            var counter = duration.toTick() / interval.toTick()
 
             override fun run() {
                 if (counter-- < 1) {
