@@ -5,44 +5,29 @@ games:
   example: # Title of sample game. Turn on 'install-sample' above to test it!
     layout: Sample/example/layout.yml # Path to layout.yml
 
-
-# Data-pack Settings
 datapack:
-
   # Define a format version. Use 'auto' to make plugin decide this for you.
   # Reference: https://minecraft.gamepedia.com/Tutorials/Creating_a_resource_pack#pack_format
   format-version: auto
-
   # Plugin will generate a datapack for internal use.
   # WARNING: Existing datapack is replaced if it overlaps name.
   internal-pack-name: craftgames
 
-
 # The prefix of generated world's directory name.
 # WARNING: Existing world is replaced if its name overlaps with this label.
 world-label: game
-
-
 # Select charset in which to encode resource files (i.e. scripts, kit data, etc.).
 # 'default' indicates system-default charset. 'UTF-8' charset is recommended.
 # Reference: https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html
 file-encoding: UTF-8
-
-
 # Shall we install the game sample?
 install-sample: false
-
-
 # Invincible duration (in ticks) applied to a respawning player.
 spawn-invincible: 60
 
-
-# Game-Exit Policy
 exit-policy:
-
   # Should player return to the location where he issued /join command?
   record-join-location: true
-
   # Exit location to use if it isn't be resolved for any reason.
   fallback:
     world: world
@@ -52,16 +37,11 @@ exit-policy:
     yaw: 0.0
     pitch: 0.0
 
-
-# Script Control
 script:
-
   # Available engines: Groovy, JSR223
   engine: Groovy
-
   # Toggle verbose output to log file (for debugging purpose)
   debug: false
-
   # Select which compiler should be used to interpret scripts.
   # This can be overridden from layout.yml
   # 1) STATIC: This compiler performs type validation at once.
@@ -70,19 +50,26 @@ script:
   # In general, Dynamic compiler never fail to compile unless syntax error is caught.
   compiler: STATIC
 
+rendering:
+  capture-display:
+    # Particles are generated to display Area Captures
+    area-particles:
+      # How many particles are generated per block?
+      resolution: 2
+      # Set visiblility distance
+      distance: 30
+    # Falling blocks are generated to display Block Captures
+    falling-block:
+      # Replace texture of falling block. Relevant format is described below.
+      # <MATERIAL_TO_BE_REPLACED>: <NEW_MATERIAL>
+      # Reference: https://papermc.io/javadocs/paper/1.15/org/bukkit/Material.html
+      material-replacement:
+        CHEST: OAK_PLANKS
+        TRAPPED_CHEST: OAK_PLANKS
 
-# Performance Optimization
 optimization:
-
   # Limit the number of blocks that can be processed per each schematic.
   schematic-throttle: 10000
-
-  # Set how many particles are generated per block to display area capture.
-  particle-resolution: 2
-
-  # Set visibility of artificial particles.
-  particle-render-distance: 30
-
   # Set maximum attempt to calculate safe area before spawning a mob/player
   safezone-calculation:
     mob-throttle: 3
