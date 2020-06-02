@@ -10,43 +10,43 @@ import org.bukkit.command.CommandSender
 
 class InfoCommand : CommandBase("CraftGames") {
 
-    private val help = Page(
-            "CraftGames", "/cg",
+    private val helpPage = Page(
+            "CraftGames", "/cg help",
             PageBody(
                     PageBody.Element(
-                            "◎ /join (game)",
+                            "\u25cb /join (game)",
                             "Join a game.",
                             "/join"
                     ),
                     PageBody.Element(
-                            "◎ /leave",
+                            "\u25cb /leave",
                             "Leave current game.",
                             "/leave"
                     ),
                     PageBody.Element(
-                            "◎ /mapvote (map)",
+                            "\u25cb /mapvote (map)",
                             "Vote for a map.",
                             "/mapvote "
                     ),
                     PageBody.Element(
-                            "◎ /kit (name)",
+                            "\u25cb /kit (name)",
                             "Select a kit.",
                             "/kit "
                     )
             ),
             PageBody(
                     PageBody.Element(
-                            "◎ /game",
+                            "\u25cb /game",
                             "Manage/edit games.",
                             "/game help"
                     ),
                     PageBody.Element(
-                            "◎ /ctag",
+                            "\u25cb /ctag",
                             "Manage/edit coordinate tags.",
                             "/ctag help"
                     ),
                     PageBody.Element(
-                            "◎ /itag",
+                            "\u25cb /itag",
                             "Manage/edit item tags.",
                             "/itag help"
                     )
@@ -89,7 +89,7 @@ class InfoCommand : CommandBase("CraftGames") {
                                 .create())
             }
             Page.isPrompted(args) -> {
-                return help.display(sender, args)
+                return helpPage.display(sender, args)
             }
             else -> {
                 return false
@@ -105,7 +105,7 @@ class InfoCommand : CommandBase("CraftGames") {
                 listOf("help")
             }
             args[0] == "help" && args.size == 2 -> {
-                help.range.map { it.toString() }
+                helpPage.range.map { it.toString() }
             }
             else -> {
                 emptyList()
