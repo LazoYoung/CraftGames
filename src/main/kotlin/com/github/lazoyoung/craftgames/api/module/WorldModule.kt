@@ -64,9 +64,11 @@ interface WorldModule {
     /**
      * Set world weather to [storm] or not.
      *
+     * @param storm should it rain?
+     * @param thunder should it thunder?
      * @throws MapNotFound is thrown if world is not generated yet.
      */
-    fun setStormyWeather(storm: Boolean)
+    fun setStormyWeather(storm: Boolean, thunder: Boolean)
 
     /**
      * Get world time.

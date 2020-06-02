@@ -87,11 +87,13 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         this.difficulty = difficulty
     }
 
-    override fun setStormyWeather(storm: Boolean) {
+    override fun setStormyWeather(storm: Boolean, thunder: Boolean) {
         val world = getWorld()
 
         world.setStorm(storm)
+        world.isThundering = thunder
         world.weatherDuration = Int.MAX_VALUE
+        world.thunderDuration = Int.MAX_VALUE
     }
 
     override fun getTime(absolute: Boolean): Long {
