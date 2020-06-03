@@ -7,8 +7,8 @@ import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.block.data.BlockData
+import org.bukkit.entity.Entity
 import org.bukkit.entity.FallingBlock
-import java.util.*
 
 class BlockCaptureService(
         val x: Int,
@@ -18,10 +18,9 @@ class BlockCaptureService(
         index: Int? = null
 ) : BlockCapture, CoordCaptureService(mapID, index) {
 
-    private var entityUUID: UUID? = null
     private var blockData: BlockData? = null
 
-    override fun generateBorder(world: World) {
+    override fun generateBorder(world: World): Entity {
         val block = getBlock(world)
         val blockData = block.blockData.clone()
         val loc = block.location.add(0.5, 0.1, 0.5)
@@ -33,29 +32,24 @@ class BlockCaptureService(
             world.spawnFallingBlock(loc, blockData)
         }
 
+        fallingBlock.isCustomNameVisible = true
+        fallingBlock.customName = index?.toString() ?: "<New Capture>"
         fallingBlock.isInvulnerable = true
         fallingBlock.isGlowing = true
         fallingBlock.dropItem = false
         fallingBlock.setHurtEntities(false)
         fallingBlock.setGravity(false)
         block.type = Material.AIR
-        this.entityUUID = fallingBlock.uniqueId
         this.blockData = blockData
+        return fallingBlock
     }
 
-    override fun destroyBorder(world: World) {
-        if (entityUUID == null || blockData == null) {
-            return
-        }
-
-        val fallingBlock = world.getEntity(entityUUID!!) as? FallingBlock
-                ?: return
+    override fun destroyBorder(entity: Entity) {
+        val fallingBlock = entity as? FallingBlock ?: return
         val block = fallingBlock.location.toBlockLocation().block
 
         fallingBlock.remove()
-        block.blockData = blockData!!
-        entityUUID = null
-        blockData = null
+        blockData?.let { block.blockData = it }
     }
 
     override fun serialize() : String {

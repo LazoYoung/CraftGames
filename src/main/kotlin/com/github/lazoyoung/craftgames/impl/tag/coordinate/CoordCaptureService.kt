@@ -7,11 +7,13 @@ import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.Bukkit
 import org.bukkit.World
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.world.WorldSaveEvent
 import org.bukkit.event.world.WorldUnloadEvent
 import org.bukkit.scheduler.BukkitRunnable
@@ -80,52 +82,59 @@ abstract class CoordCaptureService(
         }
 
         val worldName = world.name
+        val entity = generateBorder(world)
         val listener = object : Listener {
             @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
             fun onWorldUnload(event: WorldUnloadEvent) {
                 if (worldName == event.world.name) {
-                    terminateDisplay(world, this)
+                    terminateDisplay(entity, this)
                 }
             }
 
             @EventHandler(priority = EventPriority.HIGH)
             fun onGameSave(event: GameEditorSaveEvent) {
                 if (worldName == event.getGame().map.worldName) {
-                    terminateDisplay(world, this)
+                    terminateDisplay(entity, this)
                 }
             }
 
             @EventHandler(priority = EventPriority.HIGH)
             fun onWorldSave(event: WorldSaveEvent) {
                 if (worldName == event.world.name) {
-                    terminateDisplay(world, this)
+                    terminateDisplay(entity, this)
+                }
+            }
+
+            @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+            fun onEntityDamage(event: EntityDamageEvent) {
+                if (entity.uniqueId == event.entity.uniqueId) {
+                    event.isCancelled = true
                 }
             }
         }
 
-        generateBorder(world)
         Bukkit.getPluginManager().registerEvents(listener, Main.instance)
 
         displayTask = object : BukkitRunnable() {
             override fun run() {
-                terminateDisplay(world, listener)
+                terminateDisplay(entity, listener)
             }
 
             override fun cancel() {
                 super.cancel()
-                terminateDisplay(world, listener)
+                terminateDisplay(entity, listener)
             }
         }.runTaskLater(Main.instance, duration.toTick())
     }
 
-    protected abstract fun generateBorder(world: World)
+    protected abstract fun generateBorder(world: World): Entity
 
-    protected abstract fun destroyBorder(world: World)
+    protected abstract fun destroyBorder(entity: Entity)
 
     protected abstract fun serialize(): String
 
-    private fun terminateDisplay(world: World, listener: Listener) {
-        destroyBorder(world)
+    private fun terminateDisplay(entity: Entity, listener: Listener) {
+        destroyBorder(entity)
         HandlerList.unregisterAll(listener)
         displayTask = null
     }

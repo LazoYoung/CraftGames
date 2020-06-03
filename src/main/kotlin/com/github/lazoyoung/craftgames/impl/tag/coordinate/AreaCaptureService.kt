@@ -207,12 +207,12 @@ class AreaCaptureService(
         }.runTaskTimer(plugin, 0L, interval.toTick())
     }
 
-    override fun generateBorder(world: World) {
-        // Do nothing
+    override fun generateBorder(world: World): Entity {
+        error("Calling this function is prohibited.")
     }
 
-    override fun destroyBorder(world: World) {
-        // Do nothing
+    override fun destroyBorder(entity: Entity) {
+        error("Calling this function is prohibited.")
     }
 
     fun isInside(entity: Entity): Boolean {

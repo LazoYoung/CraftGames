@@ -4,10 +4,10 @@ import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
 import org.bukkit.Location
 import org.bukkit.World
 import org.bukkit.entity.ArmorStand
+import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.inventory.EquipmentSlot
 import java.math.RoundingMode
-import java.util.*
 
 class SpawnCaptureService(
         val x: Double,
@@ -19,27 +19,24 @@ class SpawnCaptureService(
         index: Int? = null
 ) : SpawnCapture, CoordCaptureService(mapID, index) {
 
-    var entityUUID: UUID? = null
-
-    override fun generateBorder(world: World) {
+    override fun generateBorder(world: World): Entity {
         val armorStand = world.spawnEntity(toLocation(world), EntityType.ARMOR_STAND) as ArmorStand
-        armorStand.isMarker = true
+        armorStand.isCustomNameVisible = true
+        armorStand.customName = index?.toString() ?: "<New Capture>"
         armorStand.removeWhenFarAway = false
         armorStand.isGlowing = true
+        armorStand.isCollidable = false
+        armorStand.isInvulnerable = true
         armorStand.setDisabledSlots(*EquipmentSlot.values())
         armorStand.setArms(true)
         armorStand.setBasePlate(false)
         armorStand.setGravity(false)
-        this.entityUUID = armorStand.uniqueId
+        armorStand.setCanMove(false)
+        return armorStand
     }
 
-    override fun destroyBorder(world: World) {
-        if (entityUUID == null) {
-            return
-        }
-
-        val armorStand = world.getEntity(entityUUID!!) as? ArmorStand
-        armorStand?.remove()
+    override fun destroyBorder(entity: Entity) {
+        entity.remove()
     }
 
     override fun serialize() : String {
