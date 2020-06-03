@@ -24,6 +24,7 @@ class AreaCaptureService(
         index: Int? = null
 ) : AreaCapture, CoordCaptureService(mapID, index) {
 
+    private var display = false
     private var maxAttempt = 0
 
     override fun serialize(): String {
@@ -128,7 +129,9 @@ class AreaCaptureService(
     }
 
     override fun displayBorder(world: World, duration: Timer) {
-        super.displayBorder(world, duration)
+        check(!display) {
+            "Display is in progress."
+        }
 
         val scheduler = Bukkit.getScheduler()
         val plugin = Main.instance
@@ -142,6 +145,7 @@ class AreaCaptureService(
                 .offset(0.0, 0.0, 0.0)
                 .extra(0.0)
                 .force(false)
+        display = true
 
         object : BukkitRunnable() {
             var counter = duration.toTick() / interval.toTick()
@@ -196,7 +200,19 @@ class AreaCaptureService(
                 })
             }
 
+            override fun cancel() {
+                super.cancel()
+                display = false
+            }
         }.runTaskTimer(plugin, 0L, interval.toTick())
+    }
+
+    override fun generateBorder(world: World) {
+        // Do nothing
+    }
+
+    override fun destroyBorder(world: World) {
+        // Do nothing
     }
 
     fun isInside(entity: Entity): Boolean {

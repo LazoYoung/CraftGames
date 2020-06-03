@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.impl.util
+package com.github.lazoyoung.craftgames.impl.listener
 
 import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.entity.Player
@@ -8,7 +8,7 @@ import java.util.*
 import java.util.function.Consumer
 import kotlin.collections.HashMap
 
-class MessengerUtil : PluginMessageListener {
+class MessangerListener : PluginMessageListener {
 
     companion object {
         internal var inbox = HashMap<UUID, Consumer<String?>>()

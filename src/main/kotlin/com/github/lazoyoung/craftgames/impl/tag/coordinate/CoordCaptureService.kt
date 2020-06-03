@@ -1,19 +1,28 @@
 package com.github.lazoyoung.craftgames.impl.tag.coordinate
 
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.event.GameEditorSaveEvent
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.impl.Main
 import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
+import org.bukkit.event.HandlerList
+import org.bukkit.event.Listener
+import org.bukkit.event.world.WorldSaveEvent
+import org.bukkit.event.world.WorldUnloadEvent
+import org.bukkit.scheduler.BukkitRunnable
+import org.bukkit.scheduler.BukkitTask
 import java.util.concurrent.CompletableFuture
 
 abstract class CoordCaptureService(
         override val mapID: String,
         override val index: Int?
 ) : CoordCapture {
-    private var display: Boolean = false
+    private var displayTask: BukkitTask? = null
 
     override fun teleport(player: Player, callback: Runnable) {
         val world = player.world
@@ -44,10 +53,6 @@ abstract class CoordCaptureService(
      * @throws RuntimeException Thrown if mapID is undefined for this instance.
      */
     internal fun add(tag: CoordTag) {
-        checkNotNull(mapID) {
-            "This CoordCapture is not assigned to any map."
-        }
-
         try {
             val registry = tag.registry
             val key = registry.getCoordCaptureStreamKey(tag.name, mapID)
@@ -70,16 +75,58 @@ abstract class CoordCaptureService(
      * @throws IllegalStateException is raised if display is in progress.
      */
     open fun displayBorder(world: World, duration: Timer) {
-        check(!display) {
+        check(displayTask == null) {
             "Display is in progress."
         }
 
-        display = true
+        val worldName = world.name
+        val listener = object : Listener {
+            @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+            fun onWorldUnload(event: WorldUnloadEvent) {
+                if (worldName == event.world.name) {
+                    terminateDisplay(world, this)
+                }
+            }
 
-        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
-            display = false
-        }, duration.toTick())
+            @EventHandler(priority = EventPriority.HIGH)
+            fun onGameSave(event: GameEditorSaveEvent) {
+                if (worldName == event.getGame().map.worldName) {
+                    terminateDisplay(world, this)
+                }
+            }
+
+            @EventHandler(priority = EventPriority.HIGH)
+            fun onWorldSave(event: WorldSaveEvent) {
+                if (worldName == event.world.name) {
+                    terminateDisplay(world, this)
+                }
+            }
+        }
+
+        generateBorder(world)
+        Bukkit.getPluginManager().registerEvents(listener, Main.instance)
+
+        displayTask = object : BukkitRunnable() {
+            override fun run() {
+                terminateDisplay(world, listener)
+            }
+
+            override fun cancel() {
+                super.cancel()
+                terminateDisplay(world, listener)
+            }
+        }.runTaskLater(Main.instance, duration.toTick())
     }
 
+    protected abstract fun generateBorder(world: World)
+
+    protected abstract fun destroyBorder(world: World)
+
     protected abstract fun serialize(): String
+
+    private fun terminateDisplay(world: World, listener: Listener) {
+        destroyBorder(world)
+        HandlerList.unregisterAll(listener)
+        displayTask = null
+    }
 }

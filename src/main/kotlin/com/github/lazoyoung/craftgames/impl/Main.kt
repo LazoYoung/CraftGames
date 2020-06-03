@@ -2,11 +2,11 @@ package com.github.lazoyoung.craftgames.impl
 
 import com.github.lazoyoung.craftgames.impl.command.*
 import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.impl.listener.MessangerListener
 import com.github.lazoyoung.craftgames.impl.listener.ScriptListener
 import com.github.lazoyoung.craftgames.impl.listener.ServerListener
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import com.github.lazoyoung.craftgames.impl.util.FileUtil
-import com.github.lazoyoung.craftgames.impl.util.MessengerUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandExecutor
 import org.bukkit.configuration.file.FileConfiguration
@@ -100,13 +100,14 @@ class Main : JavaPlugin(), CommandExecutor {
         manager.registerEvents(ServerListener(), this)
         manager.registerEvents(ScriptListener(), this)
         messenger.registerOutgoingPluginChannel(this, "BungeeCord")
-        messenger.registerIncomingPluginChannel(this, "BungeeCord", MessengerUtil())
+        messenger.registerIncomingPluginChannel(this, "BungeeCord", MessangerListener())
     }
 
     override fun onDisable() {
         // Close games
         Game.find().forEach { it.forceStop(async = false, error = false) }
         HandlerList.unregisterAll(this)
+        server.scheduler.cancelTasks(this)
     }
 
     private fun loadConfig() {

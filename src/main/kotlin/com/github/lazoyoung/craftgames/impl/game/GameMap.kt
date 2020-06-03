@@ -1,12 +1,12 @@
 package com.github.lazoyoung.craftgames.impl.game
 
-import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
-import com.github.lazoyoung.craftgames.impl.tag.coordinate.SpawnCaptureService
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.module.WorldModuleService
 import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.SpawnCaptureService
 import com.github.lazoyoung.craftgames.impl.util.FileUtil
 import org.bukkit.*
 import org.bukkit.event.player.PlayerTeleportEvent
@@ -290,20 +290,20 @@ class GameMap internal constructor(
         val scheduler = Bukkit.getScheduler()
 
         scheduler.runTask(Main.instance, Runnable {
-            val gen = WorldCreator(worldName)
+            val creator = WorldCreator(worldName)
             val world: World?
-            val legacyMap = game.map
+            val lastMap = game.map
             val worldService = game.getWorldService()
 
             // Assign worldName so that WorldInitEvent detects new world.
             this.worldName = worldName
             game.map = this
-            gen.type(WorldType.FLAT)
-            world = gen.createWorld()
+            creator.type(WorldType.FLAT)
+            world = creator.createWorld()
             Main.logger.info("World $worldName generated.")
 
             if (world == null) {
-                game.map = legacyMap
+                game.map = lastMap
                 game.forceStop(error = true)
                 Main.logger.warning("Unable to load world $worldName for ${game.name}")
                 return@Runnable
@@ -407,7 +407,7 @@ class GameMap internal constructor(
                                 }
 
                                 // We're now safe to unload the old world.
-                                legacyMap.destruct()
+                                lastMap.destruct()
                                 init()
                             })
                         }

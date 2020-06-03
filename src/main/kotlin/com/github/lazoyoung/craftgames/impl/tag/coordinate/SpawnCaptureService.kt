@@ -1,15 +1,13 @@
 package com.github.lazoyoung.craftgames.impl.tag.coordinate
 
-import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
-import com.github.lazoyoung.craftgames.impl.Main
-import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.World
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.EntityType
 import org.bukkit.inventory.EquipmentSlot
 import java.math.RoundingMode
+import java.util.*
 
 class SpawnCaptureService(
         val x: Double,
@@ -21,9 +19,9 @@ class SpawnCaptureService(
         index: Int? = null
 ) : SpawnCapture, CoordCaptureService(mapID, index) {
 
-    override fun displayBorder(world: World, duration: Timer) {
-        super.displayBorder(world, duration)
+    var entityUUID: UUID? = null
 
+    override fun generateBorder(world: World) {
         val armorStand = world.spawnEntity(toLocation(world), EntityType.ARMOR_STAND) as ArmorStand
         armorStand.isMarker = true
         armorStand.removeWhenFarAway = false
@@ -32,10 +30,16 @@ class SpawnCaptureService(
         armorStand.setArms(true)
         armorStand.setBasePlate(false)
         armorStand.setGravity(false)
+        this.entityUUID = armorStand.uniqueId
+    }
 
-        Bukkit.getScheduler().runTaskLater(Main.instance, Runnable {
-            armorStand.remove()
-        }, duration.toTick())
+    override fun destroyBorder(world: World) {
+        if (entityUUID == null) {
+            return
+        }
+
+        val armorStand = world.getEntity(entityUUID!!) as? ArmorStand
+        armorStand?.remove()
     }
 
     override fun serialize() : String {

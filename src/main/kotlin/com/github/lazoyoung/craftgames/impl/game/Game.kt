@@ -11,10 +11,10 @@ import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
-import com.github.lazoyoung.craftgames.impl.game.player.*
 import com.github.lazoyoung.craftgames.impl.game.module.*
+import com.github.lazoyoung.craftgames.impl.game.player.*
+import com.github.lazoyoung.craftgames.impl.listener.MessangerListener
 import com.github.lazoyoung.craftgames.impl.util.LocationUtil
-import com.github.lazoyoung.craftgames.impl.util.MessengerUtil
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.ComponentBuilder
 import org.bukkit.Bukkit
@@ -543,9 +543,9 @@ class Game(
         player.teleport(exitLoc, cause)
 
         if (lobby.exitServer != null) {
-            MessengerUtil.request(player, arrayOf("GetServers"), Consumer { servers ->
+            MessangerListener.request(player, arrayOf("GetServers"), Consumer { servers ->
                 if (servers?.split(", ")?.contains(lobby.exitServer!!) == true) {
-                    MessengerUtil.request(player, arrayOf("Connect", lobby.exitServer!!))
+                    MessangerListener.request(player, arrayOf("Connect", lobby.exitServer!!))
                 }
             })
         }

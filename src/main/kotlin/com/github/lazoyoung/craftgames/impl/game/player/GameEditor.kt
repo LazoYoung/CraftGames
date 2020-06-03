@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.impl.game.player
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
+import com.github.lazoyoung.craftgames.api.event.GameEditorSaveEvent
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
@@ -148,7 +149,6 @@ class GameEditor private constructor(
      * @throws RuntimeException Thrown if it's unable to save map for some reason.
      */
     fun saveAndClose() {
-
         if (game.phase == GamePhase.TERMINATE) {
             player.sendMessage("\u00A7cGame is already closing.")
             return
@@ -162,9 +162,11 @@ class GameEditor private constructor(
         val targetOrigin = game.resource.mapRegistry.getMap(mapID)!!.directory
         val gameService = game.getGameService()
 
-        /*
-         * Announce
-         */
+        // Call event
+        val event = GameEditorSaveEvent(game, this)
+        Bukkit.getPluginManager().callEvent(event)
+
+        // Announce
         val actionbar = ActionbarTask(
                 player = player,
                 period = Timer(TimeUnit.SECOND, 1L),
@@ -182,14 +184,8 @@ class GameEditor private constructor(
         // Save resources
         game.resource.saveToDisk()
 
-        /*
-         * Save world
-         */
-        try {
-            game.map.world!!.save()
-        } catch (e: NullPointerException) {
-            throw RuntimeException("Unable to save map because the world is null.", e)
-        }
+        // Save world
+        checkNotNull(game.map.world).save()
 
         val target = targetOrigin.parent!!
         val renameTo: Path
