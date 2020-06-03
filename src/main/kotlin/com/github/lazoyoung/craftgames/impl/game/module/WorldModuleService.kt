@@ -1,10 +1,8 @@
-package com.github.lazoyoung.craftgames.impl.game.service
+package com.github.lazoyoung.craftgames.impl.game.module
 
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.WorldModule
-import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
-import com.github.lazoyoung.craftgames.api.tag.coordinate.BlockCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
@@ -13,6 +11,8 @@ import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.exception.UndefinedCoordTag
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.BlockCaptureService
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.WorldEditException
@@ -78,7 +78,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
     override fun setBorderCenter(blockTag: String, index: Int) {
         val tag = ModuleService.getRelevantTag(game, blockTag, TagMode.BLOCK)
         val capture = tag.getCaptures(getMapID())
-                .filterIsInstance(BlockCapture::class.java)[index]
+                .filterIsInstance(BlockCaptureService::class.java)[index]
 
         getWorldBorder().setCenter(capture.x.toDouble(), capture.z.toDouble())
     }
@@ -136,7 +136,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
             throw UndefinedCoordTag("$blockTag has no capture in map: $mapID")
         }
 
-        captures.filterIsInstance(BlockCapture::class.java).forEach {
+        captures.filterIsInstance(BlockCaptureService::class.java).forEach {
             val ident = ctag.name.plus("/").plus(it.index)
             val block = it.getBlock(world)
             val state = block.state
@@ -165,7 +165,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
         captures.forEach {
             when (coordTag.mode) {
                 TagMode.AREA -> {
-                    val capture = it as AreaCapture
+                    val capture = it as AreaCaptureService
                     var x = capture.x1
                     var y = capture.y1
                     var z = capture.z1
@@ -186,7 +186,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
                     } while (z <= capture.z2)
                 }
                 TagMode.BLOCK -> {
-                    val capture = it as BlockCapture
+                    val capture = it as BlockCaptureService
 
                     world.getBlockAt(capture.x, capture.y, capture.z).type = material
                     counter++
@@ -219,7 +219,7 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
             val session = WorldEdit.getInstance().editSessionFactory
                     .getEditSession(BukkitAdapter.adapt(world), maxBlocks)
 
-            ctag.getCaptures(game.map.id).filterIsInstance(BlockCapture::class.java).forEach { capture ->
+            ctag.getCaptures(game.map.id).filterIsInstance(BlockCaptureService::class.java).forEach { capture ->
                 script.printDebug("Placing schematic ${file.name} at ${ctag.name}/${capture.index}")
 
                 try {
@@ -305,8 +305,8 @@ class WorldModuleService(private val game: Game) : WorldModule, Service {
 
         val world = game.getWorldService().getWorld()
         val captures = tag.getCaptures(game.map.id)
-                .filterIsInstance(AreaCapture::class.java)
-        val futureMap = LinkedHashMap<CompletableFuture<Chunk>, AreaCapture>()
+                .filterIsInstance(AreaCaptureService::class.java)
+        val futureMap = LinkedHashMap<CompletableFuture<Chunk>, AreaCaptureService>()
         val totalMobs = LinkedList<T>()
 
         // Load chunks asynchronously

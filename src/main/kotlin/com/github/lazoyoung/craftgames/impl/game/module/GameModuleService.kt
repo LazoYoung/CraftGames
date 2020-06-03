@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.impl.game.service
+package com.github.lazoyoung.craftgames.impl.game.module
 
 import com.github.lazoyoung.craftgames.api.GameResult
 import com.github.lazoyoung.craftgames.api.TimeUnit

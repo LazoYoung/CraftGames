@@ -1,4 +1,4 @@
-package com.github.lazoyoung.craftgames.impl.game.service
+package com.github.lazoyoung.craftgames.impl.game.module
 
 import com.destroystokyo.paper.Title
 import com.github.lazoyoung.craftgames.api.ActionbarTask
@@ -6,9 +6,9 @@ import com.github.lazoyoung.craftgames.api.PlayerType
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.PlayerModule
-import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
-import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.SpawnCaptureService
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.command.page.RESET_FORMAT
@@ -370,10 +370,10 @@ class PlayerModuleService internal constructor(private val game: Game) : PlayerM
             }
 
             when (capture) {
-                is AreaCapture -> {
+                is AreaCaptureService -> {
                     future = capture.toLocation(world, maxAttempt)
                 }
-                is SpawnCapture -> {
+                is SpawnCaptureService -> {
                     future = CompletableFuture<Location>()
                     future.complete(capture.toLocation(world))
                 }

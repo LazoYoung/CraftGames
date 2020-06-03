@@ -3,6 +3,7 @@ package com.github.lazoyoung.craftgames.api.tag.coordinate
 import com.github.lazoyoung.craftgames.api.module.WorldModule
 import com.github.lazoyoung.craftgames.impl.game.GameMap
 import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.CoordCaptureService
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -10,7 +11,7 @@ class CoordTag internal constructor(
         name: String,
         mode: TagMode,
         val registry: TagRegistry,
-        private val captures: LinkedList<CoordCapture>,
+        private val captures: LinkedList<CoordCaptureService>,
         private var suppress: Boolean
 ) {
     var name = name
@@ -21,14 +22,14 @@ class CoordTag internal constructor(
         private set
 
     /**
-     * Returns every [CoordCapture] in this game.
+     * Returns every [CoordCaptureService] in this game.
      *
      * @param mapID Excludes the captures outside the given map, if specified.
      * @return List of CoordCapture matching the conditions.
      * @throws IllegalStateException is raised if [removed] is true.
      * @see [WorldModule.getMapID]
      */
-    fun getCaptures(mapID: String?): List<CoordCapture> {
+    fun getCaptures(mapID: String?): List<CoordCaptureService> {
         check(!removed) {
             "This tag has been removed."
         }
@@ -91,7 +92,7 @@ class CoordTag internal constructor(
      * @throws IllegalArgumentException if [capture] is not registerd to a tag.
      * @throws IllegalStateException is raised if [removed] is true.
      */
-    internal fun removeCapture(capture: CoordCapture) {
+    internal fun removeCapture(capture: CoordCaptureService) {
         requireNotNull(capture.mapID)
         check(!removed)
 

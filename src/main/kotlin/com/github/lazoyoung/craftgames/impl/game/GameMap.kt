@@ -1,11 +1,11 @@
 package com.github.lazoyoung.craftgames.impl.game
 
-import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
-import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.SpawnCaptureService
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
-import com.github.lazoyoung.craftgames.impl.game.service.WorldModuleService
+import com.github.lazoyoung.craftgames.impl.game.module.WorldModuleService
 import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
 import com.github.lazoyoung.craftgames.impl.util.FileUtil
 import org.bukkit.*
@@ -32,7 +32,7 @@ class GameMap internal constructor(
         val isLobby: Boolean = false,
 
         /** Key: Tag name, Value: AreaCapture instance **/
-        internal val areaRegistry: HashMap<String, List<AreaCapture>> = HashMap(),
+        internal val areaRegistry: HashMap<String, List<AreaCaptureService>> = HashMap(),
 
         /** Path to original map folder. **/
         internal val directory: Path,
@@ -103,10 +103,10 @@ class GameMap internal constructor(
                     throw FaultyConfiguration("Unable to locate map directory: $mapID in ${layout.path}", e)
                 }
 
-                val areaRegistry = HashMap<String, List<AreaCapture>>()
+                val areaRegistry = HashMap<String, List<AreaCaptureService>>()
 
                 tagRegistry.getCoordTags().filter { it.mode == TagMode.AREA }.forEach {
-                    areaRegistry[it.name] = it.getCaptures(mapID) as List<AreaCapture>
+                    areaRegistry[it.name] = it.getCaptures(mapID) as List<AreaCaptureService>
                 }
 
                 val map = GameMap(mapID, alias, description, isLobby, areaRegistry, directory, tagRegistry)
@@ -330,13 +330,13 @@ class GameMap internal constructor(
                     loop@ for (capture in it.getCaptures(id)) {
 
                         val cursorList: List<Pair<Int, Int>> = when (capture) {
-                            is SpawnCapture -> {
+                            is SpawnCaptureService -> {
                                 val xCursor = floor(capture.x / 16).toInt()
                                 val zCursor = floor(capture.z / 16).toInt()
 
                                 listOf(Pair(xCursor, zCursor))
                             }
-                            is AreaCapture -> {
+                            is AreaCaptureService -> {
                                 var xCursor = WorldModuleService.getChunkX(capture.x1)
                                 var zCursor = WorldModuleService.getChunkZ(capture.z1)
                                 val pairs = LinkedList<Pair<Int, Int>>()

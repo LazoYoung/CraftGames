@@ -1,16 +1,16 @@
-package com.github.lazoyoung.craftgames.impl.game.service
+package com.github.lazoyoung.craftgames.impl.game.module
 
 import com.denizenscript.denizen.npc.traits.AssignmentTrait
 import com.github.lazoyoung.craftgames.api.module.MobModule
 import com.github.lazoyoung.craftgames.api.shopkeepers.GameShopkeeper
-import com.github.lazoyoung.craftgames.api.tag.coordinate.AreaCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
-import com.github.lazoyoung.craftgames.api.tag.coordinate.SpawnCapture
 import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.DependencyNotFound
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.Game
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.SpawnCaptureService
 import com.github.lazoyoung.craftgames.impl.util.DependencyUtil
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import com.nisovin.shopkeepers.api.shopkeeper.DefaultShopTypes
@@ -44,7 +44,6 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.*
 import java.util.concurrent.CompletableFuture
-import java.util.function.Consumer
 import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule, Service {
@@ -65,23 +64,6 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
     override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
         return livingEntity.type.key
-    }
-
-    override fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>) {
-        game.getWorldService().getEntitiesInside(areaTag, Consumer<List<Mob>> {
-            try {
-                callback.accept(it)
-            } catch (t: Throwable) {
-                script.writeStackTrace(t)
-                game.forceStop(error = true)
-            }
-
-            script.printDebug(it.joinToString(
-                    prefix = "Found ${it.size} mobs inside $areaTag: ",
-                    limit = 10,
-                    transform = { mob -> mob.type.name })
-            )
-        })
     }
 
     // Dependency-bound functions should be separated into modules.
@@ -305,11 +287,11 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
         return when (val mode = tag.mode) {
             TagMode.SPAWN -> {
-                val capture = captures.filterIsInstance(SpawnCapture::class.java).random()
+                val capture = captures.filterIsInstance(SpawnCaptureService::class.java).random()
                 CompletableFuture.completedFuture(capture.toLocation(world))
             }
             TagMode.AREA -> {
-                val capture = captures.filterIsInstance(AreaCapture::class.java).random()
+                val capture = captures.filterIsInstance(AreaCaptureService::class.java).random()
                 capture.toLocation(world, maxAttempt)
             }
             else -> throw IllegalArgumentException("Cannot spawn with ${mode.label} tag.")

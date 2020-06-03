@@ -3,7 +3,7 @@ package com.github.lazoyoung.craftgames.impl.util
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.GameResource
-import com.github.lazoyoung.craftgames.impl.game.service.CommandModuleService
+import com.github.lazoyoung.craftgames.impl.game.module.CommandModuleService
 import com.github.lazoyoung.craftgames.impl.script.groovy.GameScriptGroovy
 import com.nisovin.shopkeepers.api.ShopkeepersAPI
 import org.bukkit.Bukkit

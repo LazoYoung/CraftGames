@@ -1,47 +1,82 @@
-package com.github.lazoyoung.craftgames.impl.game.service
+package com.github.lazoyoung.craftgames.impl.game.module
 
+import com.github.lazoyoung.craftgames.api.CommandHandler
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.api.module.ScriptModule
+import com.github.lazoyoung.craftgames.api.module.CommandModule
 import com.github.lazoyoung.craftgames.api.script.GameScript
-import com.github.lazoyoung.craftgames.api.script.ScriptCompiler
-import com.github.lazoyoung.craftgames.api.script.ScriptFactory
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.game.Game
-import org.bukkit.Bukkit
+import com.github.lazoyoung.craftgames.impl.game.GameLayout
+import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
+import io.github.jorelali.commandapi.api.CommandAPI
+import io.github.jorelali.commandapi.api.CommandExecutor
+import io.github.jorelali.commandapi.api.CommandPermission
+import io.github.jorelali.commandapi.api.arguments.Argument
+import org.bukkit.command.ProxiedCommandSender
 import org.bukkit.configuration.file.YamlConfiguration
-import org.bukkit.entity.LivingEntity
+import org.bukkit.entity.Entity
+import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.*
-import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.function.Consumer
 
-class ScriptModuleService internal constructor(
-        private val game: Game
-) : ScriptModule, Service {
+class CommandModuleService(
+        private val script: GameScript,
+        private val layout: GameLayout
+) : CommandModule, Service {
 
-    private val resource = game.resource
-    private val script = resource.mainScript
     private val tasks = ArrayList<BukkitTask>()
 
     override fun setLogVerbosity(verbose: Boolean) {
         script.debug = verbose
     }
 
-    override fun getScript(fileName: String, mode: ScriptCompiler?): GameScript {
-        val file = resource.layout.scriptDir.resolve(fileName)
+    override fun register(name: String, permissions: CommandPermission, aliases: Array<String>?,
+                          args: LinkedHashMap<String, Argument>?, handler: CommandHandler) {
+        val executor = CommandExecutor { sender, arguments ->
 
-        require(Files.isRegularFile(file)) {
-            "Unable to locate file: $file"
+            val callee = if (sender is ProxiedCommandSender) {
+                sender.callee
+            } else {
+                sender
+            }
+
+            when (callee) {
+                is Player -> {
+                    val playerData = PlayerData.get(callee)
+
+                    if (playerData?.isOnline() == true) {
+                        try {
+                            handler.run(playerData.getGame().module, callee, arguments)
+                            return@CommandExecutor
+                        } catch (t: Throwable) {
+                            script.writeStackTrace(t)
+                        }
+                    }
+                }
+                is Entity -> {
+                    val game = Game.getByWorld(callee.world)
+
+                    if (game != null) {
+                        try {
+                            handler.run(game.module, callee, arguments)
+                            return@CommandExecutor
+                        } catch (t: Throwable) {
+                            script.writeStackTrace(t)
+                        }
+                    }
+                }
+            }
+
+            sender.sendMessage("\u00A7eThis command is inactive.")
         }
-        require(this.isPassiveScript(file)) {
-            "$file is not a passive script."
-        }
-        return ScriptFactory.get(file, mode ?: ScriptCompiler.getDefault())
+
+        CommandAPI.getInstance().register(name, permissions,
+                aliases ?: emptyArray(), args ?: LinkedHashMap(), executor)
     }
 
     override fun repeat(counter: Int, interval: Timer, task: Runnable): BukkitTask {
@@ -88,38 +123,11 @@ class ScriptModuleService internal constructor(
         return bukkitTask
     }
 
-    override fun dispatchCommand(target: LivingEntity, commandLine: String): Boolean {
-        val wasOp = target.isOp
-        val result: Boolean
-
-        if (commandLine.split(" ").any { it.equals("op", true) }
-                || target.isDead || target.world.name != game.map.worldName) {
-            return false
-        }
-
-        try {
-            target.isOp = true
-            result = Bukkit.getServer().dispatchCommand(target, commandLine)
-        } finally {
-            if (!wasOp) {
-                target.isOp = false
-            }
-        }
-
-        if (result) {
-            script.printDebug("Successfully dispatched command: $commandLine")
-        } else {
-            script.print("Failed to dispatch command: $commandLine")
-        }
-
-        return result
-    }
-
     override fun getFile(path: String): File {
         if (Paths.get(path).isAbsolute)
             throw IllegalArgumentException("Absolute path is not allowed.")
 
-        val file = resource.layout.root.resolve(path).toFile()
+        val file = layout.root.resolve(path).toFile()
 
         if (!file.isFile) {
             file.parentFile!!.mkdirs()
@@ -207,20 +215,10 @@ class ScriptModuleService internal constructor(
     override fun start() {}
 
     override fun terminate() {
-        script.clear()
-
         tasks.forEach {
             try {
                 it.cancel()
             } catch (e: Throwable) {}
         }
     }
-
-    private fun isPassiveScript(file: Path): Boolean {
-        val excludes = listOf(game.resource.mainScript, game.resource.commandScript)
-
-        if (!Files.isRegularFile(file)) return false
-        return excludes.firstOrNull { it?.file == file } == null
-    }
-
 }

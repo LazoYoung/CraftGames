@@ -3,16 +3,15 @@ package com.github.lazoyoung.craftgames.impl.command
 import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
-import com.github.lazoyoung.craftgames.api.tag.coordinate.*
-import com.github.lazoyoung.craftgames.impl.Main
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.impl.command.page.*
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
 import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
-import com.github.lazoyoung.craftgames.impl.tag.coordinate.CoordTagFilter
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.*
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.*
-import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -326,23 +325,15 @@ class CoordTagCommand : CommandBase("CoordTag") {
 
                 if (args[0].equals("tp", true)) {
 
-                    fun teleport(capture: CoordCapture) {
-                        val future = capture.teleport(sender)
-
-                        future.handleAsync { _, t ->
-                            if (t != null) {
-                                sender.sendMessage("$error ${t.localizedMessage}")
-                            } else {
-                                Bukkit.getScheduler().runTask(Main.instance, Runnable {
-                                    try {
-                                        ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-                                        capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 10))
-                                    } catch (e: IllegalStateException) {
-                                        // Do nothing
-                                    }
-                                })
+                    fun teleport(capture: CoordCaptureService) {
+                        capture.teleport(sender, Runnable {
+                            try {
+                                ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
+                                capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 10))
+                            } catch (e: IllegalStateException) {
+                                // Do nothing
                             }
-                        }
+                        })
                     }
 
                     when (args.size) {
@@ -471,7 +462,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
                     } else when (tag.mode) {
                         TagMode.SPAWN -> {
                             val loc = sender.location
-                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID)
+                            val capture = SpawnCaptureService(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID)
 
                             capture.add(tag)
                             capture.displayBorder(loc.world, displayTimer)
@@ -483,7 +474,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             ).start()
 
                             pdata.requestBlockPrompt(Consumer {
-                                val capture = BlockCapture(it.x, it.y, it.z, pdata.mapID)
+                                val capture = BlockCaptureService(it.x, it.y, it.z, pdata.mapID)
 
                                 capture.add(tag)
                                 capture.displayBorder(it.world, displayTimer)
@@ -497,7 +488,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             ).start()
 
                             pdata.requestAreaPrompt(BiConsumer { b1, b2 ->
-                                val capture = AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID)
+                                val capture = AreaCaptureService(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID)
 
                                 capture.add(tag)
                                 capture.displayBorder(b1.world, displayTimer)
@@ -864,19 +855,19 @@ class CoordTagCommand : CommandBase("CoordTag") {
             val text: String
 
             when (capture) {
-                is SpawnCapture -> {
+                is SpawnCaptureService -> {
                     val x = capture.x
                     val y = capture.y
                     val z = capture.z
                     text = "* Spawn $ci at $mapID ($x, $y, $z)"
                 }
-                is BlockCapture -> {
+                is BlockCaptureService -> {
                     val x = capture.x
                     val y = capture.y
                     val z = capture.z
                     text = "* Block $ci at $mapID ($x, $y, $z)"
                 }
-                is AreaCapture -> {
+                is AreaCaptureService -> {
                     val x1 = capture.x1
                     val x2 = capture.x2
                     val y1 = capture.y1

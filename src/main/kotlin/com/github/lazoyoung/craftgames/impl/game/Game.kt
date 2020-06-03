@@ -12,7 +12,7 @@ import com.github.lazoyoung.craftgames.impl.exception.GameJoinRejectedException
 import com.github.lazoyoung.craftgames.impl.exception.GameNotFound
 import com.github.lazoyoung.craftgames.impl.exception.MapNotFound
 import com.github.lazoyoung.craftgames.impl.game.player.*
-import com.github.lazoyoung.craftgames.impl.game.service.*
+import com.github.lazoyoung.craftgames.impl.game.module.*
 import com.github.lazoyoung.craftgames.impl.util.LocationUtil
 import com.github.lazoyoung.craftgames.impl.util.MessengerUtil
 import net.md_5.bungee.api.ChatColor

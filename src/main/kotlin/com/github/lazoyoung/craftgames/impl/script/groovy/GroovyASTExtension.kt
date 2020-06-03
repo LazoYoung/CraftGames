@@ -1,6 +1,6 @@
 package com.github.lazoyoung.craftgames.impl.script.groovy
 
-import com.github.lazoyoung.craftgames.impl.game.service.ModuleService
+import com.github.lazoyoung.craftgames.impl.game.module.ModuleService
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.MethodNode
 import org.codehaus.groovy.ast.expr.ArgumentListExpression

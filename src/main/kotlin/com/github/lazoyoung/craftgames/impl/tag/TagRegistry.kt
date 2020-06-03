@@ -1,10 +1,15 @@
 package com.github.lazoyoung.craftgames.impl.tag
 
-import com.github.lazoyoung.craftgames.api.tag.coordinate.*
+import com.github.lazoyoung.craftgames.api.tag.coordinate.CoordTag
+import com.github.lazoyoung.craftgames.api.tag.coordinate.TagMode
 import com.github.lazoyoung.craftgames.api.tag.item.ItemTag
 import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.exception.FaultyConfiguration
 import com.github.lazoyoung.craftgames.impl.game.GameLayout
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.AreaCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.BlockCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.CoordCaptureService
+import com.github.lazoyoung.craftgames.impl.tag.coordinate.SpawnCaptureService
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.inventory.ItemStack
 import java.io.File
@@ -119,13 +124,13 @@ class TagRegistry internal constructor(
                         ?: continue
                 val mode = TagMode.valueOf(modeStr)
                 val suppress = ctagConfig.getBoolean(name.plus(".suppress"), false)
-                val captureList = LinkedList<CoordCapture>()
+                val captureList = LinkedList<CoordCaptureService>()
                 val mapIterate = ctagConfig.getConfigurationSection(
                         name.plus('.').plus("captures")
                 )?.getKeys(false) ?: emptyList<String>()
 
                 for (map in mapIterate) {
-                    val list = ArrayList<CoordCapture>()
+                    val list = ArrayList<CoordCaptureService>()
                     var index = 0
 
                     for (line in getCoordCaptureStream(name, map)) {
@@ -138,13 +143,13 @@ class TagRegistry internal constructor(
                                 val z = arr[2].toBigDecimal().toDouble()
                                 val yaw = arr[3].toBigDecimal().toFloat()
                                 val pitch = arr[4].toBigDecimal().toFloat()
-                                list.add(SpawnCapture(x, y, z, yaw, pitch, map, index++))
+                                list.add(SpawnCaptureService(x, y, z, yaw, pitch, map, index++))
                             }
                             TagMode.BLOCK -> {
                                 val x = arr[0].toBigDecimal().toInt()
                                 val y = arr[1].toBigDecimal().toInt()
                                 val z = arr[2].toBigDecimal().toInt()
-                                list.add(BlockCapture(x, y, z, map, index++))
+                                list.add(BlockCaptureService(x, y, z, map, index++))
                             }
                             TagMode.AREA -> {
                                 val x1 = arr[0].toBigDecimal().toInt()
@@ -153,7 +158,7 @@ class TagRegistry internal constructor(
                                 val y2 = arr[3].toBigDecimal().toInt()
                                 val z1 = arr[4].toBigDecimal().toInt()
                                 val z2 = arr[5].toBigDecimal().toInt()
-                                list.add(AreaCapture(x1, x2, y1, y2, z1, z2, map, index++))
+                                list.add(AreaCaptureService(x1, x2, y1, y2, z1, z2, map, index++))
                             }
                         }
                     }

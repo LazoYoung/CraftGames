@@ -5,7 +5,7 @@ import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.module.GameModule
 import com.github.lazoyoung.craftgames.impl.game.Game
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
-import com.github.lazoyoung.craftgames.impl.game.service.PlayerModuleService
+import com.github.lazoyoung.craftgames.impl.game.module.PlayerModuleService
 import org.bukkit.Location
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
