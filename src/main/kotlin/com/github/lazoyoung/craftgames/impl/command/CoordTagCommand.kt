@@ -4,6 +4,7 @@ import com.github.lazoyoung.craftgames.api.ActionbarTask
 import com.github.lazoyoung.craftgames.api.TimeUnit
 import com.github.lazoyoung.craftgames.api.Timer
 import com.github.lazoyoung.craftgames.api.tag.coordinate.*
+import com.github.lazoyoung.craftgames.impl.Main
 import com.github.lazoyoung.craftgames.impl.command.page.*
 import com.github.lazoyoung.craftgames.impl.game.player.GameEditor
 import com.github.lazoyoung.craftgames.impl.game.player.PlayerData
@@ -11,6 +12,7 @@ import com.github.lazoyoung.craftgames.impl.tag.TagRegistry
 import com.github.lazoyoung.craftgames.impl.tag.coordinate.CoordTagFilter
 import net.md_5.bungee.api.ChatColor
 import net.md_5.bungee.api.chat.*
+import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -368,7 +370,7 @@ class CoordTagCommand : CommandBase("CoordTag") {
                         return true
                     }
 
-                    if (args.size > 2) {
+                    if (args.size == 3) {
                         try {
                             val capture = captures.firstOrNull { it.index == args[2].toInt() }
 
@@ -382,25 +384,31 @@ class CoordTagCommand : CommandBase("CoordTag") {
                         } catch (e: NumberFormatException) {
                             return false
                         }
+                    } else if (args.size > 3) {
+                        return false
                     }
 
-                    try {
-                        val text = if (captures.size == 1) {
-                            val capture = captures.first()
-                            capture.displayBorder(sender.world, timer)
+                    var counter = 0
+                    var message: String? = null
+                    val text = if (captures.size == 1) {
+                        "&9Displaying tag: $tagName/${captures.first().index}"
+                    } else {
+                        "&9Displaying tag: $tagName"
+                    }
 
-                            "&9Displaying tag: $tagName/${capture.index}"
-                        } else {
-                            captures.forEach {
-                                it.displayBorder(sender.world, timer)
-                            }
-
-                            "&9Displaying tag: $tagName"
+                    captures.forEach {
+                        try {
+                            it.displayBorder(sender.world, timer)
+                            counter++
+                        } catch (e: IllegalStateException) {
+                            message = e.message
                         }
+                    }
 
+                    if (counter > 0) {
                         ActionbarTask(sender, timer, text = *arrayOf(text)).start()
-                    } catch (e: IllegalStateException) {
-                        sender.sendMessage("$error ${e.message}")
+                    } else if (message != null) {
+                        sender.sendMessage("$error $message")
                     }
                 }
                 return true
@@ -456,13 +464,17 @@ class CoordTagCommand : CommandBase("CoordTag") {
 
                 try {
                     val tag = pdata.getGame().resource.tagRegistry.getCoordTag(args[1])
+                    val displayTimer = Timer(TimeUnit.SECOND, 10)
 
                     if (tag == null) {
                         sender.sendMessage("$error That tag does not exist.")
                     } else when (tag.mode) {
                         TagMode.SPAWN -> {
                             val loc = sender.location
-                            SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID).add(tag)
+                            val capture = SpawnCapture(loc.x, loc.y, loc.z, loc.yaw, loc.pitch, pdata.mapID)
+
+                            capture.add(tag)
+                            capture.displayBorder(loc.world, displayTimer)
                             ActionbarTask(sender, "&6Captured a spawnpoint.").start()
                         }
                         TagMode.BLOCK -> {
@@ -471,7 +483,10 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             ).start()
 
                             pdata.requestBlockPrompt(Consumer {
-                                BlockCapture(it.x, it.y, it.z, pdata.mapID).add(tag)
+                                val capture = BlockCapture(it.x, it.y, it.z, pdata.mapID)
+
+                                capture.add(tag)
+                                capture.displayBorder(it.world, displayTimer)
                                 ActionbarTask(sender, "&6Captured a block.").start()
                                 dialog.clear()
                             })
@@ -482,13 +497,16 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             ).start()
 
                             pdata.requestAreaPrompt(BiConsumer { b1, b2 ->
-                                AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID).add(tag)
+                                val capture = AreaCapture(b1.x, b2.x, b1.y, b2.y, b1.z, b2.z, pdata.mapID)
+
+                                capture.add(tag)
+                                capture.displayBorder(b1.world, displayTimer)
                                 ActionbarTask(sender, "&6Captured an area.").start()
                                 dialog.clear()
                             })
                         }
                     }
-                } catch (e: NullPointerException) {
+                } catch (e: Throwable) {
                     sender.sendMessage("$error Unexpected error! See console for details.")
                     e.printStackTrace()
                 }
