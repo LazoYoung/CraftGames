@@ -323,23 +323,31 @@ class CoordTagCommand : CommandBase("CoordTag") {
                 }
 
                 if (args[0].equals("tp", true)) {
-                    when (args.size) {
-                        2 -> {
-                            val capture = captures.random()
-                            val future = capture.teleport(sender)
 
-                            future.handle { _, t ->
-                                if (t != null) {
-                                    sender.sendMessage("$error ${t.localizedMessage}")
-                                } else try {
-                                    ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-                                    capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
-                                } catch (e: IllegalStateException) {
-                                    // Do nothing
-                                }
+                    fun teleport(capture: CoordCapture) {
+                        val future = capture.teleport(sender)
+
+                        future.handleAsync { _, t ->
+                            if (t != null) {
+                                sender.sendMessage("$error ${t.localizedMessage}")
+                            } else {
+                                Bukkit.getScheduler().runTask(Main.instance, Runnable {
+                                    try {
+                                        ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
+                                        capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 10))
+                                    } catch (e: IllegalStateException) {
+                                        // Do nothing
+                                    }
+                                })
                             }
                         }
-                        else -> {
+                    }
+
+                    when (args.size) {
+                        2 -> {
+                            teleport(captures.random())
+                        }
+                        3 -> {
                             val capture = captures.firstOrNull {
                                 it.index == args[2].toIntOrNull()
                             }
@@ -347,20 +355,10 @@ class CoordTagCommand : CommandBase("CoordTag") {
                             if (capture == null) {
                                 sender.sendMessage("$error Unable to find capture with index ${args[2]}.")
                             } else {
-                                val future = capture.teleport(sender)
-
-                                future.handle { _, t ->
-                                    if (t != null) {
-                                        sender.sendMessage("$error ${t.localizedMessage}")
-                                    } else try {
-                                        ActionbarTask(sender, "&9Teleported to $tagName/${capture.index}").start()
-                                        capture.displayBorder(sender.world, Timer(TimeUnit.SECOND, 20))
-                                    } catch (e: IllegalStateException) {
-                                        // Do nothing
-                                    }
-                                }
+                                teleport(capture)
                             }
                         }
+                        else -> return false
                     }
                 } else if (args[0].equals("display", true)) {
                     val timer = Timer(TimeUnit.SECOND, 20)

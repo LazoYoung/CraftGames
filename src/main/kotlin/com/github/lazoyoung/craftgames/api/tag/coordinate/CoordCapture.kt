@@ -11,7 +11,7 @@ abstract class CoordCapture(
         val mapID: String?,
         val index: Int?
 ) {
-    var display: Boolean = false
+    private var display: Boolean = false
 
     fun teleport(player: Player): CompletableFuture<Void> {
         val world = player.world
@@ -23,16 +23,14 @@ abstract class CoordCapture(
             else -> null
         }
 
-        return if (future == null) {
-            val failure = CompletableFuture<Void>()
-            failure.completeExceptionally(IllegalStateException("This CoordCapture has unknown type."))
-            failure
-        } else {
+        return if (future != null) {
             future.thenAcceptAsync {
                 Bukkit.getScheduler().runTask(Main.instance, Runnable {
                     player.teleport(it)
                 })
             }
+        } else {
+            error("This CoordCapture is not identifiable.")
         }
     }
 
