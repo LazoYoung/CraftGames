@@ -44,6 +44,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.function.Consumer
 import kotlin.random.Random
 
 class MobModuleService internal constructor(private val game: Game) : MobModule, Service {
@@ -64,6 +65,10 @@ class MobModuleService internal constructor(private val game: Game) : MobModule,
 
     override fun getNamespacedKey(livingEntity: LivingEntity): NamespacedKey {
         return livingEntity.type.key
+    }
+
+    override fun getMobsInside(areaTag: CoordTag, callback: Consumer<List<Mob>>) {
+        error("This is deprecated.")
     }
 
     // Dependency-bound functions should be separated into modules.
