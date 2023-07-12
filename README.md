@@ -2,6 +2,9 @@
 CraftGames is a Minecraft plugin running on Paper.
 You can make your own games by writing script in groovy language.
 
+### 한글 문서
+[프로젝트 기획서 원문 링크](https://docs.google.com/document/d/e/2PACX-1vQnWM5ZA5yBJKpLv78kVlipJm4EjOlRHDCJ8hDhF6cOrbnVgNG-u0p7tOgdVYp3zszAw-15ut56iI9y/pub)
+
 ### Release
 Not available at the moment!  
 Download package will be released [when it's ready](https://github.com/LazoYoung/CraftGames/milestone/1).
